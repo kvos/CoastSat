@@ -30,4 +30,4 @@ The shoreline coordinates (in the coordinate system defined by the user in *'out
 
 ## Issues and Contributions
 
-Looking to contribute to the code? Please see the [Issues page](../coastsat/issues).
+Looking to contribute to the code? Please see the [Issues page](https://github.com/kvos/coastsat/issues).

@@ -1,4 +1,4 @@
-# coastsat
+# CoastSat
 
 Python code to download publicly available satellite imagery with Google Earth Engine API and extract shorelines using a robust sub-pixel resolution shoreline detection algorithm described in *Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (in review). Capturing intra-annual to multi-decadal shoreline variability from publicly available satellite imagery, Coastal Engineering*.
 
@@ -10,11 +10,37 @@ Satellite remote sensing can provide low-cost long-term shoreline data capable o
 *coastsat* is an open-source Python module that allows to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
 The shoreline detection algorithm proposed here combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
+## Requirements
+
+In this section instructions on how to install all the necessary Python packages using *Anaconda* are provided.
+Best practice is to create a new environment that will contain all the packages. To do this open the *Anaconda prompt* and run the following command: 
+- *conda create -n coastsat python=3.6* (it will create a new Python 3.6 environment called *coastsat*)
+
+Then activate the new environment run:
+- *conda activate coastsat*
+
+Now you need to install **Google Earth Engine's Python API** module.
+Follow these steps to install the *earthengine-api* package:
+- go to https://earthengine.google.com and go to signup
+Go back to the *Anaconda prompt* where the *coastsat* environment is active and run the following commands:
+- *conda install -c conda-forge earthengine-api*
+- *earthengine authenticate* (this will open a web browser where you will have login with your Google Earth Engine credentials)
+
+Once you have installed the *earthengine-api*, you need to install the other Python packages that are used in this toolbox (*scikit-image*, *scikit-learn* etc...). 
+
+If on *win-64*, use the *Anaconda prompt* to navigate to the directory where you downloaded the repository and run:
+- *conda install --name coastsat --file environment.txt* (this will install all the necessary packages)
+
+Now you are ready to start using the toolbox!
+
+If on *linux* or *osx*, you can create the *coastsat* environment with the following command:
+- *conda env create -f environment.yml*
+
+Then, follow the instructions above to install *earthengine-api* in your environment.
+
 ## Use 
 
 A demonstration of the use of *coastsat* is provided in the Jupyter Notebook *shoreline_extraction.ipynb*. The code can also be run in Spyder with *main_spyder.py*.
-
-The Python packages required to run this notebook can be installed by running the following anaconda command: *conda env create -f environment.yml*. This will create a new enviroment with all the relevant packages installed. You will also need to sign up for Google Earth Engine (https://earthengine.google.com and go to signup) and authenticate on the computer so that python can access via your login.
 
 The first step is to retrieve the satellite images of the region of interest from Google Earth Engine servers by calling *SDS_download.get_images(sitename, polygon, dates, sat_list)*:
 - *sitename* is a string which will define the name of the folder where the files will be stored

@@ -410,16 +410,24 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         im_class[im_labels[:,:,k],2] = colours[k,2]
     # display MNDWI grayscale image
     im_mwi = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
+    
     # transform world coordinates of shoreline into pixel coordinates
-    sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline, settings['output_epsg'],
-                                                                image_epsg)[:,[0,1]], georef)
+    # use try/except in case there are no coordinates to be transformed (shoreline = [])
+    try:
+        sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
+                                                                    settings['output_epsg'],
+                                                                    image_epsg)[:,[0,1]], georef)
+    except:
+        # if try fails, just add nan into the shoreline vector so the next parts can still run
+        sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
+        
     # make figure
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 3)
     gs.update(bottom=0.05, top=0.95)
     ax1 = fig.add_subplot(gs[0,0])
     plt.imshow(im_RGB)
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k--')
+    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     plt.axis('off')
     ax1.set_anchor('W')
     btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
@@ -428,10 +436,10 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     btn_skip = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
                            transform=ax1.transAxes,
                            bbox=dict(boxstyle="square", ec='k',fc='w'))
-    plt.title('Click on <keep> if shoreline detection is correct. Click on <skip> if false detection')
+    plt.title(settings['sitename'] + '    ' + date + '     ' + satname, fontweight='bold', fontsize=16)
     ax2 = fig.add_subplot(gs[0,1])
     plt.imshow(im_class)
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k--')
+    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     plt.axis('off')
     ax2.set_anchor('W')
     orange_patch = mpatches.Patch(color=colours[0,:], label='sand')
@@ -441,7 +449,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     plt.legend(handles=[orange_patch,white_patch,blue_patch, black_line], bbox_to_anchor=(1, 0.5), fontsize=9) 
     ax3 = fig.add_subplot(gs[0,2])
     plt.imshow(im_mwi, cmap='bwr')
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k--')
+    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     plt.axis('off')
     cb = plt.colorbar()
     cb.ax.tick_params(labelsize=10)
@@ -453,7 +461,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     mng.window.showMaximized()
     
     # wait for user's selection (<keep> or <skip>)
-    pt = ginput(n=1, timeout=100, show_clicks=True)
+    pt = ginput(n=1, timeout=100000, show_clicks=True)
     pt = np.array(pt)
     # if clicks next to <skip>, return skip_image = True
     if pt[0][0] > im_ms.shape[1]/2:

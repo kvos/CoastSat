@@ -16,6 +16,7 @@ import skimage.exposure as exposure
 from pylab import ginput
 import pickle
 import pdb
+import shapely.geometry as geometry
 import SDS_tools
 
 # Functions
@@ -484,12 +485,12 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     # NIR
     plt.subplot(132)
     plt.axis('off')
-    plt.imshow(im_NIR, cmap='seismic')
+    plt.imshow(im_NIR, cmap='gray')
     plt.title('Near Infrared', fontsize=16)
     # SWIR
     plt.subplot(133)
     plt.axis('off')
-    plt.imshow(im_SWIR, cmap='seismic')
+    plt.imshow(im_SWIR, cmap='gray')
     plt.title('Short-wave Infrared', fontsize=16)
     # save figure
     plt.rcParams['savefig.jpeg_quality'] = 100
@@ -585,7 +586,7 @@ def preprocess_all_images(metadata, settings):
             date = filenames[i][:10]
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
                 
-def get_reference_sl(metadata, settings):
+def get_reference_sl_manual(metadata, settings):
     
     sitename = settings['sitename']
     
@@ -665,3 +666,36 @@ def get_reference_sl(metadata, settings):
                 break
             
     return pts_coords
+
+def get_reference_sl_from_db(polygon, settings):
+    
+    # load beaches database
+    filename = os.path.join(os.getcwd(), 'data', 'beaches_db', 'beaches.pkl')
+    with open(filename, 'rb') as f:
+        beaches = pickle.load(f)    
+    
+    # process polygon
+    polygon_epsg = 4326 # GDA94 geographic 
+    db_epsg= 28356      # GDA Map grid of Australia Zone 56
+    # convert polygon coordinates
+    polygon_conv = geometry.Polygon(SDS_tools.convert_epsg(np.array(polygon[0]),
+                                                           polygon_epsg, db_epsg)[:,:-1])
+    # find the beach contained in the polygon
+    in_polygon = []
+    for i,n in enumerate(list(beaches.keys())):
+        line = geometry.LineString(beaches[n]['coords'])
+        if polygon_conv.contains(line):
+            in_polygon.append(n)
+    # if more than one shoreline in the polygon append them
+    if len(in_polygon) > 1:
+        print('more than 1 beach in polygon!')
+        ref_sl = np.array([[np.nan, np.nan],[np.nan, np.nan]])
+        for i in range(len(in_polygon)):
+            ref_sl = np.append(ref_sl, beaches[in_polygon[i]]['coords'], axis=0)
+        ref_sl = np.delete(ref_sl,[0,1], axis=0)
+    elif len(in_polygon) == 0:
+        print('no shoreline was found in the database!')
+    else:
+        ref_sl = beaches[in_polygon[0]]['coords']
+        
+    return ref_sl

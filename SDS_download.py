@@ -7,6 +7,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import skimage.morphology as morphology
 import pdb
 import ee
 from urllib.request import urlretrieve
@@ -14,6 +15,9 @@ from datetime import datetime
 import pytz
 import pickle
 import zipfile
+import gdal_merge
+
+import SDS_preprocess, SDS_tools
 
 # initialise connection with GEE server
 ee.Initialize()
@@ -49,7 +53,7 @@ def download_tif(image, polygon, bandsId, filepath):
         return local_zipfile.extract('data.tif', filepath)
 
 
-def get_images(sitename,polygon,dates,sat):
+def get_images(inputs):
     """
     Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 covering the given 
     polygon and acquired during the given dates. The images are organised in subfolders and divided
@@ -59,6 +63,7 @@ def get_images(sitename,polygon,dates,sat):
         
     Arguments:
     -----------
+    inputs is a dictionnary that contains the following fields:
         sitename: str
             String containig the name of the site
         polygon: list
@@ -67,11 +72,16 @@ def get_images(sitename,polygon,dates,sat):
         dates: list of str
             list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
             e.g. ['1987-01-01', '2018-01-01']
-        sat: list of str
+        sat_list: list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
             
     """
+    # read inputs dictionnary
+    sitename = inputs['sitename']
+    polygon = inputs['polygon']
+    dates = inputs['dates']
+    sat_list= inputs['sat_list']
     
     # format in which the images are downloaded
     suffix = '.tif'
@@ -89,7 +99,7 @@ def get_images(sitename,polygon,dates,sat):
     # download L5 images
     #=============================================================================================#
     
-    if 'L5' in sat or 'Landsat5' in sat:
+    if 'L5' in sat_list or 'Landsat5' in sat_list:
         
         satname = 'L5'
         # create a subfolder to store L5 images
@@ -112,6 +122,7 @@ def get_images(sitename,polygon,dates,sat):
        # loop trough images
         timestamps = []
         acc_georef = []
+        filenames = []
         all_names = []
         im_epsg = []
         for i in range(n_img):
@@ -147,21 +158,28 @@ def get_images(sitename,polygon,dates,sat):
             if any(filename in _ for _ in all_names):
                 filename = im_date + '_' + satname + '_' + sitename + '_dup' + suffix 
             all_names.append(filename)
+            filenames.append(filename)
             # download .TIF image
             local_data = download_tif(im, polygon, ms_bands, filepath)
             # update filename
-            os.rename(local_data, os.path.join(filepath, filename))
+            try:
+                os.rename(local_data, os.path.join(filepath, filename))
+            except:
+                os.remove(os.path.join(filepath, filename))
+                os.rename(local_data, os.path.join(filepath, filename))
+                    
             print(i, end='..')
         
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
+        filenames_sorted = [filenames[j] for j in idx_sorted]
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         # save into dict
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted}   
-        print('Finished with ' + satname)
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}   
+        print('\nFinished with ' + satname)
     
     
     
@@ -169,7 +187,7 @@ def get_images(sitename,polygon,dates,sat):
     # download L7 images
     #=============================================================================================#
     
-    if 'L7' in sat or 'Landsat7' in sat:
+    if 'L7' in sat_list or 'Landsat7' in sat_list:
         
         satname = 'L7'
         # create subfolders (one for 30m multispectral bands and one for 15m pan bands)
@@ -195,6 +213,7 @@ def get_images(sitename,polygon,dates,sat):
         # loop trough images
         timestamps = []
         acc_georef = []
+        filenames = []
         all_names = []
         im_epsg = []
         for i in range(n_img):
@@ -232,31 +251,42 @@ def get_images(sitename,polygon,dates,sat):
             if any(filename_pan in _ for _ in all_names):
                 filename_pan = im_date + '_' + satname + '_' + sitename + '_pan' + '_dup' + suffix
                 filename_ms = im_date + '_' + satname + '_' + sitename + '_ms' + '_dup' + suffix 
-            all_names.append(filename_pan)        
+            all_names.append(filename_pan)
+            filenames.append(filename_ms)
             # download .TIF image
             local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
             local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
             # update filename
-            os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
-            os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            try:
+                os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
+            except:
+                os.remove(os.path.join(filepath_pan, filename_pan))
+                os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
+            try:
+                os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            except:
+                os.remove(os.path.join(filepath_ms, filename_ms))
+                os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            
             print(i, end='..')  
             
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
+        filenames_sorted = [filenames[j] for j in idx_sorted]
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         # save into dict
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted}
-        print('Finished with ' + satname)
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}
+        print('\nFinished with ' + satname)
         
         
     #=============================================================================================#
     # download L8 images
     #=============================================================================================#
     
-    if 'L8' in sat or 'Landsat8' in sat:
+    if 'L8' in sat_list or 'Landsat8' in sat_list:
 
         satname = 'L8'  
         # create subfolders (one for 30m multispectral bands and one for 15m pan bands)
@@ -282,6 +312,7 @@ def get_images(sitename,polygon,dates,sat):
        # loop trough images
         timestamps = []
         acc_georef = []
+        filenames = []
         all_names = []
         im_epsg = []
         for i in range(n_img):
@@ -319,30 +350,41 @@ def get_images(sitename,polygon,dates,sat):
             if any(filename_pan in _ for _ in all_names):
                 filename_pan = im_date + '_' + satname + '_' + sitename + '_pan' + '_dup' + suffix
                 filename_ms = im_date + '_' + satname + '_' + sitename + '_ms' + '_dup' + suffix 
-            all_names.append(filename_pan)        
+            all_names.append(filename_pan)  
+            filenames.append(filename_ms)
             # download .TIF image
             local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
             local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
             # update filename
-            os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
-            os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            try:
+                os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
+            except:
+                os.remove(os.path.join(filepath_pan, filename_pan))
+                os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
+            try:
+                os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            except:
+                os.remove(os.path.join(filepath_ms, filename_ms))
+                os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+                
             print(i, end='..')
     
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
+        filenames_sorted = [filenames[j] for j in idx_sorted]
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted}
-        print('Finished with ' + satname)
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}
+        print('\nFinished with ' + satname)
 
     #=============================================================================================#
     # download S2 images
     #=============================================================================================#
     
-    if 'S2' in sat or 'Sentinel2' in sat:
+    if 'S2' in sat_list or 'Sentinel2' in sat_list:
 
         satname = 'S2' 
         # create subfolders for the 10m, 20m and 60m multipectral bands
@@ -367,6 +409,7 @@ def get_images(sitename,polygon,dates,sat):
        # loop trough images
         timestamps = []
         acc_georef = []
+        filenames = []
         all_names = []
         im_epsg = []
         for i in range(n_img):
@@ -394,15 +437,34 @@ def get_images(sitename,polygon,dates,sat):
             filename60 = im_date + '_' + satname + '_' + sitename + '_' + '60m' + suffix
             # if two images taken at the same date skip the second image (they are the same)
             if any(filename10 in _ for _ in all_names):
-                continue
+                filename10.find('.')
+                filename10 = filename10[:filename10.find('.')] + '_dup' + suffix
+                filename20 = filename20[:filename20.find('.')] + '_dup' + suffix
+                filename60 = filename60[:filename60.find('.')] + '_dup' + suffix
             all_names.append(filename10)  
+            filenames.append(filename10)
+            
             # download .TIF image and update filename
             local_data = download_tif(im, polygon, bands10, os.path.join(filepath, '10m'))
-            os.rename(local_data, os.path.join(filepath, '10m', filename10))
+            try:
+                os.rename(local_data, os.path.join(filepath, '10m', filename10))
+            except:
+                os.remove(os.path.join(filepath, '10m', filename10))
+                os.rename(local_data, os.path.join(filepath, '10m', filename10))
+                
             local_data = download_tif(im, polygon, bands20, os.path.join(filepath, '20m'))
-            os.rename(local_data, os.path.join(filepath, '20m', filename20))
+            try:
+                os.rename(local_data, os.path.join(filepath, '20m', filename20))
+            except:
+                os.remove(os.path.join(filepath, '20m', filename20))
+                os.rename(local_data, os.path.join(filepath, '20m', filename20))
+                
             local_data = download_tif(im, polygon, bands60, os.path.join(filepath, '60m'))
-            os.rename(local_data, os.path.join(filepath, '60m', filename60))
+            try:
+                os.rename(local_data, os.path.join(filepath, '60m', filename60))
+            except:
+                os.remove(os.path.join(filepath, '60m', filename60))
+                os.rename(local_data, os.path.join(filepath, '60m', filename60))
     
             # save timestamp, epsg code and georeferencing accuracy (1 if passed 0 if not passed)
             timestamps.append(im_timestamp)
@@ -420,13 +482,162 @@ def get_images(sitename,polygon,dates,sat):
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
+        filenames_sorted = [filenames[j] for j in idx_sorted]
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted} 
-        print('Finished with ' + satname)
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted} 
+        print('\nFinished with ' + satname)
+    
+    # merge overlapping images (only if polygon is at the edge of an image)
+    metadata = merge_overlapping_images(metadata,inputs)
 
     # save metadata dict
     filepath = os.path.join(os.getcwd(), 'data', sitename)
     with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'wb') as f:
-        pickle.dump(metadata, f) 
+        pickle.dump(metadata, f)
+    
+    return metadata
+        
+            
+def merge_overlapping_images(metadata,inputs):
+    """
+    When the area of interest is located at the boundary between 2 images, there will be overlap 
+    between the 2 images and both will be downloaded from Google Earth Engine. This functions 
+    merges the 2 images, so that the area of interest is covered by only 1 image.
+    
+    KV WRL 2018
+        
+    Arguments:
+    -----------
+        metadata: dict
+            contains all the information about the satellite images that were downloaded
+            
+    inputs is a dictionnary that contains the following fields:
+        sitename: str
+            String containig the name of the site
+        polygon: list
+            polygon containing the lon/lat coordinates to be extracted
+            longitudes in the first column and latitudes in the second column
+        dates: list of str
+            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
+            e.g. ['1987-01-01', '2018-01-01']
+        sat_list: list of str
+            list that contains the names of the satellite missions to include 
+            e.g. ['L5', 'L7', 'L8', 'S2']
+        
+    Returns:
+    -----------
+        metadata: dict
+            updated metadata with the information of the merged images
+            
+    """
+
+    # only for Sentinel-2 at this stage
+    sat = 'S2'
+    filepath = os.path.join(os.getcwd(), 'data', inputs['sitename'])
+    
+    # find the images that are overlapping (same date in S2 filenames)
+    filenames = metadata[sat]['filenames']
+    filenames_copy = filenames.copy()
+    
+    # loop through all the filenames and find the pairs of overlapping images
+    pairs = []
+    for i,fn in enumerate(filenames):
+        # delete the given fn from the filenames copy
+        filenames_copy[i] = []
+        # find duplicate
+        boolvec = [fn[:22] == _[:22] for _ in filenames_copy]
+        if np.any(boolvec):
+            idx_dup = np.where(boolvec)[0][0]
+            pairs.append([i,idx_dup])
+            
+    msg = 'Merging %d pairs of overlapping images...' % len(pairs)
+    print(msg)
+                        
+    for i,pair in enumerate(pairs):
+        print(i, end='..')
+        fn_im = []
+        for index in range(len(pair)):            
+            # read image
+            fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
+                  os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
+                  os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m'))])
+        
+            im_ms, georef, cloud_mask, im20, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat) 
+        
+            # in Sentinel2 images close to the edge of the image there are some artefacts, 
+            # that are squares with constant pixel intensities. They need to be masked in the 
+            # raster (GEOTIFF). It can be done using the image standard deviation, which 
+            # indicates values close to 0 for the artefacts.
+            
+            # First mask the 10m bands
+            im_std = SDS_tools.image_std(im_ms[:,:,0],1)
+            im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+            mask = morphology.dilation(im_binary, morphology.square(3))
+            for k in range(im_ms.shape[2]):
+                im_ms[mask,k] = np.nan
+            
+            SDS_tools.mask_raster(fn_im[index][0], mask)
+            
+            # Then mask the 20m band
+            im_std = SDS_tools.image_std(im20,1)
+            im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+            mask = morphology.dilation(im_binary, morphology.square(3))     
+            im20[mask] = np.nan
+            
+            SDS_tools.mask_raster(fn_im[index][1], mask) 
+            
+#            plt.figure()
+#            plt.subplot(221)
+#            plt.imshow(im_ms[:,:,[2,1,0]])
+#            plt.title('imRGB')
+#            plt.subplot(222)
+#            plt.imshow(im20, cmap='gray')
+#            plt.title('im20')
+#            plt.subplot(223)
+#            plt.imshow(imQA, cmap='gray')
+#            plt.title('imQA')
+#            plt.subplot(224)
+#            plt.title(fn_im[index][0][-30:])
+                        
+        # merge masked 10m bands
+        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
+        gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][0], fn_im[1][0]])
+        os.chmod(fn_im[0][0], 0o777)
+        os.remove(fn_im[0][0])
+        os.chmod(fn_im[1][0], 0o777)
+        os.remove(fn_im[1][0])
+        os.rename(fn_merged, fn_im[0][0])
+        
+        # merge masked 20m band
+        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
+        gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][1], fn_im[1][1]])
+        os.chmod(fn_im[0][1], 0o777)
+        os.remove(fn_im[0][1])
+        os.chmod(fn_im[1][1], 0o777)
+        os.remove(fn_im[1][1])
+        os.rename(fn_merged, fn_im[0][1])
+    
+        # merge QA band
+        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
+        gdal_merge.main(['', '-o', fn_merged, '-n', 'nan', fn_im[0][2], fn_im[1][2]])
+        os.chmod(fn_im[0][2], 0o777)
+        os.remove(fn_im[0][2])
+        os.chmod(fn_im[1][2], 0o777)
+        os.remove(fn_im[1][2])
+        os.rename(fn_merged, fn_im[0][2])            
+            
+    # update the metadata dict (delete all the duplicates)
+    filenames_copy = metadata[sat]['filenames']
+    metadata2 = metadata.copy()
+    index_list = []
+    for i in range(len(filenames_copy)):
+            if filenames_copy[i].find('dup') == -1:
+                index_list.append(i)
+    msg = '\n %d overlapping S2 images were merged' % (len(filenames_copy)-len(index_list))
+    print(msg)
+    for key in metadata2[sat].keys():
+        metadata2[sat][key] = [metadata2[sat][key][_] for _ in index_list]
+        
+    return metadata2

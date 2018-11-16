@@ -9,6 +9,8 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 import skimage.transform as transform
 import simplekml
+from scipy.ndimage.filters import uniform_filter
+import gdal
 import pdb
 
 # Functions
@@ -183,5 +185,36 @@ def get_filenames(filename, filepath, satname):
               os.path.join(filepath[2], filename60)]
     return fn
     
-        
+def image_std(image, radius):
+    
+    image = image.astype(float)
+    # first pad the image
+    image_padded = np.pad(image, radius, 'reflect')
+    # window size is always 3x3
+    win_rows, win_cols = radius*2 + 1, radius*2 + 1
+    # calculate std
+    win_mean = uniform_filter(image_padded, (win_rows, win_cols))
+    win_sqr_mean = uniform_filter(image_padded**2, (win_rows, win_cols))
+    win_var = win_sqr_mean - win_mean**2
+    win_std = np.sqrt(win_var)
+    # remove padding
+    win_std = win_std[radius:-radius, radius:-radius]
+
+    return win_std
+
+def mask_raster(fn, mask):
+    # open raster
+    raster = gdal.Open(fn, gdal.GA_Update)
+    # mask raster
+    for i in range(raster.RasterCount):
+        out_band = raster.GetRasterBand(i+1)
+        out_data = out_band.ReadAsArray()
+        out_band.SetNoDataValue(0)
+        no_data_value = out_band.GetNoDataValue()
+        out_data[mask] = no_data_value
+        out_band.WriteArray(out_data)
+    # close dataset and flush cache
+    raster = None
+    
+         
     

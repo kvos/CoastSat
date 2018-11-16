@@ -17,6 +17,7 @@ from pylab import ginput
 import pickle
 import pdb
 import shapely.geometry as geometry
+import matplotlib.path as mpltPath
 import SDS_tools
 
 # Functions
@@ -401,7 +402,7 @@ def preprocess_single(fn, satname):
             georef = []
             # skip the image by giving it a full cloud_mask
             cloud_mask = np.ones((im10.shape[0],im10.shape[1])).astype('bool')
-            return im_ms, georef, cloud_mask
+            return im_ms, georef, cloud_mask, [], []
         
         # size of 10m bands
         nrows = im10.shape[0]
@@ -428,8 +429,8 @@ def preprocess_single(fn, satname):
         data = gdal.Open(fn60, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im60 = np.stack(bands, 2)
-        im_qa = im60[:,:,0]
-        cloud_mask = create_cloud_mask(im_qa, satname)
+        imQA = im60[:,:,0]
+        cloud_mask = create_cloud_mask(imQA, satname)
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
@@ -442,7 +443,7 @@ def preprocess_single(fn, satname):
         # calculate cloud cover
         cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
     
-    return im_ms, georef, cloud_mask
+    return im_ms, georef, cloud_mask, im20, imQA
 
     
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
@@ -477,21 +478,26 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     fig = plt.figure()
     fig.set_size_inches([18,9])
     fig.set_tight_layout(True)
+    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+        ax1 = fig.add_subplot(311)
+        ax2 = fig.add_subplot(312)
+        ax3 = fig.add_subplot(313)
+    else:
+        ax1 = fig.add_subplot(131)
+        ax2 = fig.add_subplot(132)
+        ax3 = fig.add_subplot(133)        
     # RGB
-    plt.subplot(131)
-    plt.axis('off')
-    plt.imshow(im_RGB)
-    plt.title(date + '   ' + satname, fontsize=16)
+    ax1.axis('off')
+    ax1.imshow(im_RGB)
+    ax1.set_title(date + '   ' + satname, fontsize=16)
     # NIR
-    plt.subplot(132)
-    plt.axis('off')
-    plt.imshow(im_NIR, cmap='gray')
-    plt.title('Near Infrared', fontsize=16)
+    ax2.axis('off')
+    ax2.imshow(im_NIR, cmap='seismic')
+    ax2.set_title('Near Infrared', fontsize=16)
     # SWIR
-    plt.subplot(133)
-    plt.axis('off')
-    plt.imshow(im_SWIR, cmap='gray')
-    plt.title('Short-wave Infrared', fontsize=16)
+    ax3.axis('off')
+    ax3.imshow(im_SWIR, cmap='seismic')
+    ax3.set_title('Short-wave Infrared', fontsize=16)
     # save figure
     plt.rcParams['savefig.jpeg_quality'] = 100
     fig.savefig(os.path.join(filepath,
@@ -507,12 +513,10 @@ def preprocess_all_images(metadata, settings):
 
     Arguments:
     -----------
-        sitename: str
-            name of the site (and corresponding folder)
         metadata: dict
             contains all the information about the satellite images that were downloaded
-        cloud_thresh: float
-            maximum fraction of cloud cover allowed in the images
+        settings: dict
+            contains the parameters need to extract shorelines
         
     Returns:
     -----------
@@ -520,7 +524,7 @@ def preprocess_all_images(metadata, settings):
             
     """
     
-    sitename = settings['sitename']
+    sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
     
     # create subfolder to store the jpg files
@@ -575,12 +579,12 @@ def preprocess_all_images(metadata, settings):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask = preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im20, imQA = preprocess_single(fn, satname)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
             # skip image if cloud cover is above threshold
-            if cloud_cover > cloud_thresh:
+            if cloud_cover > cloud_thresh or cloud_cover == 1:
                 continue
             # save .jpg with date and satellite in the title
             date = filenames[i][:10]
@@ -588,7 +592,7 @@ def preprocess_all_images(metadata, settings):
                 
 def get_reference_sl_manual(metadata, settings):
     
-    sitename = settings['sitename']
+    sitename = settings['inputs']['sitename']
     
     # check if reference shoreline already exists
     filepath = os.path.join(os.getcwd(), 'data', sitename)
@@ -632,26 +636,32 @@ def get_reference_sl_manual(metadata, settings):
             # RGB
             plt.axis('off')
             plt.imshow(im_RGB)
-            plt.title('click <skip> if image is not clear enough to digitize the shoreline.\n' +
-                      'Otherwise click on <keep> and start digitizing the shoreline.\n' + 
-                      'When finished digitizing the shoreline click on the scroll wheel ' +
-                      '(middle click).', fontsize=14)
-            plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
+            plt.title('click <keep> if image is clear enough to digitize the shoreline.\n' +
+                      'If not (too cloudy) click on <skip> to get another image', fontsize=14)
+            keep_button = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
                                    transform=plt.gca().transAxes,
                                    bbox=dict(boxstyle="square", ec='k',fc='w'))   
-            plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
+            skip_button = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
                                    transform=plt.gca().transAxes,
                                    bbox=dict(boxstyle="square", ec='k',fc='w'))
             mng = plt.get_current_fig_manager()                                         
             mng.window.showMaximized()
             # let user click on the image once
-            pt_keep = ginput(n=1, timeout=100, show_clicks=True)
-            pt_keep = np.array(pt_keep)
+            pt_input = ginput(n=1, timeout=1000000, show_clicks=True)
+            pt_input = np.array(pt_input)
             # if clicks next to <skip>, show another image
-            if pt_keep[0][0] > im_ms.shape[1]/2:
+            if pt_input[0][0] > im_ms.shape[1]/2:
                 plt.close()
                 continue
             else:
+                # remove keep and skip buttons
+                keep_button.set_visible(False)
+                skip_button.set_visible(False)
+                # update title (instructions)
+                plt.title('Digitize the shoreline on this image by clicking on it.\n' + 
+                      'When finished digitizing the shoreline click on the scroll wheel ' +
+                      '(middle click).', fontsize=14)     
+                plt.draw()
                 # let user click on the shoreline
                 pts = ginput(n=5000, timeout=100000, show_clicks=True)
                 pts_pix = np.array(pts)
@@ -667,35 +677,32 @@ def get_reference_sl_manual(metadata, settings):
             
     return pts_coords
 
-def get_reference_sl_from_db(polygon, settings):
-    
-    # load beaches database
-    filename = os.path.join(os.getcwd(), 'data', 'beaches_db', 'beaches.pkl')
-    with open(filename, 'rb') as f:
-        beaches = pickle.load(f)    
-    
-    # process polygon
-    polygon_epsg = 4326 # GDA94 geographic 
-    db_epsg= 28356      # GDA Map grid of Australia Zone 56
-    # convert polygon coordinates
-    polygon_conv = geometry.Polygon(SDS_tools.convert_epsg(np.array(polygon[0]),
-                                                           polygon_epsg, db_epsg)[:,:-1])
-    # find the beach contained in the polygon
-    in_polygon = []
-    for i,n in enumerate(list(beaches.keys())):
-        line = geometry.LineString(beaches[n]['coords'])
-        if polygon_conv.contains(line):
-            in_polygon.append(n)
-    # if more than one shoreline in the polygon append them
-    if len(in_polygon) > 1:
-        print('more than 1 beach in polygon!')
-        ref_sl = np.array([[np.nan, np.nan],[np.nan, np.nan]])
-        for i in range(len(in_polygon)):
-            ref_sl = np.append(ref_sl, beaches[in_polygon[i]]['coords'], axis=0)
-        ref_sl = np.delete(ref_sl,[0,1], axis=0)
-    elif len(in_polygon) == 0:
-        print('no shoreline was found in the database!')
-    else:
-        ref_sl = beaches[in_polygon[0]]['coords']
+def get_reference_sl_Australia(settings):
         
+    # load high-resolution shoreline of Australia
+    filename = os.path.join(os.getcwd(), 'data', 'shoreline_Australia.pkl')
+    with open(filename, 'rb') as f:
+        sl = pickle.load(f)    
+    sl_epsg = 4283          # GDA94 geographic 
+    
+    # only select the points that sit inside the polygon
+    polygon = settings['inputs']['polygon']
+    polygon_epsg = 4326     # WGS84 geographic
+    polygon = SDS_tools.convert_epsg(np.array(polygon[0]), polygon_epsg, sl_epsg)[:,:-1]
+    
+    # use matplotlib function Path
+    path = mpltPath.Path(polygon)
+    sl_inside = sl[np.where(path.contains_points(sl))]
+        
+    # convert to desired output coordinate system
+    ref_sl = SDS_tools.convert_epsg(sl_inside, sl_epsg, settings['output_epsg'])[:,:-1]
+    
+    plt.figure()
+    plt.axis('equal')
+    plt.xlabel('Eastings [m]')
+    plt.ylabel('Northings [m]')
+    plt.plot(ref_sl[:,0], ref_sl[:,1], 'r.')
+    polygon = SDS_tools.convert_epsg(polygon, sl_epsg, settings['output_epsg'])[:,:-1]
+    plt.plot(polygon[:,0], polygon[:,1], 'k-')
+    
     return ref_sl

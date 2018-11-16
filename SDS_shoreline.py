@@ -391,8 +391,10 @@ def process_shoreline(contours, georef, image_epsg, settings):
 def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
                    settings, date, satname):
     
+    sitename = settings['inputs']['sitename']
+    
     # subfolder to store the .jpg files
-    filepath = os.path.join(os.getcwd(), 'data', settings['sitename'], 'jpg_files', 'detection')
+    filepath = os.path.join(os.getcwd(), 'data', sitename, 'jpg_files', 'detection')
     
     # display RGB image
     im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
@@ -423,40 +425,54 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         
     # make figure
     fig = plt.figure()
-    gs = gridspec.GridSpec(1, 3)
-    gs.update(bottom=0.05, top=0.95)
-    ax1 = fig.add_subplot(gs[0,0])
-    plt.imshow(im_RGB)
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
-    plt.axis('off')
-    ax1.set_anchor('W')
+    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+        gs = gridspec.GridSpec(3, 1)
+        gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[1,0])
+        ax3 = fig.add_subplot(gs[2,0])
+        
+    else:
+        gs = gridspec.GridSpec(1, 3)
+        gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[0,1])
+        ax3 = fig.add_subplot(gs[0,2])
+
+
+    ax1.imshow(im_RGB)
+    ax1.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
+    ax1.axis('off')
+#    ax1.set_anchor('W')
     btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
                            transform=ax1.transAxes,
                            bbox=dict(boxstyle="square", ec='k',fc='w'))   
     btn_skip = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
                            transform=ax1.transAxes,
                            bbox=dict(boxstyle="square", ec='k',fc='w'))
-    plt.title(settings['sitename'] + '    ' + date + '     ' + satname, fontweight='bold', fontsize=16)
-    ax2 = fig.add_subplot(gs[0,1])
-    plt.imshow(im_class)
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
-    plt.axis('off')
-    ax2.set_anchor('W')
+    plt.title(sitename + '    ' + date + '     ' + satname,
+              fontweight='bold', fontsize=16)
+
+    ax2.imshow(im_class)
+    ax2.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
+    ax2.axis('off')
+#    ax2.set_anchor('W')
     orange_patch = mpatches.Patch(color=colours[0,:], label='sand')
     white_patch = mpatches.Patch(color=colours[1,:], label='whitewater')
     blue_patch = mpatches.Patch(color=colours[2,:], label='water')
     black_line = mlines.Line2D([],[],color='k',linestyle='--', label='shoreline')
-    plt.legend(handles=[orange_patch,white_patch,blue_patch, black_line], bbox_to_anchor=(1, 0.5), fontsize=9) 
-    ax3 = fig.add_subplot(gs[0,2])
-    plt.imshow(im_mwi, cmap='bwr')
-    plt.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
-    plt.axis('off')
-    cb = plt.colorbar()
-    cb.ax.tick_params(labelsize=10)
-    cb.set_label('MNDWI values')
-    ax3.set_anchor('W')
+    plt.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
+               bbox_to_anchor=(1, 0.5), fontsize=9)
+    
+    ax3.imshow(im_mwi, cmap='bwr')
+    ax3.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
+    ax3.axis('off')
+#    cb = plt.colorbar()
+#    cb.ax.tick_params(labelsize=10)
+#    cb.set_label('MNDWI values')
+#    ax3.set_anchor('W')
+    
     fig.set_size_inches([12.53, 9.3])
-    fig.set_tight_layout(True)
     mng = plt.get_current_fig_manager()                                         
     mng.window.showMaximized()
     
@@ -469,7 +485,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         plt.close()
     else:
         skip_image = False
-        ax1.set_title(date + '   ' + satname)
+#        ax1.set_title(date + '   ' + satname)
         btn_skip.set_visible(False)
         btn_keep.set_visible(False)
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
@@ -480,7 +496,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
 def extract_shorelines(metadata, settings):
 
-    sitename = settings['sitename']
+    sitename = settings['inputs']['sitename']
     
     # initialise output structure
     out = dict([])
@@ -545,7 +561,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask = SDS_preprocess.preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im20, imQA = SDS_preprocess.preprocess_single(fn, satname)
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover

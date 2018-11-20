@@ -12,22 +12,16 @@ import matplotlib.pyplot as plt
 import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools
 
 # define the area of interest (longitude, latitude)
-polygon = SDS_tools.coords_from_kml('longas.kml')
-#polygon = [[[151.301454, -33.700754],
-#            [151.311453, -33.702075],
-#            [151.307237, -33.739761],
-#            [151.294220, -33.736329],
-#            [151.301454, -33.700754]]]
+polygon = SDS_tools.coords_from_kml('NARRA.kml')
             
 # define dates of interest
-dates = ['2017-12-01', '2017-12-25']
+dates = ['2015-01-01', '2016-06-01']
 
 # define satellite missions
-#sat_list = ['L5', 'L7', 'L8', 'S2']
 sat_list = ['S2']
 
 # give a name to the site
-sitename = 'LONGAS'
+sitename = 'NARRA'
 
 # put all the inputs into a dictionnary
 inputs = {
@@ -38,19 +32,19 @@ inputs = {
         }
 
 # download satellite images (also saves metadata.pkl)
-metadata = SDS_download.get_images(inputs)
+#metadata = SDS_download.get_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
-#filepath = os.path.join(os.getcwd(), 'data', sitename)
-#with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
-#    metadata = pickle.load(f)   
+filepath = os.path.join(os.getcwd(), 'data', sitename)
+with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
+    metadata = pickle.load(f)   
     
 #%%
 # settings needed to run the shoreline extraction
 settings = {
        
     # general parameters:
-    'cloud_thresh': 0.5,         # threshold on maximum cloud cover
+    'cloud_thresh': 0.2,         # threshold on maximum cloud cover
     'output_epsg': 28356,        # epsg code of spatial reference system desired for the output
        
     # shoreline detection parameters:
@@ -69,7 +63,7 @@ settings = {
 
 
 # preprocess images (cloud masking, pansharpening/down-sampling)
-SDS_preprocess.preprocess_all_images(metadata, settings)
+#SDS_preprocess.save_jpg(metadata, settings)
 
 # create a reference shoreline (helps to identify outliers and false detections)
 #settings['refsl'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)

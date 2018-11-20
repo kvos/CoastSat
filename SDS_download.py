@@ -15,6 +15,7 @@ from datetime import datetime
 import pytz
 import pickle
 import zipfile
+import copy
 import gdal_merge
 
 import SDS_preprocess, SDS_tools
@@ -115,9 +116,16 @@ def get_images(inputs):
         flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
         # get all images in the filtered collection
         im_all = flt_col.getInfo().get('features')
-        # print how many images there are for the user
-        n_img = flt_col.size().getInfo()
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)
+        # remove very cloudy images (>95% cloud)
+        cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
+        if np.any([_ > 95 for _ in cloud_cover]):
+            idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
+            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+        else:
+            im_all_cloud = im_all
+        n_img = len(im_all_cloud)
+        # print how many images there are
+        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img) 
        
        # loop trough images
         timestamps = []
@@ -128,7 +136,7 @@ def get_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all[i].get('id'))
+            im = ee.Image(im_all_cloud[i].get('id'))
             # read metadata
             im_dic = im.getInfo()
             # get bands
@@ -168,7 +176,7 @@ def get_images(inputs):
                 os.remove(os.path.join(filepath, filename))
                 os.rename(local_data, os.path.join(filepath, filename))
                     
-            print(i, end='..')
+            print(i+1, end='..')
         
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
@@ -206,9 +214,16 @@ def get_images(inputs):
         flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
         # get all images in the filtered collection
         im_all = flt_col.getInfo().get('features')
-        # print how many images there are for the user
-        n_img = flt_col.size().getInfo()
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)
+        # remove very cloudy images (>95% cloud)
+        cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
+        if np.any([_ > 95 for _ in cloud_cover]):
+            idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
+            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+        else:
+            im_all_cloud = im_all
+        n_img = len(im_all_cloud)
+        # print how many images there are
+        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img) 
         
         # loop trough images
         timestamps = []
@@ -219,7 +234,7 @@ def get_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all[i].get('id'))
+            im = ee.Image(im_all_cloud[i].get('id'))
             # read metadata
             im_dic = im.getInfo()
             # get bands
@@ -252,7 +267,7 @@ def get_images(inputs):
                 filename_pan = im_date + '_' + satname + '_' + sitename + '_pan' + '_dup' + suffix
                 filename_ms = im_date + '_' + satname + '_' + sitename + '_ms' + '_dup' + suffix 
             all_names.append(filename_pan)
-            filenames.append(filename_ms)
+            filenames.append(filename_pan)
             # download .TIF image
             local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
             local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
@@ -268,7 +283,7 @@ def get_images(inputs):
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
             
-            print(i, end='..')  
+            print(i+1, end='..')  
             
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
@@ -305,9 +320,16 @@ def get_images(inputs):
         flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
         # get all images in the filtered collection
         im_all = flt_col.getInfo().get('features')
-        # print how many images there are for the user
-        n_img = flt_col.size().getInfo()
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)
+        # remove very cloudy images (>95% cloud)
+        cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
+        if np.any([_ > 95 for _ in cloud_cover]):
+            idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
+            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+        else:
+            im_all_cloud = im_all
+        n_img = len(im_all_cloud)
+        # print how many images there are
+        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)   
         
        # loop trough images
         timestamps = []
@@ -318,7 +340,7 @@ def get_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all[i].get('id'))
+            im = ee.Image(im_all_cloud[i].get('id'))
             # read metadata
             im_dic = im.getInfo()
             # get bands
@@ -351,7 +373,7 @@ def get_images(inputs):
                 filename_pan = im_date + '_' + satname + '_' + sitename + '_pan' + '_dup' + suffix
                 filename_ms = im_date + '_' + satname + '_' + sitename + '_ms' + '_dup' + suffix 
             all_names.append(filename_pan)  
-            filenames.append(filename_ms)
+            filenames.append(filename_pan)
             # download .TIF image
             local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
             local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
@@ -367,7 +389,7 @@ def get_images(inputs):
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
                 
-            print(i, end='..')
+            print(i+1, end='..')
     
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
@@ -401,9 +423,48 @@ def get_images(inputs):
         # filter by location and dates
         flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
         # get all images in the filtered collection
-        im_all = flt_col.getInfo().get('features')
+        im_all = flt_col.getInfo().get('features')  
+        # remove duplicates in the collection (there are many in S2 collection)
+        timestamps = [datetime.fromtimestamp(_['properties']['system:time_start']/1000,
+                                             tz=pytz.utc) for _ in im_all]
+        # utm zone projection
+        utm_zones = np.array([int(_['bands'][0]['crs'][5:]) for _ in im_all])
+        utm_zone_selected =  np.max(np.unique(utm_zones))
+        # find the images that were acquired at the same time but have different utm zones
+        idx_all = np.arange(0,len(im_all),1)
+        idx_covered = np.ones(len(im_all)).astype(bool)
+        idx_delete = []
+        i = 0
+        while 1:
+            same_time = np.abs([(timestamps[i]-_).total_seconds() for _ in timestamps]) < 60*60*24
+            idx_same_time = np.where(same_time)[0]
+            same_utm = utm_zones == utm_zone_selected
+            idx_temp = np.where([same_time[j] == True and same_utm[j] == False for j in idx_all])[0]
+            idx_keep = idx_same_time[[_ not in idx_temp for _ in idx_same_time ]]
+            # if more than 2 images with same date and same utm, drop the last ones
+            if len(idx_keep) > 2: 
+               idx_temp = np.append(idx_temp,idx_keep[-(len(idx_keep)-2):])
+            for j in idx_temp:
+                idx_delete.append(j)
+            idx_covered[idx_same_time] = False
+            if np.any(idx_covered):
+                i = np.where(idx_covered)[0][0]
+            else:
+                break
+        # update the collection by deleting all those images that have same timestamp and different
+        # utm projection
+        im_all_updated = [x for k,x in enumerate(im_all) if k not in idx_delete]
+        
+        # remove very cloudy images (>95% cloud)
+        cloud_cover = [_['properties']['CLOUDY_PIXEL_PERCENTAGE'] for _ in im_all_updated]
+        if np.any([_ > 95 for _ in cloud_cover]):
+            idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
+            im_all_cloud = [x for k,x in enumerate(im_all_updated) if k not in idx_delete]
+        else:
+            im_all_cloud = im_all_updated
+        
+        n_img = len(im_all_cloud)
         # print how many images there are
-        n_img = flt_col.size().getInfo()
         print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)    
     
        # loop trough images
@@ -415,7 +476,7 @@ def get_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all[i].get('id'))
+            im = ee.Image(im_all_cloud[i].get('id'))
             # read metadata
             im_dic = im.getInfo()
             # get bands
@@ -437,7 +498,6 @@ def get_images(inputs):
             filename60 = im_date + '_' + satname + '_' + sitename + '_' + '60m' + suffix
             # if two images taken at the same date skip the second image (they are the same)
             if any(filename10 in _ for _ in all_names):
-                filename10.find('.')
                 filename10 = filename10[:filename10.find('.')] + '_dup' + suffix
                 filename20 = filename20[:filename20.find('.')] + '_dup' + suffix
                 filename60 = filename60[:filename60.find('.')] + '_dup' + suffix
@@ -476,7 +536,7 @@ def get_images(inputs):
                     acc_georef.append(0)
             except:
                 acc_georef.append(0)
-            print(i, end='..')
+            print(i+1, end='..')
     
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
@@ -489,8 +549,9 @@ def get_images(inputs):
                 'epsg':im_epsg_sorted, 'filenames':filenames_sorted} 
         print('\nFinished with ' + satname)
     
-    # merge overlapping images (only if polygon is at the edge of an image)
-    metadata = merge_overlapping_images(metadata,inputs)
+#    # merge overlapping images (only if polygon is at the edge of an image)
+    if 'S2' in metadata.keys():
+        metadata = merge_overlapping_images(metadata,inputs)
 
     # save metadata dict
     filepath = os.path.join(os.getcwd(), 'data', sitename)
@@ -513,18 +574,19 @@ def merge_overlapping_images(metadata,inputs):
         metadata: dict
             contains all the information about the satellite images that were downloaded
             
-    inputs is a dictionnary that contains the following fields:
-        sitename: str
-            String containig the name of the site
-        polygon: list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
-        dates: list of str
-            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
-            e.g. ['1987-01-01', '2018-01-01']
-        sat_list: list of str
-            list that contains the names of the satellite missions to include 
-            e.g. ['L5', 'L7', 'L8', 'S2']
+        inputs: dict
+            contains the following fields:
+                sitename: str
+                    String containig the name of the site
+                polygon: list
+                    polygon containing the lon/lat coordinates to be extracted
+                    longitudes in the first column and latitudes in the second column
+                dates: list of str
+                    list that contains 2 strings with the initial and final dates in format 
+                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
+                sat_list: list of str
+                    list that contains the names of the satellite missions to include 
+                    e.g. ['L5', 'L7', 'L8', 'S2']
         
     Returns:
     -----------
@@ -550,13 +612,16 @@ def merge_overlapping_images(metadata,inputs):
         boolvec = [fn[:22] == _[:22] for _ in filenames_copy]
         if np.any(boolvec):
             idx_dup = np.where(boolvec)[0][0]
-            pairs.append([i,idx_dup])
+            if len(filenames[i]) > len(filenames[idx_dup]): 
+                pairs.append([idx_dup,i])
+            else:
+                pairs.append([i,idx_dup])
             
     msg = 'Merging %d pairs of overlapping images...' % len(pairs)
     print(msg)
                         
     for i,pair in enumerate(pairs):
-        print(i, end='..')
+        print(i+1, end='..')
         fn_im = []
         for index in range(len(pair)):            
             # read image
@@ -564,7 +629,7 @@ def merge_overlapping_images(metadata,inputs):
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m'))])
         
-            im_ms, georef, cloud_mask, im20, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat) 
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat) 
         
             # in Sentinel2 images close to the edge of the image there are some artefacts, 
             # that are squares with constant pixel intensities. They need to be masked in the 
@@ -572,21 +637,24 @@ def merge_overlapping_images(metadata,inputs):
             # indicates values close to 0 for the artefacts.
             
             # First mask the 10m bands
-            im_std = SDS_tools.image_std(im_ms[:,:,0],1)
-            im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-            mask = morphology.dilation(im_binary, morphology.square(3))
-            for k in range(im_ms.shape[2]):
-                im_ms[mask,k] = np.nan
-            
-            SDS_tools.mask_raster(fn_im[index][0], mask)
-            
-            # Then mask the 20m band
-            im_std = SDS_tools.image_std(im20,1)
-            im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-            mask = morphology.dilation(im_binary, morphology.square(3))     
-            im20[mask] = np.nan
-            
-            SDS_tools.mask_raster(fn_im[index][1], mask) 
+            if len(im_ms) > 0:
+                im_std = SDS_tools.image_std(im_ms[:,:,0],1)
+                im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+                mask = morphology.dilation(im_binary, morphology.square(3))
+                for k in range(im_ms.shape[2]):
+                    im_ms[mask,k] = np.nan
+                
+                SDS_tools.mask_raster(fn_im[index][0], mask)
+                
+                # Then mask the 20m band
+                im_std = SDS_tools.image_std(im_extra,1)
+                im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+                mask = morphology.dilation(im_binary, morphology.square(3))     
+                im_extra[mask] = np.nan
+                
+                SDS_tools.mask_raster(fn_im[index][1], mask) 
+            else:
+                continue
             
 #            plt.figure()
 #            plt.subplot(221)
@@ -629,15 +697,88 @@ def merge_overlapping_images(metadata,inputs):
         os.rename(fn_merged, fn_im[0][2])            
             
     # update the metadata dict (delete all the duplicates)
-    filenames_copy = metadata[sat]['filenames']
-    metadata2 = metadata.copy()
+    metadata2 = copy.deepcopy(metadata)
+    filenames_copy = metadata2[sat]['filenames']
     index_list = []
     for i in range(len(filenames_copy)):
             if filenames_copy[i].find('dup') == -1:
                 index_list.append(i)
-    msg = '\n %d overlapping S2 images were merged' % (len(filenames_copy)-len(index_list))
-    print(msg)
     for key in metadata2[sat].keys():
         metadata2[sat][key] = [metadata2[sat][key][_] for _ in index_list]
         
     return metadata2
+
+def remove_cloudy_images(metadata,inputs,cloud_thresh):
+    """
+    Removes images that have a cloud cover percentage that is above the cloud threshold
+    
+    KV WRL 2018
+        
+    Arguments:
+    -----------
+        metadata: dict
+            contains all the information about the satellite images that were downloaded
+            
+        inputs: dict
+            contains the following fields:
+                sitename: str
+                    String containig the name of the site
+                polygon: list
+                    polygon containing the lon/lat coordinates to be extracted
+                    longitudes in the first column and latitudes in the second column
+                dates: list of str
+                    list that contains 2 strings with the initial and final dates in format 
+                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
+                sat_list: list of str
+                    list that contains the names of the satellite missions to include 
+                    e.g. ['L5', 'L7', 'L8', 'S2']
+        cloud_thresh: float
+            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
+        
+    Returns:
+    -----------
+        metadata: dict
+            updated metadata with the information of the merged images
+            
+    """    
+    
+    # create a deep copy
+    metadata2 = copy.deepcopy(metadata)
+
+    for satname in metadata.keys():
+            
+        # read the images
+        filepath = SDS_tools.get_filepath(inputs,satname)
+        filenames = metadata[satname]['filenames']
+
+        # loop through images
+        idx_good = []
+        for i in range(len(filenames)):
+            # image filename
+            fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
+            # preprocess image (cloud mask + pansharpening/downsampling)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname)
+            # calculate cloud cover
+            cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
+                                    (cloud_mask.shape[0]*cloud_mask.shape[1]))
+            # skip image if cloud cover is above threshold
+            if cloud_cover > cloud_thresh or cloud_cover == 1:
+                # remove image files
+                if satname == 'L5':
+                    os.chmod(fn, 0o777)
+                    os.remove(fn)
+                else:                    
+                    for j in range(len(fn)):
+                        os.chmod(fn[j], 0o777)
+                        os.remove(fn[j])  
+            else:
+                idx_good.append(i)
+            
+        msg = '\n%d cloudy images were removed for %s.' % (len(filenames)-len(idx_good), satname)
+        print(msg)
+        
+        # update the metadata dict (delete all cloudy images)
+        for key in metadata2[satname].keys():
+            metadata2[satname][key] = [metadata2[satname][key][_] for _ in idx_good] 
+
+    return metadata2                   

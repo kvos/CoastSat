@@ -10,7 +10,6 @@ from osgeo import gdal, ogr, osr
 import skimage.transform as transform
 import simplekml
 from scipy.ndimage.filters import uniform_filter
-import gdal
 import pdb
 
 # Functions
@@ -167,22 +166,60 @@ def save_kml(coords, epsg):
     kml.newlinestring(name='coords', coords=coords_wgs84)
     kml.save('coords.kml')
     
+def get_filepath(inputs,satname):
+    
+    sitename = inputs['sitename']
+    # access the images
+    if satname == 'L5':
+        # access downloaded Landsat 5 images
+        filepath = os.path.join(os.getcwd(), 'data', sitename, satname, '30m')
+    elif satname == 'L7':
+        # access downloaded Landsat 7 images
+        filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'pan')
+        filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'ms')
+        filenames_pan = os.listdir(filepath_pan)
+        filenames_ms = os.listdir(filepath_ms)
+        if (not len(filenames_pan) == len(filenames_ms)):
+            raise 'error: not the same amount of files for pan and ms'
+        filepath = [filepath_pan, filepath_ms]
+    elif satname == 'L8':
+        # access downloaded Landsat 7 images
+        filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'pan')
+        filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'ms')
+        filenames_pan = os.listdir(filepath_pan)
+        filenames_ms = os.listdir(filepath_ms)
+        if (not len(filenames_pan) == len(filenames_ms)):
+            raise 'error: not the same amount of files for pan and ms'
+        filepath = [filepath_pan, filepath_ms]
+    elif satname == 'S2':
+        # access downloaded Sentinel 2 images
+        filepath10 = os.path.join(os.getcwd(), 'data', sitename, satname, '10m')
+        filenames10 = os.listdir(filepath10)
+        filepath20 = os.path.join(os.getcwd(), 'data', sitename, satname, '20m')
+        filenames20 = os.listdir(filepath20)
+        filepath60 = os.path.join(os.getcwd(), 'data', sitename, satname, '60m')
+        filenames60 = os.listdir(filepath60)
+        if (not len(filenames10) == len(filenames20)) or (not len(filenames20) == len(filenames60)):
+            raise 'error: not the same amount of files for 10, 20 and 60 m bands'
+        filepath = [filepath10, filepath20, filepath60]
+            
+    return filepath
+    
 def get_filenames(filename, filepath, satname):
     
     if satname == 'L5':
         fn = os.path.join(filepath, filename)
     if satname == 'L7' or satname == 'L8':
-        idx = filename.find('.tif')
-        filename_ms = filename[:idx-3] + 'ms.tif'
+        filename_ms = filename.replace('pan','ms')
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], filename_ms)]
     if satname == 'S2':
-        idx = filename.find('.tif')
-        filename20 = filename[:idx-3] + '20m.tif'
-        filename60 = filename[:idx-3] + '60m.tif'
+        filename20 = filename.replace('10m','20m')
+        filename60 = filename.replace('10m','60m')
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], filename20),
               os.path.join(filepath[2], filename60)]
+        
     return fn
     
 def image_std(image, radius):

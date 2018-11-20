@@ -224,6 +224,11 @@ def preprocess_single(fn, satname):
             coordinates of the top-left pixel of the image
         cloud_mask: np.array
             2D cloud mask with True where cloud pixels are
+        im_extra : np.array
+            2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution 
+            panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
+        imQA: np.array
+            2D array containing the QA band, from which the cloud_mask can be computed.
             
     """
         
@@ -269,6 +274,9 @@ def preprocess_single(fn, satname):
             
         # calculate cloud cover
         cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
+        # no extra image for Landsat 5 (they are all 30 m bands)
+        im_extra = []
+        imQA = im_qa
         
     #=============================================================================================#
     # L7 images
@@ -326,6 +334,9 @@ def preprocess_single(fn, satname):
         im_ms_ps = np.append(im_ms_ps, im_ms[:,:,[4]], axis=2)
         
         im_ms = im_ms_ps.copy()
+        # the extra image is the 15m panchromatic band
+        im_extra = im_pan
+        imQA = im_qa
         
     #=============================================================================================#
     # L8 images
@@ -382,6 +393,9 @@ def preprocess_single(fn, satname):
         im_ms_ps = np.append(im_ms_ps, im_ms[:,:,[3,4]], axis=2)
         
         im_ms = im_ms_ps.copy()
+        # the extra image is the 15m panchromatic band
+        im_extra = im_pan
+        imQA = im_qa   
         
     #=============================================================================================#
     # S2 images
@@ -442,8 +456,10 @@ def preprocess_single(fn, satname):
           
         # calculate cloud cover
         cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
+        # the extra image is the 20m SWIR band
+        im_extra = im20
     
-    return im_ms, georef, cloud_mask, im20, imQA
+    return im_ms, georef, cloud_mask, im_extra, imQA
 
     
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
@@ -478,26 +494,32 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     fig = plt.figure()
     fig.set_size_inches([18,9])
     fig.set_tight_layout(True)
-    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-        ax1 = fig.add_subplot(311)
-        ax2 = fig.add_subplot(312)
-        ax3 = fig.add_subplot(313)
-    else:
-        ax1 = fig.add_subplot(131)
-        ax2 = fig.add_subplot(132)
-        ax3 = fig.add_subplot(133)        
-    # RGB
+    ax1 = fig.add_subplot(111)
     ax1.axis('off')
     ax1.imshow(im_RGB)
     ax1.set_title(date + '   ' + satname, fontsize=16)
-    # NIR
-    ax2.axis('off')
-    ax2.imshow(im_NIR, cmap='seismic')
-    ax2.set_title('Near Infrared', fontsize=16)
-    # SWIR
-    ax3.axis('off')
-    ax3.imshow(im_SWIR, cmap='seismic')
-    ax3.set_title('Short-wave Infrared', fontsize=16)
+    
+#    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+#        ax1 = fig.add_subplot(311)
+#        ax2 = fig.add_subplot(312)
+#        ax3 = fig.add_subplot(313)
+#    else:
+#        ax1 = fig.add_subplot(131)
+#        ax2 = fig.add_subplot(132)
+#        ax3 = fig.add_subplot(133)        
+#    # RGB
+#    ax1.axis('off')
+#    ax1.imshow(im_RGB)
+#    ax1.set_title(date + '   ' + satname, fontsize=16)
+#    # NIR
+#    ax2.axis('off')
+#    ax2.imshow(im_NIR, cmap='seismic')
+#    ax2.set_title('Near Infrared', fontsize=16)
+#    # SWIR
+#    ax3.axis('off')
+#    ax3.imshow(im_SWIR, cmap='seismic')
+#    ax3.set_title('Short-wave Infrared', fontsize=16)
+    
     # save figure
     plt.rcParams['savefig.jpeg_quality'] = 100
     fig.savefig(os.path.join(filepath,
@@ -505,9 +527,9 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     plt.close()
       
     
-def preprocess_all_images(metadata, settings):
+def save_jpg(metadata, settings):
     """
-    Saves a .jpg image for all the file contained in metadata.
+    Saves a .jpg image for all the images contained in metadata.
     
     KV WRL 2018
 
@@ -536,50 +558,16 @@ def preprocess_all_images(metadata, settings):
             
     # loop through satellite list
     for satname in metadata.keys():
-        # access the images
-        if satname == 'L5':
-            # access downloaded Landsat 5 images
-            filepath = os.path.join(os.getcwd(), 'data', sitename, satname, '30m')
-            filenames = os.listdir(filepath)
-        elif satname == 'L7':
-            # access downloaded Landsat 7 images
-            filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'pan')
-            filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'ms')
-            filenames_pan = os.listdir(filepath_pan)
-            filenames_ms = os.listdir(filepath_ms)
-            if (not len(filenames_pan) == len(filenames_ms)):
-                raise 'error: not the same amount of files for pan and ms'
-            filepath = [filepath_pan, filepath_ms]
-            filenames = filenames_pan
-        elif satname == 'L8':
-            # access downloaded Landsat 7 images
-            filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'pan')
-            filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'ms')
-            filenames_pan = os.listdir(filepath_pan)
-            filenames_ms = os.listdir(filepath_ms)
-            if (not len(filenames_pan) == len(filenames_ms)):
-                raise 'error: not the same amount of files for pan and ms'
-            filepath = [filepath_pan, filepath_ms]
-            filenames = filenames_pan
-        elif satname == 'S2':
-            # access downloaded Sentinel 2 images
-            filepath10 = os.path.join(os.getcwd(), 'data', sitename, satname, '10m')
-            filenames10 = os.listdir(filepath10)
-            filepath20 = os.path.join(os.getcwd(), 'data', sitename, satname, '20m')
-            filenames20 = os.listdir(filepath20)
-            filepath60 = os.path.join(os.getcwd(), 'data', sitename, satname, '60m')
-            filenames60 = os.listdir(filepath60)
-            if (not len(filenames10) == len(filenames20)) or (not len(filenames20) == len(filenames60)):
-                raise 'error: not the same amount of files for 10, 20 and 60 m'
-            filepath = [filepath10, filepath20, filepath60]
-            filenames = filenames10
+        
+        filepath = SDS_tools.get_filepath(settings['inputs'],satname)
+        filenames = metadata[satname]['filenames']
             
         # loop through images
         for i in range(len(filenames)):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im20, imQA = preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -620,7 +608,7 @@ def get_reference_sl_manual(metadata, settings):
                   os.path.join(filepath20, filenames20[i]),
                   os.path.join(filepath60, filenames60[i])]
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask = preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))

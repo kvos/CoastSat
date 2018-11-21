@@ -31,7 +31,10 @@ import matplotlib.cm as cm
 from matplotlib import gridspec
 from pylab import ginput
 import pickle
+
+# own modules
 import SDS_tools, SDS_preprocess
+
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
  
@@ -321,16 +324,14 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
     # make sure both classes have the same number of pixels before thresholding
     if len(int_water) > 0 and len(int_sand) > 0:
         if np.argmin([int_sand.shape[0],int_water.shape[0]]) == 1:
-            if  (int_sand.shape[0] - int_water.shape[0])/int_water.shape[0] > 0.5:
-                int_sand = int_sand[np.random.randint(0,int_sand.shape[0],int_water.shape[0]),:]
+            int_sand = int_sand[np.random.choice(int_sand.shape[0],int_water.shape[0], replace=False),:]
         else:
-            if  (int_water.shape[0] - int_sand.shape[0])/int_sand.shape[0] > 0.5:
-                int_water = int_water[np.random.randint(0,int_water.shape[0],int_sand.shape[0]),:]        
+            int_water = int_water[np.random.choice(int_water.shape[0],int_sand.shape[0], replace=False),:]        
             
     # threshold the sand/water intensities 
     int_all = np.append(int_water,int_sand, axis=0)
     t_mwi = filters.threshold_otsu(int_all[:,0])
-    t_wi = filters.threshold_otsu(int_all[:,1])
+    t_wi = filters.threshold_otsu(int_all[:,1])    
     
     # find contour with MS algorithm
     im_wi_buffer = np.copy(im_wi)
@@ -433,7 +434,8 @@ def process_shoreline(contours, georef, image_epsg, settings):
 def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
                    settings, date, satname):
     """
-    Shows the detected shoreline to the user for visual quality control.
+    Shows the detected shoreline to the user for visual quality control. The user can select "keep"
+    if the shoreline detection is correct or "skip" if it is incorrect. 
     
     KV WRL 2018
 
@@ -466,12 +468,12 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     
     sitename = settings['inputs']['sitename']
     
-    # subfolder to store the .jpg files
+    # subfolder where the .jpg file is stored if the user accepts the shoreline detection 
     filepath = os.path.join(os.getcwd(), 'data', sitename, 'jpg_files', 'detection')
     
-    # display RGB image
     im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-    # display classified image
+    
+    # compute classified image 
     im_class = np.copy(im_RGB)
     cmap = cm.get_cmap('tab20c')
     colorpalette = cmap(np.arange(0,13,1))
@@ -483,7 +485,8 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         im_class[im_labels[:,:,k],0] = colours[k,0]
         im_class[im_labels[:,:,k],1] = colours[k,1]
         im_class[im_labels[:,:,k],2] = colours[k,2]
-    # display MNDWI grayscale image
+        
+    # compute MNDWI grayscale image
     im_mwi = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
     
     # transform world coordinates of shoreline into pixel coordinates
@@ -496,27 +499,28 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
         
-    # make figure
+    # according to the image shape, decide whether it is better to have the images in the subplot
+    # in different rows or different columns
     fig = plt.figure()
     if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+        # vertical subplots
         gs = gridspec.GridSpec(3, 1)
         gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
         ax1 = fig.add_subplot(gs[0,0])
         ax2 = fig.add_subplot(gs[1,0])
         ax3 = fig.add_subplot(gs[2,0])
-        
-    else:
+    else: 
+        # horizontal subplots
         gs = gridspec.GridSpec(1, 3)
         gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
         ax1 = fig.add_subplot(gs[0,0])
         ax2 = fig.add_subplot(gs[0,1])
         ax3 = fig.add_subplot(gs[0,2])
 
-
+    # create image 1 (RGB)
     ax1.imshow(im_RGB)
     ax1.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     ax1.axis('off')
-#    ax1.set_anchor('W')
     btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
                            transform=ax1.transAxes,
                            bbox=dict(boxstyle="square", ec='k',fc='w'))   
@@ -525,20 +529,24 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
                            bbox=dict(boxstyle="square", ec='k',fc='w'))
     ax1.set_title(sitename + '    ' + date + '     ' + satname, fontweight='bold', fontsize=16)
 
+    # create image 2 (classification)
     ax2.imshow(im_class)
     ax2.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     ax2.axis('off')
-#    ax2.set_anchor('W')
     orange_patch = mpatches.Patch(color=colours[0,:], label='sand')
     white_patch = mpatches.Patch(color=colours[1,:], label='whitewater')
     blue_patch = mpatches.Patch(color=colours[2,:], label='water')
     black_line = mlines.Line2D([],[],color='k',linestyle='--', label='shoreline')
     ax2.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
                bbox_to_anchor=(1, 0.5), fontsize=9)
-    
+    # create image 3 (MNDWI)
     ax3.imshow(im_mwi, cmap='bwr')
     ax3.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     ax3.axis('off')
+    
+# additional options
+#    ax1.set_anchor('W')
+#    ax2.set_anchor('W')
 #    cb = plt.colorbar()
 #    cb.ax.tick_params(labelsize=10)
 #    cb.set_label('MNDWI values')
@@ -548,16 +556,15 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     mng = plt.get_current_fig_manager()                                         
     mng.window.showMaximized()
     
-    # wait for user's selection (<keep> or <skip>)
+    # wait for user's selection: <keep> or <skip>
     pt = ginput(n=1, timeout=100000, show_clicks=True)
     pt = np.array(pt)
-    # if clicks next to <skip>, return skip_image = True
+    # if user clicks around the <skip> button, return skip_image = True
     if pt[0][0] > im_ms.shape[1]/2:
         skip_image = True
         plt.close()
     else:
         skip_image = False
-#        ax1.set_title(date + '   ' + satname)
         btn_skip.set_visible(False)
         btn_keep.set_visible(False)
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
@@ -647,15 +654,19 @@ def extract_shorelines(metadata, settings):
             # extract water line contours
             # if there aren't any sandy pixels, use find_wl_contours1 (traditional method), 
             # otherwise use find_wl_contours2 (enhanced method with classification)
-            if sum(sum(im_labels[:,:,0])) == 0 :
-                # compute MNDWI (SWIR-Green normalized index) grayscale image
-                im_mndwi = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
-                # find water contourson MNDWI grayscale image
-                contours_mwi = find_wl_contours1(im_mndwi, cloud_mask)
-            else:
-                # use classification to refine threshold and extract sand/water interface
-                contours_wi, contours_mwi = find_wl_contours2(im_ms, im_labels, 
-                                            cloud_mask, settings['buffer_size'])
+            try: # use try/except structure for long runs
+                if sum(sum(im_labels[:,:,0])) == 0 :
+                    # compute MNDWI (SWIR-Green normalized index) grayscale image
+                    im_mndwi = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
+                    # find water contourson MNDWI grayscale image
+                    contours_mwi = find_wl_contours1(im_mndwi, cloud_mask)
+                else:
+                    # use classification to refine threshold and extract sand/water interface
+                    contours_wi, contours_mwi = find_wl_contours2(im_ms, im_labels, 
+                                                cloud_mask, settings['buffer_size'])
+            except:
+                continue
+            
             # process water contours into shorelines
             shoreline = process_shoreline(contours_mwi, georef, image_epsg, settings)
             

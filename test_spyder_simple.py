@@ -15,7 +15,7 @@ import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools
 polygon = SDS_tools.coords_from_kml('NARRA.kml')
             
 # define dates of interest
-dates = ['2015-01-01', '2016-06-01']
+dates = ['2015-01-01', '2019-01-01']
 
 # define satellite missions
 sat_list = ['S2']
@@ -32,13 +32,13 @@ inputs = {
         }
 
 # download satellite images (also saves metadata.pkl)
-#metadata = SDS_download.get_images(inputs)
+metadata = SDS_download.get_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
 filepath = os.path.join(os.getcwd(), 'data', sitename)
 with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
     metadata = pickle.load(f)   
-    
+
 #%%
 # settings needed to run the shoreline extraction
 settings = {
@@ -66,8 +66,8 @@ settings = {
 #SDS_preprocess.save_jpg(metadata, settings)
 
 # create a reference shoreline (helps to identify outliers and false detections)
-#settings['refsl'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
-settings['refsl'] = SDS_preprocess.get_reference_sl_Australia(settings)
+settings['refsl'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
+#settings['refsl'] = SDS_preprocess.get_reference_sl_Australia(settings)
 
 # extract shorelines from all images (also saves output.pkl)
 output = SDS_shoreline.extract_shorelines(metadata, settings)

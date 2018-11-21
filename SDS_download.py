@@ -1,29 +1,36 @@
-"""This module contains all the functions needed to download the satellite images from GEE
+"""This module contains all the functions needed to download the satellite images from the Google
+Earth Engine Server
     
    Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
-# Initial settings
+# load modules
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import skimage.morphology as morphology
 import pdb
+
+# earth engine modules
 import ee
 from urllib.request import urlretrieve
-from datetime import datetime
-import pytz
-import pickle
 import zipfile
 import copy
 import gdal_merge
 
+# additional modules
+from datetime import datetime
+import pytz
+import pickle
+import skimage.morphology as morphology
+
+# own modules
 import SDS_preprocess, SDS_tools
+
+np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
+
 
 # initialise connection with GEE server
 ee.Initialize()
-
-# Functions
 
 def download_tif(image, polygon, bandsId, filepath):
     """
@@ -56,28 +63,36 @@ def download_tif(image, polygon, bandsId, filepath):
 
 def get_images(inputs):
     """
-    Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 covering the given 
-    polygon and acquired during the given dates. The images are organised in subfolders and divided
-    by satellite mission and pixel resolution.
+    Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 covering the area of 
+    interest and acquired between the specified dates. 
+    The downloaded images are in .TIF format and organised in subfolders, divided by satellite 
+    mission and pixel resolution.
     
     KV WRL 2018
         
     Arguments:
     -----------
-    inputs is a dictionnary that contains the following fields:
-        sitename: str
+        inputs: dict 
+            dictionnary that contains the following fields:
+        'sitename': str
             String containig the name of the site
-        polygon: list
+        'polygon': list
             polygon containing the lon/lat coordinates to be extracted
             longitudes in the first column and latitudes in the second column
-        dates: list of str
+        'dates': list of str
             list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
             e.g. ['1987-01-01', '2018-01-01']
-        sat_list: list of str
+        'sat_list': list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
-            
+    
+    Returns:
+    -----------
+        metadata: dict
+            contains all the information about the satellite images that were downloaded
+           
     """
+    
     # read inputs dictionnary
     sitename = inputs['sitename']
     polygon = inputs['polygon']
@@ -87,7 +102,7 @@ def get_images(inputs):
     # format in which the images are downloaded
     suffix = '.tif'
  
-    # initialise metadata dictionnary (stores timestamps and georefencing accuracy of each image)       
+    # initialize metadata dictionnary (stores timestamps and georefencing accuracy of each image)       
     metadata = dict([])
     
     # create directories
@@ -155,14 +170,13 @@ def get_images(inputs):
             except:
                 # default value of accuracy (RMSE = 12m)
                 acc_georef.append(12)   
-                print('No geometric rmse model property')
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']
             # bands for L5
             ms_bands = [im_bands[0], im_bands[1], im_bands[2], im_bands[3], im_bands[4], im_bands[7]]
             # filenames for the images
             filename = im_date + '_' + satname + '_' + sitename + suffix
-            # if two images taken at the same date add 'dup' in the name
+            # if two images taken at the same date add 'dup' in the name (duplicate)
             if any(filename in _ for _ in all_names):
                 filename = im_date + '_' + satname + '_' + sitename + '_dup' + suffix 
             all_names.append(filename)
@@ -178,7 +192,7 @@ def get_images(inputs):
                     
             print(i+1, end='..')
         
-        # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
+        # sort timestamps and georef accuracy (downloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
@@ -253,7 +267,6 @@ def get_images(inputs):
             except:
                 # default value of accuracy (RMSE = 12m)
                 acc_georef.append(12)   
-                print('No geometric rmse model property')
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']   
             # bands for L7
@@ -359,7 +372,6 @@ def get_images(inputs):
             except:
                 # default value of accuracy (RMSE = 12m)
                 acc_georef.append(12)   
-                print('No geometric rmse model property')
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']   
             # bands for L8    
@@ -529,13 +541,16 @@ def get_images(inputs):
             # save timestamp, epsg code and georeferencing accuracy (1 if passed 0 if not passed)
             timestamps.append(im_timestamp)
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
+            # Sentinel-2 products don't provide a georeferencing accuracy (RMSE as in Landsat)
+            # but they have a flag indicating if the geometric quality control was passed or failed
+            # if passed a value of 1 is stored if faile a value of -1 is stored in the metadata
             try:
                 if im_dic['properties']['GEOMETRIC_QUALITY_FLAG'] == 'PASSED':
                     acc_georef.append(1)
                 else:
-                    acc_georef.append(0)
+                    acc_georef.append(-1)
             except:
-                acc_georef.append(0)
+                acc_georef.append(-1)
             print(i+1, end='..')
     
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
@@ -549,7 +564,7 @@ def get_images(inputs):
                 'epsg':im_epsg_sorted, 'filenames':filenames_sorted} 
         print('\nFinished with ' + satname)
     
-#    # merge overlapping images (only if polygon is at the edge of an image)
+    # merge overlapping images (only if polygon is at the edge of an image)
     if 'S2' in metadata.keys():
         metadata = merge_overlapping_images(metadata,inputs)
 
@@ -564,7 +579,7 @@ def get_images(inputs):
 def merge_overlapping_images(metadata,inputs):
     """
     When the area of interest is located at the boundary between 2 images, there will be overlap 
-    between the 2 images and both will be downloaded from Google Earth Engine. This functions 
+    between the 2 images and both will be downloaded from Google Earth Engine. This function 
     merges the 2 images, so that the area of interest is covered by only 1 image.
     
     KV WRL 2018
@@ -573,20 +588,19 @@ def merge_overlapping_images(metadata,inputs):
     -----------
         metadata: dict
             contains all the information about the satellite images that were downloaded
-            
-        inputs: dict
-            contains the following fields:
-                sitename: str
-                    String containig the name of the site
-                polygon: list
-                    polygon containing the lon/lat coordinates to be extracted
-                    longitudes in the first column and latitudes in the second column
-                dates: list of str
-                    list that contains 2 strings with the initial and final dates in format 
-                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
-                sat_list: list of str
-                    list that contains the names of the satellite missions to include 
-                    e.g. ['L5', 'L7', 'L8', 'S2']
+        inputs: dict 
+            dictionnary that contains the following fields:
+        'sitename': str
+            String containig the name of the site
+        'polygon': list
+            polygon containing the lon/lat coordinates to be extracted
+            longitudes in the first column and latitudes in the second column
+        'dates': list of str
+            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
+            e.g. ['1987-01-01', '2018-01-01']
+        'sat_list': list of str
+            list that contains the names of the satellite missions to include 
+            e.g. ['L5', 'L7', 'L8', 'S2']
         
     Returns:
     -----------
@@ -595,7 +609,7 @@ def merge_overlapping_images(metadata,inputs):
             
     """
 
-    # only for Sentinel-2 at this stage
+    # only for Sentinel-2 at this stage (could be implemented for Landsat as well)
     sat = 'S2'
     filepath = os.path.join(os.getcwd(), 'data', inputs['sitename'])
     
@@ -603,10 +617,9 @@ def merge_overlapping_images(metadata,inputs):
     filenames = metadata[sat]['filenames']
     filenames_copy = filenames.copy()
     
-    # loop through all the filenames and find the pairs of overlapping images
+    # loop through all the filenames and find the pairs of overlapping images (same date and time of acquisition)
     pairs = []
     for i,fn in enumerate(filenames):
-        # delete the given fn from the filenames copy
         filenames_copy[i] = []
         # find duplicate
         boolvec = [fn[:22] == _[:22] for _ in filenames_copy]
@@ -619,16 +632,17 @@ def merge_overlapping_images(metadata,inputs):
             
     msg = 'Merging %d pairs of overlapping images...' % len(pairs)
     print(msg)
-                        
+    
+    # for each pair of images, merge them into one complete image
     for i,pair in enumerate(pairs):
         print(i+1, end='..')
+        
         fn_im = []
         for index in range(len(pair)):            
             # read image
             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m'))])
-        
             im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat) 
         
             # in Sentinel2 images close to the edge of the image there are some artefacts, 
@@ -656,6 +670,7 @@ def merge_overlapping_images(metadata,inputs):
             else:
                 continue
             
+            # make a figure for quality control
 #            plt.figure()
 #            plt.subplot(221)
 #            plt.imshow(im_ms[:,:,[2,1,0]])
@@ -678,7 +693,7 @@ def merge_overlapping_images(metadata,inputs):
         os.remove(fn_im[1][0])
         os.rename(fn_merged, fn_im[0][0])
         
-        # merge masked 20m band
+        # merge masked 20m band (SWIR band)
         fn_merged = os.path.join(os.getcwd(), 'merged.tif')
         gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][1], fn_im[1][1]])
         os.chmod(fn_im[0][1], 0o777)
@@ -687,7 +702,7 @@ def merge_overlapping_images(metadata,inputs):
         os.remove(fn_im[1][1])
         os.rename(fn_merged, fn_im[0][1])
     
-        # merge QA band
+        # merge QA band (60m band)
         fn_merged = os.path.join(os.getcwd(), 'merged.tif')
         gdal_merge.main(['', '-o', fn_merged, '-n', 'nan', fn_im[0][2], fn_im[1][2]])
         os.chmod(fn_im[0][2], 0o777)
@@ -710,7 +725,8 @@ def merge_overlapping_images(metadata,inputs):
 
 def remove_cloudy_images(metadata,inputs,cloud_thresh):
     """
-    Removes images that have a cloud cover percentage that is above the cloud threshold
+    Deletes the .TIF file of images that have a cloud cover percentage that is above the cloud 
+    threshold.
     
     KV WRL 2018
         
@@ -718,20 +734,19 @@ def remove_cloudy_images(metadata,inputs,cloud_thresh):
     -----------
         metadata: dict
             contains all the information about the satellite images that were downloaded
-            
-        inputs: dict
-            contains the following fields:
-                sitename: str
-                    String containig the name of the site
-                polygon: list
-                    polygon containing the lon/lat coordinates to be extracted
-                    longitudes in the first column and latitudes in the second column
-                dates: list of str
-                    list that contains 2 strings with the initial and final dates in format 
-                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
-                sat_list: list of str
-                    list that contains the names of the satellite missions to include 
-                    e.g. ['L5', 'L7', 'L8', 'S2']
+        inputs: dict 
+            dictionnary that contains the following fields:
+        'sitename': str
+            String containig the name of the site
+        'polygon': list
+            polygon containing the lon/lat coordinates to be extracted
+            longitudes in the first column and latitudes in the second column
+        'dates': list of str
+            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
+            e.g. ['1987-01-01', '2018-01-01']
+        'sat_list': list of str
+            list that contains the names of the satellite missions to include 
+            e.g. ['L5', 'L7', 'L8', 'S2']
         cloud_thresh: float
             value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
         
@@ -747,7 +762,7 @@ def remove_cloudy_images(metadata,inputs,cloud_thresh):
 
     for satname in metadata.keys():
             
-        # read the images
+        # get the image filenames
         filepath = SDS_tools.get_filepath(inputs,satname)
         filenames = metadata[satname]['filenames']
 

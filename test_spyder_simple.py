@@ -32,7 +32,7 @@ inputs = {
         }
 
 # download satellite images (also saves metadata.pkl)
-metadata = SDS_download.get_images(inputs)
+metadata = SDS_download.retrieve_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
 filepath = os.path.join(os.getcwd(), 'data', sitename)

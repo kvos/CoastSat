@@ -61,7 +61,7 @@ def download_tif(image, polygon, bandsId, filepath):
         return local_zipfile.extract('data.tif', filepath)
 
 
-def get_images(inputs):
+def retrieve_images(inputs):
     """
     Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 covering the area of 
     interest and acquired between the specified dates. 

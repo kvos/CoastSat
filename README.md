@@ -1,8 +1,8 @@
+# WORK IN PROGRESS, please do not review yet!
+
 # CoastSat
 
 Python code to extract shorelines at sub-pixel resolution from publicly available satellite imagery. The shoreline detection algorithm is described in *Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (in review). Capturing intra-annual to multi-decadal shoreline variability from publicly available satellite imagery, Coastal Engineering*. Google Earth Engine's Python API is used to access the archive of publicly available satellite imagery (Landsat series and Sentinel-2).
-
-Written by *Kilian Vos*.
 
 ## Description
 

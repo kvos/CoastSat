@@ -25,7 +25,7 @@ If you are not a regular Python user and are not sure how to install these packa
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
+Open the *Anaconda prompt* and drive to the folder where you have downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
 
 #### Option 1
 
@@ -50,7 +50,7 @@ Activate the new environment:
 conda activate coastsat
 ```
 
-Now populate the environment with the packages needed to run the toolbox. All the necessary packages are contained in the **requirements.txt** file. Run this command to install them on Windows 64 bits (this might take a few minutes):
+Now populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in the **requirements.txt** file. Run this command to install them on Windows 64 bits (this might take a few minutes):
 
 ```
 conda install --name coastsat --file requirements.txt
@@ -105,7 +105,8 @@ The following user-defined settings are required:
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
-See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. An example of settings is provided here:
+See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to **True**.
+An example of settings is provided here:
 
 ![settings](https://user-images.githubusercontent.com/7217258/49354499-4b092880-f717-11e8-9877-135393011a48.PNG)
 

@@ -10,8 +10,13 @@ The shoreline detection algorithm proposed here combines a sub-pixel border segm
 
 ## Installation
 
-In this section we show how to install CoastSat using Anaconda. If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/. Best practice is to create a new environment that contains all the packages needed for CoastSat. 
+CoastSat requires the following Python packages to run: 
+```
+python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | shapely | simplekml
+```
+If you are not a regular Python user and are not sure how to install these packages, the section below shows how to install them using Anaconda on Windows (x64). 
 
+If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
 Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository.
 
 Create a new environment named *coastsat* with Python 3.6: 

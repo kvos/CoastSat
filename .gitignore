@@ -2,7 +2,11 @@
 *.mat
 *.tif
 *.png
+*.PNG
+*.jpeg
 *.mp4
 *.gif
 *.jpg
 *.pkl
+*.kml
+*checkpoint.ipynb

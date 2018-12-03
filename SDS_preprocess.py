@@ -1,29 +1,36 @@
-"""This module contains all the functions needed to preprocess the satellite images: creating a 
-cloud mask and pansharpening/downsampling the images. 
+"""This module contains all the functions needed to preprocess the satellite images before the
+shoreline can be extracted. This includes creating a cloud mask and 
+pansharpening/downsampling the multispectral bands. 
     
    Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
-# Initial settings
+# load modules
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from osgeo import gdal, ogr, osr
+import pdb
+
+# image processing modules
 import skimage.transform as transform
 import skimage.morphology as morphology
 import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
+
+# other modules
+from osgeo import gdal, ogr, osr
 from pylab import ginput
 import pickle
-import pdb
-import shapely.geometry as geometry
+import matplotlib.path as mpltPath
+
+# own modules
 import SDS_tools
 
-# Functions
+np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 def create_cloud_mask(im_qa, satname):
     """
-    Creates a cloud mask from the image containing the QA band information.
+    Creates a cloud mask using the information contained in the QA band.
     
     KV WRL 2018
     
@@ -32,15 +39,15 @@ def create_cloud_mask(im_qa, satname):
         im_qa: np.array
             Image containing the QA band
         satname: string
-            short name for the satellite (L8, L7, S2)
+            short name for the satellite (L5, L7, L8 or S2)
             
     Returns:
     -----------
-        cloud_mask : np.ndarray of booleans
-            A boolean array with True where the cloud are present
+        cloud_mask : np.array
+            A boolean array with True if a pixel is cloudy and False otherwise
     """
     
-    # convert QA bits depending on the satellite mission
+    # convert QA bits (the bits allocated to cloud cover vary depending on the satellite mission)
     if satname == 'L8':
         cloud_values = [2800, 2804, 2808, 2812, 6896, 6900, 6904, 6908]
     elif satname == 'L7' or satname == 'L5' or satname == 'L4':
@@ -51,7 +58,7 @@ def create_cloud_mask(im_qa, satname):
     # find which pixels have bits corresponding to cloud values
     cloud_mask = np.isin(im_qa, cloud_values)
     
-    # remove isolated cloud pixels (there are some in the swash zone and they can cause problems)
+    # remove isolated cloud pixels (there are some in the swash zone and they are not clouds)
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
         morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
     
@@ -101,8 +108,10 @@ def hist_match(source, template):
 
 def pansharpen(im_ms, im_pan, cloud_mask):
     """
-    Pansharpens a multispectral image (3D), using the panchromatic band (2D) and a cloud mask. 
+    Pansharpens a multispectral image, using the panchromatic band and a cloud mask. 
     A PCA is applied to the image, then the 1st PC is replaced with the panchromatic band.
+    Note that it is essential to match the histrograms of the 1st PC and the panchromatic band
+    before replacing and inverting the PCA.
     
     KV WRL 2018
 
@@ -118,14 +127,14 @@ def pansharpen(im_ms, im_pan, cloud_mask):
     Returns:
     -----------
         im_ms_ps: np.ndarray
-            Pansharpened multisoectral image (3D)
+            Pansharpened multispectral image (3D)
     """
     
     # reshape image into vector and apply cloud mask
     vec = im_ms.reshape(im_ms.shape[0] * im_ms.shape[1], im_ms.shape[2])
     vec_mask = cloud_mask.reshape(im_ms.shape[0] * im_ms.shape[1])
     vec = vec[~vec_mask, :]
-    # apply PCA to RGB bands
+    # apply PCA to multispectral bands
     pca = decomposition.PCA()
     vec_pcs = pca.fit_transform(vec)
     
@@ -147,7 +156,7 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
     """
     Rescales the intensity of an image (multispectral or single band) by applying
     a cloud mask and clipping the prob_high upper percentile. This functions allows
-    to stretch the contrast of an image for visualisation purposes.
+    to stretch the contrast of an image, only for visualisation purposes.
     
     KV WRL 2018
 
@@ -202,7 +211,10 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
 def preprocess_single(fn, satname):
     """
-    Creates a cloud mask using the QA band and performs pansharpening/down-sampling of the image.
+    Reads the image and outputs the pansharpened/down-sampled multispectral bands, the 
+    georeferencing vector of the image (coordinates of the upper left pixel), the cloud mask and 
+    the QA band. For Landsat 7-8 it also outputs the panchromatic band and for Sentinel-2 it also 
+    outputs the 20m SWIR band.
     
     KV WRL 2018
 
@@ -210,7 +222,8 @@ def preprocess_single(fn, satname):
     -----------
         fn: str or list of str
             filename of the .TIF file containing the image
-            for L7, L8 and S2 there is a filename for the bands at different resolutions
+            for L7, L8 and S2 this is a list of filenames, one filename for each band at different
+            resolution (30m and 15m for Landsat 7-8, 10m, 20m, 60m for Sentinel-2)
         satname: str
             name of the satellite mission (e.g., 'L5')
         
@@ -223,6 +236,11 @@ def preprocess_single(fn, satname):
             coordinates of the top-left pixel of the image
         cloud_mask: np.array
             2D cloud mask with True where cloud pixels are
+        im_extra : np.array
+            2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution 
+            panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
+        imQA: np.array
+            2D array containing the QA band, from which the cloud_mask can be computed.
             
     """
         
@@ -268,6 +286,9 @@ def preprocess_single(fn, satname):
             
         # calculate cloud cover
         cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
+        # no extra image for Landsat 5 (they are all 30 m bands)
+        im_extra = []
+        imQA = im_qa
         
     #=============================================================================================#
     # L7 images
@@ -325,6 +346,9 @@ def preprocess_single(fn, satname):
         im_ms_ps = np.append(im_ms_ps, im_ms[:,:,[4]], axis=2)
         
         im_ms = im_ms_ps.copy()
+        # the extra image is the 15m panchromatic band
+        im_extra = im_pan
+        imQA = im_qa
         
     #=============================================================================================#
     # L8 images
@@ -381,6 +405,9 @@ def preprocess_single(fn, satname):
         im_ms_ps = np.append(im_ms_ps, im_ms[:,:,[3,4]], axis=2)
         
         im_ms = im_ms_ps.copy()
+        # the extra image is the 15m panchromatic band
+        im_extra = im_pan
+        imQA = im_qa   
         
     #=============================================================================================#
     # S2 images
@@ -401,7 +428,7 @@ def preprocess_single(fn, satname):
             georef = []
             # skip the image by giving it a full cloud_mask
             cloud_mask = np.ones((im10.shape[0],im10.shape[1])).astype('bool')
-            return im_ms, georef, cloud_mask
+            return im_ms, georef, cloud_mask, [], []
         
         # size of 10m bands
         nrows = im10.shape[0]
@@ -428,8 +455,8 @@ def preprocess_single(fn, satname):
         data = gdal.Open(fn60, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im60 = np.stack(bands, 2)
-        im_qa = im60[:,:,0]
-        cloud_mask = create_cloud_mask(im_qa, satname)
+        imQA = im60[:,:,0]
+        cloud_mask = create_cloud_mask(imQA, satname)
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
@@ -441,8 +468,10 @@ def preprocess_single(fn, satname):
           
         # calculate cloud cover
         cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
+        # the extra image is the 20m SWIR band
+        im_extra = im20
     
-    return im_ms, georef, cloud_mask
+    return im_ms, georef, cloud_mask, im_extra, imQA
 
     
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
@@ -477,21 +506,32 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     fig = plt.figure()
     fig.set_size_inches([18,9])
     fig.set_tight_layout(True)
-    # RGB
-    plt.subplot(131)
-    plt.axis('off')
-    plt.imshow(im_RGB)
-    plt.title(date + '   ' + satname, fontsize=16)
-    # NIR
-    plt.subplot(132)
-    plt.axis('off')
-    plt.imshow(im_NIR, cmap='gray')
-    plt.title('Near Infrared', fontsize=16)
-    # SWIR
-    plt.subplot(133)
-    plt.axis('off')
-    plt.imshow(im_SWIR, cmap='gray')
-    plt.title('Short-wave Infrared', fontsize=16)
+    ax1 = fig.add_subplot(111)
+    ax1.axis('off')
+    ax1.imshow(im_RGB)
+    ax1.set_title(date + '   ' + satname, fontsize=16)
+    
+#    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+#        ax1 = fig.add_subplot(311)
+#        ax2 = fig.add_subplot(312)
+#        ax3 = fig.add_subplot(313)
+#    else:
+#        ax1 = fig.add_subplot(131)
+#        ax2 = fig.add_subplot(132)
+#        ax3 = fig.add_subplot(133)        
+#    # RGB
+#    ax1.axis('off')
+#    ax1.imshow(im_RGB)
+#    ax1.set_title(date + '   ' + satname, fontsize=16)
+#    # NIR
+#    ax2.axis('off')
+#    ax2.imshow(im_NIR, cmap='seismic')
+#    ax2.set_title('Near Infrared', fontsize=16)
+#    # SWIR
+#    ax3.axis('off')
+#    ax3.imshow(im_SWIR, cmap='seismic')
+#    ax3.set_title('Short-wave Infrared', fontsize=16)
+    
     # save figure
     plt.rcParams['savefig.jpeg_quality'] = 100
     fig.savefig(os.path.join(filepath,
@@ -499,28 +539,29 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     plt.close()
       
     
-def preprocess_all_images(metadata, settings):
+def save_jpg(metadata, settings):
     """
-    Saves a .jpg image for all the file contained in metadata.
+    Saves a .jpg image for all the images contained in metadata.
     
     KV WRL 2018
 
     Arguments:
     -----------
-        sitename: str
-            name of the site (and corresponding folder)
         metadata: dict
             contains all the information about the satellite images that were downloaded
-        cloud_thresh: float
-            maximum fraction of cloud cover allowed in the images
-        
+        settings: dict
+            contains the following fields:
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
+        'sitename': string
+            name of the site (also name of the folder where the images are stored)
+                    
     Returns:
     -----------
-        Generates .jpg files for all the satellite images avaialble
             
     """
     
-    sitename = settings['sitename']
+    sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
     
     # create subfolder to store the jpg files
@@ -532,65 +573,57 @@ def preprocess_all_images(metadata, settings):
             
     # loop through satellite list
     for satname in metadata.keys():
-        # access the images
-        if satname == 'L5':
-            # access downloaded Landsat 5 images
-            filepath = os.path.join(os.getcwd(), 'data', sitename, satname, '30m')
-            filenames = os.listdir(filepath)
-        elif satname == 'L7':
-            # access downloaded Landsat 7 images
-            filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'pan')
-            filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'ms')
-            filenames_pan = os.listdir(filepath_pan)
-            filenames_ms = os.listdir(filepath_ms)
-            if (not len(filenames_pan) == len(filenames_ms)):
-                raise 'error: not the same amount of files for pan and ms'
-            filepath = [filepath_pan, filepath_ms]
-            filenames = filenames_pan
-        elif satname == 'L8':
-            # access downloaded Landsat 7 images
-            filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'pan')
-            filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'ms')
-            filenames_pan = os.listdir(filepath_pan)
-            filenames_ms = os.listdir(filepath_ms)
-            if (not len(filenames_pan) == len(filenames_ms)):
-                raise 'error: not the same amount of files for pan and ms'
-            filepath = [filepath_pan, filepath_ms]
-            filenames = filenames_pan
-        elif satname == 'S2':
-            # access downloaded Sentinel 2 images
-            filepath10 = os.path.join(os.getcwd(), 'data', sitename, satname, '10m')
-            filenames10 = os.listdir(filepath10)
-            filepath20 = os.path.join(os.getcwd(), 'data', sitename, satname, '20m')
-            filenames20 = os.listdir(filepath20)
-            filepath60 = os.path.join(os.getcwd(), 'data', sitename, satname, '60m')
-            filenames60 = os.listdir(filepath60)
-            if (not len(filenames10) == len(filenames20)) or (not len(filenames20) == len(filenames60)):
-                raise 'error: not the same amount of files for 10, 20 and 60 m'
-            filepath = [filepath10, filepath20, filepath60]
-            filenames = filenames10
+        
+        filepath = SDS_tools.get_filepath(settings['inputs'],satname)
+        filenames = metadata[satname]['filenames']
             
         # loop through images
         for i in range(len(filenames)):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
-            # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask = preprocess_single(fn, satname)
+            # read and preprocess image
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
             # skip image if cloud cover is above threshold
-            if cloud_cover > cloud_thresh:
+            if cloud_cover > cloud_thresh or cloud_cover == 1:
                 continue
             # save .jpg with date and satellite in the title
             date = filenames[i][:10]
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
                 
 def get_reference_sl_manual(metadata, settings):
+    """
+    Allows the user to manually digitize a reference shoreline that is used seed the shoreline 
+    detection algorithm. The reference shoreline helps to detect the outliers, making the shoreline
+    detection more robust.
     
-    sitename = settings['sitename']
+    KV WRL 2018
+
+    Arguments:
+    -----------
+        metadata: dict
+            contains all the information about the satellite images that were downloaded
+        settings: dict
+            contains the following fields:
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
+        'sitename': string
+            name of the site (also name of the folder where the images are stored)
+        'output_epsg': int
+            epsg code of the desired spatial reference system
+                    
+    Returns:
+    -----------
+        ref_sl: np.array
+            coordinates of the reference shoreline that was manually digitized
+            
+    """
     
-    # check if reference shoreline already exists
+    sitename = settings['inputs']['sitename']
+    
+    # check if reference shoreline already exists in the corresponding folder
     filepath = os.path.join(os.getcwd(), 'data', sitename)
     filename = sitename + '_ref_sl.pkl'
     if filename in os.listdir(filepath):
@@ -600,23 +633,31 @@ def get_reference_sl_manual(metadata, settings):
         return refsl
             
     else:
-        satname = 'S2'
-        # access downloaded Sentinel 2 images
-        filepath10 = os.path.join(os.getcwd(), 'data', sitename, satname, '10m')
-        filenames10 = os.listdir(filepath10)
-        filepath20 = os.path.join(os.getcwd(), 'data', sitename, satname, '20m')
-        filenames20 = os.listdir(filepath20)
-        filepath60 = os.path.join(os.getcwd(), 'data', sitename, satname, '60m')
-        filenames60 = os.listdir(filepath60)
-        if (not len(filenames10) == len(filenames20)) or (not len(filenames20) == len(filenames60)):
-            raise 'error: not the same amount of files for 10, 20 and 60 m'
-        for i in range(len(filenames10)):
-            # image filename
-            fn = [os.path.join(filepath10, filenames10[i]),
-                  os.path.join(filepath20, filenames20[i]),
-                  os.path.join(filepath60, filenames60[i])]
-            # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask = preprocess_single(fn, satname)
+        # first try to use S2 images (10m res for manually digitizing the reference shoreline)
+        if 'S2' in metadata.keys():
+            satname = 'S2'
+            filepath = SDS_tools.get_filepath(settings['inputs'],satname)
+            filenames = metadata[satname]['filenames']
+        # if no S2 images, try L8  (15m res in the RGB with pansharpening)
+        elif not 'S2' in metadata.keys() and 'L8' in metadata.keys():
+            satname = 'L8'
+            filepath = SDS_tools.get_filepath(settings['inputs'],satname)
+            filenames = metadata[satname]['filenames']  
+        # if no S2 images and no L8, use L5 images (L7 images have black diagonal bands making it 
+        # hard to manually digitize a shoreline)
+        elif not 'S2' in metadata.keys() and not 'L8' in metadata.keys() and 'L5' in metadata.keys():
+            satname = 'L5'
+            filepath = SDS_tools.get_filepath(settings['inputs'],satname)
+            filenames = metadata[satname]['filenames'] 
+        else:
+            print('You cannot digitize the shoreline on L7 images, add another L8, S2 or L5 to your dataset.') 
+        
+        # loop trhough the images
+        for i in range(len(filenames)):
+            
+            # read image
+            fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -625,41 +666,50 @@ def get_reference_sl_manual(metadata, settings):
                 continue
             # rescale image intensity for display purposes
             im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-            # make figure
+            # plot the image RGB on a figure
             fig = plt.figure()
             fig.set_size_inches([18,9])
             fig.set_tight_layout(True)
-            # RGB
             plt.axis('off')
             plt.imshow(im_RGB)
-            plt.title('click <skip> if image is not clear enough to digitize the shoreline.\n' +
-                      'Otherwise click on <keep> and start digitizing the shoreline.\n' + 
-                      'When finished digitizing the shoreline click on the scroll wheel ' +
-                      '(middle click).', fontsize=14)
-            plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
+            # decide if the image if good enough for digitizing the shoreline
+            plt.title('click <keep> if image is clear enough to digitize the shoreline.\n' +
+                      'If not (too cloudy) click on <skip> to get another image', fontsize=14)
+            keep_button = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
                                    transform=plt.gca().transAxes,
                                    bbox=dict(boxstyle="square", ec='k',fc='w'))   
-            plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
+            skip_button = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
                                    transform=plt.gca().transAxes,
                                    bbox=dict(boxstyle="square", ec='k',fc='w'))
             mng = plt.get_current_fig_manager()                                         
             mng.window.showMaximized()
             # let user click on the image once
-            pt_keep = ginput(n=1, timeout=100, show_clicks=True)
-            pt_keep = np.array(pt_keep)
+            pt_input = ginput(n=1, timeout=1000000, show_clicks=True)
+            pt_input = np.array(pt_input)
             # if clicks next to <skip>, show another image
-            if pt_keep[0][0] > im_ms.shape[1]/2:
+            if pt_input[0][0] > im_ms.shape[1]/2:
                 plt.close()
                 continue
             else:
+                # remove keep and skip buttons
+                keep_button.set_visible(False)
+                skip_button.set_visible(False)
+                # update title (instructions)
+                plt.title('Digitize the shoreline on this image by clicking on it.\n' + 
+                      'When finished digitizing the shoreline click on the scroll wheel ' +
+                      '(middle click).', fontsize=14)     
+                plt.draw()
                 # let user click on the shoreline
-                pts = ginput(n=5000, timeout=100000, show_clicks=True)
+                pts = ginput(n=50000, timeout=100000, show_clicks=True)
                 pts_pix = np.array(pts)
                 plt.close()                
                 # convert image coordinates to world coordinates
                 pts_world = SDS_tools.convert_pix2world(pts_pix[:,[1,0]], georef)
                 image_epsg = metadata[satname]['epsg'][i]
                 pts_coords = SDS_tools.convert_epsg(pts_world, image_epsg, settings['output_epsg'])
+                
+                # save the reference shoreline
+                filepath = os.path.join(os.getcwd(), 'data', sitename)
                 with open(os.path.join(filepath, sitename + '_ref_sl.pkl'), 'wb') as f:
                     pickle.dump(pts_coords, f)
                 print('Reference shoreline has been saved')
@@ -667,35 +717,59 @@ def get_reference_sl_manual(metadata, settings):
             
     return pts_coords
 
-def get_reference_sl_from_db(polygon, settings):
+def get_reference_sl_Australia(settings):
+    """
+    Automatically finds a reference shoreline from a high resolution coastline of Australia 
+    (Smartline from Geoscience Australia). It finds the points of the national coastline vector
+    that are situated inside the area of interest (polygon).
     
-    # load beaches database
-    filename = os.path.join(os.getcwd(), 'data', 'beaches_db', 'beaches.pkl')
+    KV WRL 2018
+
+    Arguments:
+    -----------
+        settings: dict
+            contains the following fields:
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
+        'sitename': string
+            name of the site (also name of the folder where the images are stored)
+        'output_epsg': int
+            epsg code of the desired spatial reference system
+                    
+    Returns:
+    -----------
+        ref_sl: np.array
+            coordinates of the reference shoreline found in the shapefile
+            
+    """    
+    
+    # load high-resolution shoreline of Australia
+    filename = os.path.join(os.getcwd(), 'data', 'shoreline_Australia.pkl')
     with open(filename, 'rb') as f:
-        beaches = pickle.load(f)    
+        sl = pickle.load(f)    
+    # spatial reference system of this shoreline
+    sl_epsg = 4283          # GDA94 geographic 
     
-    # process polygon
-    polygon_epsg = 4326 # GDA94 geographic 
-    db_epsg= 28356      # GDA Map grid of Australia Zone 56
-    # convert polygon coordinates
-    polygon_conv = geometry.Polygon(SDS_tools.convert_epsg(np.array(polygon[0]),
-                                                           polygon_epsg, db_epsg)[:,:-1])
-    # find the beach contained in the polygon
-    in_polygon = []
-    for i,n in enumerate(list(beaches.keys())):
-        line = geometry.LineString(beaches[n]['coords'])
-        if polygon_conv.contains(line):
-            in_polygon.append(n)
-    # if more than one shoreline in the polygon append them
-    if len(in_polygon) > 1:
-        print('more than 1 beach in polygon!')
-        ref_sl = np.array([[np.nan, np.nan],[np.nan, np.nan]])
-        for i in range(len(in_polygon)):
-            ref_sl = np.append(ref_sl, beaches[in_polygon[i]]['coords'], axis=0)
-        ref_sl = np.delete(ref_sl,[0,1], axis=0)
-    elif len(in_polygon) == 0:
-        print('no shoreline was found in the database!')
-    else:
-        ref_sl = beaches[in_polygon[0]]['coords']
+    # only select the points that sit inside the area of interest (polygon)
+    polygon = settings['inputs']['polygon']
+    # spatial reference system of the polygon (latitudes and longitudes)
+    polygon_epsg = 4326     # WGS84 geographic
+    polygon = SDS_tools.convert_epsg(np.array(polygon[0]), polygon_epsg, sl_epsg)[:,:-1]
+    
+    # use matplotlib function Path
+    path = mpltPath.Path(polygon)
+    sl_inside = sl[np.where(path.contains_points(sl))]
         
+    # convert to desired output coordinate system
+    ref_sl = SDS_tools.convert_epsg(sl_inside, sl_epsg, settings['output_epsg'])[:,:-1]
+    
+    # make a figure for quality control
+    plt.figure()
+    plt.axis('equal')
+    plt.xlabel('Eastings [m]')
+    plt.ylabel('Northings [m]')
+    plt.plot(ref_sl[:,0], ref_sl[:,1], 'r.')
+    polygon = SDS_tools.convert_epsg(polygon, sl_epsg, settings['output_epsg'])[:,:-1]
+    plt.plot(polygon[:,0], polygon[:,1], 'k-')
+    
     return ref_sl

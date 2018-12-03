@@ -115,7 +115,7 @@ The mapped shorelines are provided as two different outputs (saved under *.\data
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image.
 - `sitename_output.kml`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
 
-![gis_output](https://user-images.githubusercontent.com/7217258/49360726-21a7c700-f72e-11e8-82b3-fc80b92baa45.jpeg)
+![gis_output](https://user-images.githubusercontent.com/7217258/49360866-895e1200-f72e-11e8-96fc-d19827109e1f.jpeg)
 
 ## Issues and Contributions
 

@@ -103,7 +103,7 @@ The following user-defined settings are required:
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
-![settings](https://user-images.githubusercontent.com/7217258/49354431-f8c80780-f716-11e8-8d31-5a91083d62e5.PNG)
+![settings](https://user-images.githubusercontent.com/7217258/49354499-4b092880-f717-11e8-9877-135393011a48.PNG)
 
 The figure below provides an example of mapped shoreline where the user can manually accept/reject the detection.
 

@@ -112,8 +112,10 @@ The figure below provides an example of mapped shoreline where the user can manu
 ![output](https://user-images.githubusercontent.com/7217258/49354698-39745080-f718-11e8-878d-266d850519f7.jpg)
 
 The mapped shorelines are provided as two different outputs (saved under *.\data\sitename*):
-- `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image.
+- `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image. The list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.
 - `sitename_output.kml`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
+
+The figure below shows how the mapped shoreline can be added a GIS software using the `.kml` output.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49360912-b01c4880-f72e-11e8-8f17-8f696f60e1e4.jpeg)
 

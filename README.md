@@ -113,4 +113,4 @@ The figure below provides an example of mapped shoreline where the user can manu
 
 ## Issues and Contributions
 
-Looking to contribute to the code? Please see the [Issues page](https://github.com/kvos/coastsat/issues).
+Having a problem or looking to contribute to the code? Please see the [Issues page](https://github.com/kvos/coastsat/issues).

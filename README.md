@@ -117,7 +117,7 @@ The mapped shorelines are provided as two different outputs (saved under *.\data
 
 The figure below shows how the mapped shoreline can be added a GIS software using the `.kml` output.
 
-![gis_output](https://user-images.githubusercontent.com/7217258/49360912-b01c4880-f72e-11e8-8f17-8f696f60e1e4.jpeg)
+![gis_output](https://user-images.githubusercontent.com/7217258/49361251-9deeda00-f72f-11e8-9ebd-99e86a8b1305.jpeg)
 
 ## Issues and Contributions
 

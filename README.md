@@ -75,7 +75,7 @@ earthengine authenticate
 
 A web browser will open, login with your GEE credentials and copy the authorization code into the Anaconda terminal.
 
-Now you are ready to start using the toolbox!
+Now you are ready to start using the CoastSat!
 
 ## 2. Usage 
 
@@ -107,9 +107,11 @@ See http://spatialreference.org/ to find the EPSG number corresponding to your l
 
 ![settings](https://user-images.githubusercontent.com/7217258/49354499-4b092880-f717-11e8-9877-135393011a48.PNG)
 
-The figure below provides an example of mapped shoreline where the user can manually accept/reject the detection.
+The figure below provides an example of mapped shoreline where the user can manually accept/reject the detection by clicking on `keep` or `skip`.
 
 ![output](https://user-images.githubusercontent.com/7217258/49354698-39745080-f718-11e8-878d-266d850519f7.jpg)
+
+When the shorelines have been mapped on all the images, 
 
 ## Issues and Contributions
 

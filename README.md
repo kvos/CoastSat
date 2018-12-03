@@ -42,13 +42,14 @@ Once you have create a Google Earth Engine account, go back to Anaconda and inst
 conda install -c conda-forge earthengine-api
 ```
 
+Link your GEE credentials to the Python API:
 
-- *earthengine authenticate* (this will open a web browser where you will have login with your Google Earth Engine credentials)
+```
+pip install oauth2client
+earthengine authenticate
+```
 
-Once you have installed the *earthengine-api*, you need to install the other Python packages that are used in this toolbox (*scikit-image*, *scikit-learn* etc...). 
-
-If on *win-64*, use the *Anaconda prompt* to navigate to the directory where you downloaded the repository and run:
-- *conda install --name coastsat --file environment.txt* (this will install all the necessary packages)
+A web browser will open, login with your GEE credentials and copy the authorization code into the Anaconda terminal.
 
 Now you are ready to start using the toolbox!
 

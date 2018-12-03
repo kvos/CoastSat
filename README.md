@@ -97,13 +97,15 @@ The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retri
 
 It is finally time to map the shoreline changes at your local beach!  
 
-The user has to define the following settings:
+The following user-defined settings are required:
 
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
+The figure below provides an example where the user can manually decide to accept/reject the mapped shoreline.
 
+![output](https://user-images.githubusercontent.com/7217258/49354279-2a8c9e80-f716-11e8-9d8c-c987bf1f4917.jpg)
 
 
 ## Issues and Contributions

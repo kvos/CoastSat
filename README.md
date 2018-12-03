@@ -32,17 +32,17 @@ Now populate the environment with the packages needed to run the toolbox. All th
 conda install --name coastsat --file environment.txt
 ```
 
-While waiting for the packages to be downloaded, sign up to Google Earth Engine https://earthengine.google.com.
+While waiting for the packages to be downloaded, go to https://earthengine.google.com and sign up to Google Earth Engine.
+
+![gee_capture](https://user-images.githubusercontent.com/7217258/49348457-a9271300-f6f9-11e8-8c0b-407383940e94.jpg)
+
+Once you have create a Google Earth Engine account, go back to Anaconda and install Google Earth Engine's Python API package:
+
+```
+conda install -c conda-forge earthengine-api
+```
 
 
-
-
-
-Now you need to install **Google Earth Engine's Python API** module.
-Follow these steps to install the *earthengine-api* package:
-- go to https://earthengine.google.com and go to signup
-Go back to the *Anaconda prompt* where the *coastsat* environment is active and run the following commands:
-- *conda install -c conda-forge earthengine-api*
 - *earthengine authenticate* (this will open a web browser where you will have login with your Google Earth Engine credentials)
 
 Once you have installed the *earthengine-api*, you need to install the other Python packages that are used in this toolbox (*scikit-image*, *scikit-learn* etc...). 

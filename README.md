@@ -99,11 +99,13 @@ It is finally time to map the shoreline changes at your local beach!
 
 The following user-defined settings are required:
 
-- `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images
+- `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1)
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
-The figure below provides an example where the user can manually decide to accept/reject the mapped shoreline.
+![settings](https://user-images.githubusercontent.com/7217258/49354431-f8c80780-f716-11e8-8d31-5a91083d62e5.PNG)
+
+The figure below provides an example of mapped shoreline where the user can manually accept/reject the detection.
 
 ![output](https://user-images.githubusercontent.com/7217258/49354279-2a8c9e80-f716-11e8-9d8c-c987bf1f4917.jpg)
 

@@ -19,7 +19,18 @@ If you are not a regular Python user and are not sure how to install these packa
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository.
+Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if this doesn't work, try **Option 2**. 
+
+#### Option 1
+
+Create an environment with all the necessary Python packages by running the following command:
+
+```
+conda env create -f environment.yml
+```
+
+#### Option 2
+
 
 Create a new environment named *coastsat* with Python 3.6: 
 
@@ -33,10 +44,10 @@ Activate the new environment:
 conda activate coastsat
 ```
 
-Now populate the environment with the packages needed to run the toolbox. All the necessary packages are contained in the environment.txt file. Run this command to install them on Windows 64 bits (this might take a few minutes):
+Now populate the environment with the packages needed to run the toolbox. All the necessary packages are contained in the **requirements.txt** file. Run this command to install them on Windows 64 bits (this might take a few minutes):
 
 ```
-conda install --name coastsat --file environment.txt
+conda install --name coastsat --file requirements.txt
 ```
 
 ### 1.2 Activating Google Earth Engine Python API
@@ -51,7 +62,7 @@ Once you have created a Google Earth Engine account, go back to Anaconda and ins
 conda install -c conda-forge earthengine-api
 ```
 
-Link your GEE credentials to the Python API:
+Link your GEE credentials to the Python API (for this you need oauth2client):
 
 ```
 pip install oauth2client

@@ -2,11 +2,17 @@
 
 # CoastSat
 
-Python code to extract shorelines at sub-pixel resolution from publicly available satellite imagery. The shoreline detection algorithm is described in *Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (in review). Capturing intra-annual to multi-decadal shoreline variability from publicly available satellite imagery, Coastal Engineering*. Google Earth Engine's Python API is used to access the archive of publicly available satellite imagery (Landsat series and Sentinel-2).
+This software enables the users to extract time-series of shoreline change over the last 30+ years at their site of interest. The software is described in *Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled software to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*. 
+
+There are two main steps:
+- retrieval of the satellite images of the region of interest from Google Earth Engine
+- extraction of the shorelines from the images using a sub-pixel resolution technique
+
+### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ measurements are available. Satellite imagery spannig the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline positon.
-*coastsat* is an open-source Python module that allows to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
-The shoreline detection algorithm proposed here combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+CoastSat is an open-source Python module that allows to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
+The shoreline detection algorithm implemented in CoastSat combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 ## 1. Installation
 
@@ -14,12 +20,12 @@ CoastSat requires the following Python packages to run:
 ```
 python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | shapely | simplekml
 ```
-If you are not a regular Python user and are not sure how to install these packages, the section below shows how to install them using Anaconda on Windows (x64). Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
+If you are not a regular Python user and are not sure how to install these packages, the section below shows how to install them using Anaconda. Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
 
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if this doesn't work, try **Option 2**. 
+Open the *Anaconda prompt* and drive to the folder where you downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
 
 #### Option 1
 
@@ -73,9 +79,11 @@ A web browser will open, login with your GEE credentials and copy the authorizat
 
 Now you are ready to start using the toolbox!
 
-## Usage 
+## 2. Usage 
 
 A demonstration of the use of *coastsat* is provided in the Jupyter Notebook *shoreline_extraction.ipynb*. The code can also be run in Spyder with *main_spyder.py*.
+
+### 2.1 Retrieve the satellite images
 
 The first step is to retrieve the satellite images of the region of interest from Google Earth Engine servers by calling *SDS_download.get_images(sitename, polygon, dates, sat_list)*:
 - *sitename* is a string which will define the name of the folder where the files will be stored

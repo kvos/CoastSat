@@ -84,20 +84,27 @@ The software can be run from a Jupyter notebook (*main.ipynb*) or from Spyder (*
 ### 2.1 Retrieval of the satellite images
 
 To retrieve the satellite images cropped around the the region of interest from Google Earth Engine servers the following user-defined variables are needed:
-- **polygon**: the coordinates of the region of interest (longitude/latitude pairs)
-- **dates**: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)  
-- **sat_list**: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections).
-- **sitename**: name of the site (defines the name of the subfolder where the files will be stored)
+- `polygon`: the coordinates of the region of interest (longitude/latitude pairs)
+- `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)  
+- `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections).
+- `sitename`: name of the site (defines the name of the subfolder where the files will be stored)
 
-The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (in .data\sitename\). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`.
+The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under **.data\sitename**). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly from this file. The screenshot below shows an example where all the images of Narrabeen-Collaroy (Australia) acquired in December 2017 are retrieved. 
 
 ![retrieval](https://user-images.githubusercontent.com/7217258/49353105-0037e280-f710-11e8-9454-c03ce6116c54.PNG)
 
 ### 2.2 Shoreline detection
 
-Once the images have been downloaded, the shorelines are extracted from the multispectral images using the sub-pixel resolution technique described in *Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (in review). Capturing intra-annual to multi-decadal shoreline variability from publicly available satellite imagery, Coastal Engineering*.
-The shoreline extraction is performed by the function SDS_shoreline.extract_shorelines(metadata, settings). The user must define the settings in a Python dictionary. To ensure maximum robustness of the algorithm the user can optionally digitize a reference shoreline (byc calling *SDS_preprocess.get_reference_sl(metadata, settings)*) that will then be used to identify obvious outliers and minimize false detections. Since the cloud mask is not perfect (especially in Sentinel-2 images) the user has the option to manually validate each detection by setting the *'check_detection'* parameter to *True*.
-The shoreline coordinates (in the coordinate system defined by the user in *'output_epsg'* are stored in a file named *sitename_out.pkl*.
+It is finally time to map the shoreline changes at your local beach!  
+
+The user has to define the following settings:
+
+- `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images
+- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
+- `check_detection`: if set to `True` allows the user to quality control each shoreline detection
+
+
+
 
 ## Issues and Contributions
 

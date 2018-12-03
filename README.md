@@ -79,15 +79,17 @@ Now you are ready to start using the toolbox!
 
 ## 2. Usage 
 
-A demonstration of the use of *coastsat* is provided in the Jupyter Notebook *shoreline_extraction.ipynb*. The code can also be run in Spyder with *main_spyder.py*.
+The software can be run from a Jupyter notebook (*main.ipynb*) or from Spyder (*main.py*). In the following sections we describe an example of shoreline detection using the Jupyter notebook.
 
-### 2.1 Retrieve the satellite images
+### 2.1 Retrieval of the satellite images
 
-The first step is to retrieve the satellite images of the region of interest from Google Earth Engine servers by calling *SDS_download.get_images(sitename, polygon, dates, sat_list)*:
-- *sitename* is a string which will define the name of the folder where the files will be stored
-- *polygon* contains the coordinates of the region of interest (longitude/latitude pairs)
-- *dates* defines the dates over which the images will be retrieved (e.g., *dates = ['2017-12-01', '2018-01-01']*)  
-- *sat_list* indicates which satellite missions to consider (e.g., *sat_list = ['L5', 'L7', 'L8', 'S2']* will download images from Landsat 5, 7, 8 and Sentinel-2 collections).
+To retrieve the satellite images cropped around the the region of interest from Google Earth Engine servers the following user-defined variables are needed:
+- **polygon**: the coordinates of the region of interest (longitude/latitude pairs)
+- **dates**: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)  
+- **sat_list**: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections).
+- **sitename**: name of site (defines the name of the subfolder where the files will be stored)
+
+![retrieval](https://user-images.githubusercontent.com/7217258/49353105-0037e280-f710-11e8-9454-c03ce6116c54.PNG)
 
 The images are cropped on the Google Earth Engine servers and only the region of interest is downloaded resulting in low memory allocation (~ 1 megabyte/image for a 5km-long beach). The relevant image metadata (time of acquisition, geometric accuracy...etc) is stored in a file named *sitename_metadata.pkl*.
 

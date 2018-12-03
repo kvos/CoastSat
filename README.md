@@ -103,12 +103,13 @@ The following user-defined settings are required:
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
+See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. An example of settings is provided here:
+
 ![settings](https://user-images.githubusercontent.com/7217258/49354499-4b092880-f717-11e8-9877-135393011a48.PNG)
 
 The figure below provides an example of mapped shoreline where the user can manually accept/reject the detection.
 
-![output](https://user-images.githubusercontent.com/7217258/49354279-2a8c9e80-f716-11e8-9d8c-c987bf1f4917.jpg)
-
+![output](https://user-images.githubusercontent.com/7217258/49354698-39745080-f718-11e8-878d-266d850519f7.jpg)
 
 ## Issues and Contributions
 

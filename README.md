@@ -10,7 +10,7 @@ There are two main steps:
 
 ### Description
 
-Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ measurements are available. Satellite imagery spannig the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline positon.
+Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ measurements are available. Satellite imagery spanning the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline position.
 CoastSat is an open-source Python module that allows to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
 The shoreline detection algorithm implemented in CoastSat combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
@@ -25,7 +25,7 @@ If you are not a regular Python user and are not sure how to install these packa
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* and drive to the folder where you have downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
+Open the *Anaconda prompt* (in Mac, open a terminal window) and drive to the folder where you have downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
 
 #### Option 1
 

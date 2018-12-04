@@ -16,7 +16,7 @@ The shoreline detection algorithm implemented in CoastSat combines a sub-pixel b
 
 ## 1. Installation
 
-CoastSat requires the following Python packages to run: 
+CoastSat requires the following Python 3.6 packages to run: 
 ```
 python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | shapely | simplekml
 ```

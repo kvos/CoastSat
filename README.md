@@ -16,32 +16,22 @@ The shoreline detection algorithm implemented in CoastSat combines a sub-pixel b
 
 ## 1. Installation
 
-CoastSat requires the following Python 3.6 packages to run: 
+CoastSat requires the following Python packages to run: 
 ```
-python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | shapely | simplekml
+conda-forge: python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | simplekml
+PyPi:        shapely
 ```
-If you are not a regular Python user and are not sure how to install these packages, the section below shows how to install them using Anaconda. Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
+If you are not a regular Python user and are not sure how to install these packages from *conda-forge* and *PyPi*, the section below shows how to install them using Anaconda. Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
 
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* (in Mac, open a terminal window) and drive to the folder where you have downloaded/cloned this repository. There are two ways of cloning an environment with Anaconda, try **Option 1** first and if the installation fails, try **Option 2** (only for Windows x64). 
+Open the *Anaconda prompt* (in Mac and Linux, open a terminal window) and drive to the folder where you have downloaded/cloned this repository.
 
-#### Option 1
-
-Create an environment with all the necessary Python packages by running the following command:
+Create a new environment named *coastsat*: 
 
 ```
-conda env create -f environment.yml
-```
-
-#### Option 2
-
-
-Create a new environment named *coastsat* with Python 3.6: 
-
-```
-conda create -n coastsat python=3.6
+conda create -n coastsat
 ```
 
 Activate the new environment:
@@ -50,11 +40,33 @@ Activate the new environment:
 conda activate coastsat
 ```
 
-Now populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in the **requirements.txt** file. Run this command to install them on Windows 64 bits (this might take a few minutes):
+Now you need to populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in three platform specific files: `requirements_win64.txt`, `requirements_osx64.txt`, `requirements_linux64.txt`. To install the packages, run one of the following commands, depending on which platform you are operating:
+
+#### Windows 64 bits (win64)
 
 ```
-conda install --name coastsat --file requirements.txt
+conda install --name coastsat --file requirements_win64.txt
 ```
+
+#### Mac 64 bits (osx64)
+
+```
+conda install --name coastsat --file requirements_osx64.txt
+```
+
+#### Linux 64 bits (linux64)
+
+```
+conda install --name coastsat --file requirements_linux64.txt
+```
+
+This might take a few minutes... once it is finished run the following command:
+
+```
+pip install shapely
+```
+
+All the packages have now been install in an environment called `coastsat`.
 
 ### 1.2 Activating Google Earth Engine Python API
 

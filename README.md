@@ -21,7 +21,7 @@ CoastSat requires the following Python packages to run:
 conda-forge: python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | simplekml
 PyPi:        shapely
 ```
-If you are not a regular Python user and are not sure how to install these packages from *conda-forge* and *PyPi*, the section below shows how to install them using Anaconda. Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
+If you are not a regular Python user and are not sure how to install these packages from *conda-forge* and *PyPi*, the section below shows how to install them step-by-step using Anaconda. Otherwise, install the packages and go directly to section **1.2 Activating Google Earth Engine Python API**.
 
 ### 1.1 Installing the packages (Anaconda)
 
@@ -74,26 +74,28 @@ Go to https://earthengine.google.com and sign up to Google Earth Engine.
 
 ![gee_capture](https://user-images.githubusercontent.com/7217258/49348457-a9271300-f6f9-11e8-8c0b-407383940e94.jpg)
 
-Once you have created a Google Earth Engine account, go back to Anaconda and install Google Earth Engine's Python API package:
+Once you have created a Google Earth Engine account, go back to Anaconda and link your GEE credentials to the Python API:
 
 ```
-conda install -c conda-forge earthengine-api
-```
-
-Link your GEE credentials to the Python API (for this you need oauth2client):
-
-```
-pip install oauth2client
 earthengine authenticate
 ```
 
-A web browser will open, login with your GEE credentials and copy the authorization code into the Anaconda terminal.
+A web browser will open, login with your GEE credentials, accept the terms and conditions and copy the authorization code into the Anaconda terminal.
 
 Now you are ready to start using the CoastSat!
 
+**Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat`
+
 ## 2. Usage 
 
-The software can be run from a Jupyter notebook (*main.ipynb*) or from Spyder (*main.py*). In the following sections we describe an example of shoreline detection using the Jupyter notebook.
+An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run it, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
+
+```
+jupyter notebook
+```
+
+A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia).
 
 ### 2.1 Retrieval of the satellite images
 

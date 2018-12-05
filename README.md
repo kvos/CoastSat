@@ -111,7 +111,7 @@ The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retri
 
 ### 2.2 Shoreline detection
 
-It is finally time to map the shoreline changes at your local beach!  
+It is finally time to map shorelines!  
 
 The following user-defined settings are required:
 
@@ -120,9 +120,16 @@ The following user-defined settings are required:
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
+
+In addition, there are four parameters that can be tuned to optimise the shoreline detection (for Advanced users only):
+
+- `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1)
+- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
+- `check_detection`: if set to `True` allows the user to quality control each shoreline detection
+
 An example of settings is provided here:
 
-![settings](https://user-images.githubusercontent.com/7217258/49354499-4b092880-f717-11e8-9877-135393011a48.PNG)
+![settings](https://user-images.githubusercontent.com/7217258/49488143-8c294600-f899-11e8-93d8-da6f5fef59ad.PNG)
 
 When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject the detection by clicking on `keep` or `skip`.
 

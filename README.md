@@ -2,7 +2,7 @@
 
 This software enables the users to extract time-series of shoreline change over the last 30+ years at their site of interest. The software is described in:
 
-*Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled software to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*. 
+*Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled software to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*.
 
 There are two main steps:
 - retrieval of the satellite images of the region of interest from Google Earth Engine
@@ -16,7 +16,7 @@ The shoreline detection algorithm implemented in CoastSat combines a sub-pixel b
 
 ## 1. Installation
 
-CoastSat requires the following Python packages to run: 
+CoastSat requires the following Python packages to run:
 ```
 conda-forge: python=3.6 | matplotlib | scikit-image | scikit-learn | gdal | earthengine-api | oauth2client | spyder | jupyter | simplekml
 PyPi:        shapely
@@ -28,7 +28,7 @@ If you are not a regular Python user and are not sure how to install these packa
 If Anaconda is not already installed on your PC, you can get it at https://www.anaconda.com/download/.
 Open the *Anaconda prompt* (in Mac and Linux, open a terminal window) and drive to the folder where you have downloaded/cloned this repository.
 
-Create a new environment named *coastsat*: 
+Create a new environment named *coastsat*:
 
 ```
 conda create -n coastsat
@@ -86,7 +86,7 @@ Now you are ready to start using the CoastSat!
 
 **Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat`
 
-## 2. Usage 
+## 2. Usage
 
 An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run it, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
 
@@ -101,17 +101,17 @@ The following sections guide the reader through the different functionalities of
 
 To retrieve the satellite images cropped around the the region of interest from Google Earth Engine servers the following user-defined variables are needed:
 - `polygon`: the coordinates of the region of interest (longitude/latitude pairs)
-- `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)  
+- `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)
 - `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections).
 - `sitename`: name of the site (defines the name of the subfolder where the files will be stored)
 
-The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under **.data\sitename**). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly from this file. The screenshot below shows an example where all the images of Narrabeen-Collaroy (Australia) acquired in December 2017 are retrieved. 
+The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under **.data\sitename**). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly from this file. The screenshot below shows an example where all the images of Narrabeen-Collaroy (Australia) acquired in December 2017 are retrieved.
 
 ![retrieval](https://user-images.githubusercontent.com/7217258/49353105-0037e280-f710-11e8-9454-c03ce6116c54.PNG)
 
 ### 2.2 Shoreline detection
 
-It is finally time to map shorelines!  
+It is finally time to map shorelines!
 
 The following user-defined settings are required:
 
@@ -121,19 +121,29 @@ The following user-defined settings are required:
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
 
-In addition, there are four parameters that can be tuned to optimise the shoreline detection (for Advanced users only):
-
-- `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1)
-- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
-- `check_detection`: if set to `True` allows the user to quality control each shoreline detection
+In addition, there are four extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `max_dist_ref`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave those parameters to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
 ![settings](https://user-images.githubusercontent.com/7217258/49488143-8c294600-f899-11e8-93d8-da6f5fef59ad.PNG)
 
-When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject the detection by clicking on `keep` or `skip`.
+It is also possible (optional) to add a reference shoreline which can be manually digitised by the user on one of the images by calling:
+```
+settings['refsl'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
+```
+This function allows the user to click points along the shoreline on one of the satellite images, as shown in the figure below.
 
-![output](https://user-images.githubusercontent.com/7217258/49354698-39745080-f718-11e8-878d-266d850519f7.jpg)
+![manual_shoreline4](https://user-images.githubusercontent.com/7217258/49489420-f5f81e80-f89e-11e8-859c-0d69e29b9d38.png)
+
+This reference shoreline helps to identify outliers and false detections when mapping shorelines on all the images.
+
+Once all the settings have been defined, the batch shoreline detection can be launched by calling:
+```
+output = SDS_shoreline.extract_shorelines(metadata, settings)
+```
+When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by clicking on `keep` or `skip`.
+
+![2017-12-01_s2](https://user-images.githubusercontent.com/7217258/49489667-4c199180-f8a0-11e8-8599-169ed635c295.jpg)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image. The list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.

@@ -1,5 +1,7 @@
 # CoastSat
 
+![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/example.gif)
+
 This software enables the users to extract time-series of shoreline change over the last 30+ years at their site of interest. The software is described in:
 
 *Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled software to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*.
@@ -8,7 +10,6 @@ There are two main steps:
 - retrieval of the satellite images of the region of interest from Google Earth Engine
 - extraction of the shorelines from the images using a sub-pixel resolution technique
 
-![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/example.gif)
 
 ### Description
 

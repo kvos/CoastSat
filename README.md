@@ -8,8 +8,7 @@ There are two main steps:
 - retrieval of the satellite images of the region of interest from Google Earth Engine
 - extraction of the shorelines from the images using a sub-pixel resolution technique
 
-![Alt text](master/classif/example.gif?raw=true "Title")
-
+![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/example.gif)
 
 ### Description
 

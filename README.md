@@ -8,6 +8,9 @@ There are two main steps:
 - retrieval of the satellite images of the region of interest from Google Earth Engine
 - extraction of the shorelines from the images using a sub-pixel resolution technique
 
+![Alt text](master/classif/example.gif?raw=true "Title")
+
+
 ### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ measurements are available. Satellite imagery spanning the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline position.
@@ -123,11 +126,11 @@ The following user-defined settings are required:
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
 
-In addition, there are four extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `max_dist_ref`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave those parameters to their default values, we will see later how they can be modified.
+In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave those parameters to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![settings](https://user-images.githubusercontent.com/7217258/49488143-8c294600-f899-11e8-93d8-da6f5fef59ad.PNG)
+![settings](https://user-images.githubusercontent.com/7217258/49565578-ba7f5200-f97b-11e8-9bb4-8d933329b625.PNG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -147,7 +150,7 @@ The figure below shows how the satellite-derived shorelines can be opened in GIS
 
 ### Advanced shoreline detection parameters
 
-As mentioned above, there are four extra parameters that can be modified to optimise the shoreline detection:
+As mentioned above, there are extra parameters that can be modified to optimise the shoreline detection:
 - `min_beach_area`: minimum allowable object area (in metres^2) for the class sand. During the image classification, some building roofs may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), decrease the value of this parameter.
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This allows to discard small contours that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.

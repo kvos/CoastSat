@@ -40,6 +40,8 @@ Activate the new environment:
 conda activate coastsat
 ```
 
+On Linux systems, type `source activate coastsat` instead.
+
 Now you need to populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in three platform specific files: `requirements_win64.txt`, `requirements_osx64.txt`, `requirements_linux64.txt`. To install the packages, run one of the following commands, depending on which platform you are operating:
 
 #### Windows 64 bits (win64)
@@ -127,16 +129,6 @@ An example of settings is provided here:
 
 ![settings](https://user-images.githubusercontent.com/7217258/49488143-8c294600-f899-11e8-93d8-da6f5fef59ad.PNG)
 
-It is also possible (optional) to add a reference shoreline which can be manually digitised by the user on one of the images by calling:
-```
-settings['refsl'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
-```
-This function allows the user to click points along the shoreline on one of the satellite images, as shown in the figure below.
-
-![manual_shoreline4](https://user-images.githubusercontent.com/7217258/49489420-f5f81e80-f89e-11e8-859c-0d69e29b9d38.png)
-
-This reference shoreline helps to identify outliers and false detections when mapping shorelines on all the images.
-
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
 output = SDS_shoreline.extract_shorelines(metadata, settings)
@@ -152,6 +144,24 @@ Once all the shorelines have been mapped, the output is available in two differe
 The figure below shows how the satellite-derived shorelines can be opened in GIS software using the `.kml` output.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
+
+### Advanced shoreline detection parameters
+
+As mentioned above, there are four extra parameters that can be modified to optimise the shoreline detection:
+- `min_beach_area`: minimum allowable object area (in metres^2) for the class sand. During the image classification, some building roofs may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), decrease the value of this parameter.
+- `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
+- `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This allows to discard small contours that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
+
+It is also possible (optional) to add a reference shoreline which can be manually digitized by the user on one of the images by calling:
+```
+settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
+settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the reference shoreline
+```
+This function allows the user to click points along the shoreline on one of the satellite images, as shown in the figure below.
+
+![manual_shoreline4](https://user-images.githubusercontent.com/7217258/49489420-f5f81e80-f89e-11e8-859c-0d69e29b9d38.png)
+
+This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a distance from this reference shoreline. The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that you shoreline will move more than of 100 m, please change this parameter to an appropriate distance.
 
 ## Issues and Contributions
 

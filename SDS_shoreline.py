@@ -133,7 +133,7 @@ def calculate_features(im_ms, cloud_mask, im_bool):
     
     return features
     
-def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_size, satname):
+def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, satname):
     """
     Classifies every pixel in the image in one of 4 classes:
         - sand                                          --> label = 1
@@ -153,7 +153,7 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_size, satname):
             only used for Landsat 7 and 8 where im_extra is the panchromatic band
         cloud_mask: np.array
             2D cloud mask with True where cloud pixels are
-        min_beach_size: int
+        min_beach_area: int
             minimum number of pixels that have to be connected in the SAND class
                 
     Returns:    -----------
@@ -217,8 +217,8 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_size, satname):
     im_swash = im_classif == 2
     im_water = im_classif == 3
     # remove small patches of sand or water that could be around the image (usually noise)
-    im_sand = morphology.remove_small_objects(im_sand, min_size=min_beach_size, connectivity=2)
-    im_water = morphology.remove_small_objects(im_water, min_size=min_beach_size, connectivity=2)
+    im_sand = morphology.remove_small_objects(im_sand, min_size=min_beach_area, connectivity=2)
+    im_water = morphology.remove_small_objects(im_water, min_size=min_beach_area, connectivity=2)
     
     im_labels = np.stack((im_sand,im_swash,im_water), axis=-1) 
         
@@ -340,7 +340,7 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
     im_mwi_buffer = np.copy(im_mwi)
     im_mwi_buffer[~im_buffer] = np.nan
     contours_wi = measure.find_contours(im_wi_buffer, t_wi)
-    contours_mwi = measure.find_contours(im_mwi, t_mwi)
+    contours_mwi = measure.find_contours(im_mwi_buffer, t_mwi)
     
     # remove contour points that are NaNs (around clouds)
     contours = contours_wi
@@ -419,12 +419,12 @@ def process_shoreline(contours, georef, image_epsg, settings):
     contours_array = np.transpose(np.array([x_points,y_points]))
     
     # if reference shoreline has been manually digitised
-    if 'refsl' in settings.keys():
+    if 'reference_shoreline' in settings.keys():
         # only keep the points that are at a certain distance (define in settings) from the 
         # reference shoreline, enables to avoid false detections and remove obvious outliers
         temp = np.zeros((len(contours_array))).astype(bool)
-        for k in range(len(settings['refsl'])): 
-            temp = np.logical_or(np.linalg.norm(contours_array - settings['refsl'][k,[0,1]],
+        for k in range(len(settings['reference_shoreline'])): 
+            temp = np.logical_or(np.linalg.norm(contours_array - settings['reference_shoreline'][k,[0,1]],
                                                 axis=1) < settings['max_dist_ref'], temp) 
         shoreline = contours_array[temp]
     else:
@@ -539,7 +539,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     blue_patch = mpatches.Patch(color=colours[2,:], label='water')
     black_line = mlines.Line2D([],[],color='k',linestyle='--', label='shoreline')
     ax2.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
-               bbox_to_anchor=(1, 0.5), fontsize=9)
+               bbox_to_anchor=(1, 0.5), fontsize=10)
     # create image 3 (MNDWI)
     ax3.imshow(im_mwi, cmap='bwr')
     ax3.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
@@ -616,6 +616,8 @@ def extract_shorelines(metadata, settings):
         os.makedirs(filepath_jpg)
     except:
         print('')
+        
+
     
     # loop through satellite list
     for satname in metadata.keys():
@@ -631,7 +633,15 @@ def extract_shorelines(metadata, settings):
         output_cloudcover = [] # cloud cover of the images 
         output_geoaccuracy = []# georeferencing accuracy of the images
         output_idxkeep = []    # index that were kept during the analysis (cloudy images are skipped)
-            
+           
+        # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels
+        if satname in ['L5','L7','L8']:
+            pixel_size = 15
+        elif satname == 'S2':
+            pixel_size = 10
+        buffer_size_pixels = np.ceil(settings['buffer_size']/pixel_size)
+        min_beach_area_pixels = np.ceil(settings['min_beach_area']/pixel_size**2)
+        
         # loop through the images
         for i in range(len(filenames)):
             
@@ -650,7 +660,7 @@ def extract_shorelines(metadata, settings):
             
             # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
             im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,
-                                    settings['min_beach_size'], satname)
+                                    min_beach_area_pixels, satname)
             
             # extract water line contours
             # if there aren't any sandy pixels, use find_wl_contours1 (traditional method), 
@@ -664,7 +674,7 @@ def extract_shorelines(metadata, settings):
                 else:
                     # use classification to refine threshold and extract sand/water interface
                     contours_wi, contours_mwi = find_wl_contours2(im_ms, im_labels, 
-                                                cloud_mask, settings['buffer_size'])
+                                                cloud_mask, buffer_size_pixels)
             except:
                 continue
             

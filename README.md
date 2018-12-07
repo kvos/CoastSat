@@ -16,7 +16,7 @@ There are two main steps:
 ### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ measurements are available. Satellite imagery spanning the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline position.
-CoastSat is an open-source Python module that allows to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
+CoastSat is an open-source Python module that allows the user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
 The shoreline detection algorithm implemented in CoastSat combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 ## 1. Installation

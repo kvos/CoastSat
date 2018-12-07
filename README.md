@@ -89,11 +89,13 @@ earthengine authenticate
 
 A web browser will open, login with your GEE credentials, accept the terms and conditions and copy the authorization code into the Anaconda terminal.
 
-Now you are ready to start using the CoastSat!
+Now you are ready to start using the CoastSat toolbox!
 
-**Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat`
+
 
 ## 2. Usage
+
+**Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat` each time you wish to use it.
 
 An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run it, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
 

@@ -47,6 +47,8 @@ conda activate coastsat
 
 On Linux systems, type `source activate coastsat` instead.
 
+To know if you have activated coastsat, your terminal command line prompt should now start with (coastsat) when it is activated. 
+
 Now you need to populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in three platform specific files: `requirements_win64.txt`, `requirements_osx64.txt`, `requirements_linux64.txt`. To install the packages, run one of the following commands, depending on which platform you are operating:
 
 #### Windows 64 bits (win64)
@@ -96,6 +98,7 @@ Now you are ready to start using the CoastSat toolbox!
 ## 2. Usage
 
 **Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat` each time you wish to use it.
+Your terminal command line prompt should start with (coastsat) when it is activated. 
 
 An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run it, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
 
@@ -105,6 +108,10 @@ jupyter notebook
 
 A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
 The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia).
+
+To run a jupyter notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward. This will run these commands in your terminal window. 
+
+Kilian - can you put in a screen shot here to show the reader an example. 
 
 ### 2.1 Retrieval of the satellite images
 

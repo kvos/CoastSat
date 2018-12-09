@@ -7,6 +7,6 @@
 *.mp4
 *.gif
 *.jpg
-*.pkl
+
 *.kml
 *checkpoint.ipynb

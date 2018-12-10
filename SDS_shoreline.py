@@ -537,7 +537,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     orange_patch = mpatches.Patch(color=colours[0,:], label='sand')
     white_patch = mpatches.Patch(color=colours[1,:], label='whitewater')
     blue_patch = mpatches.Patch(color=colours[2,:], label='water')
-    black_line = mlines.Line2D([],[],color='k',linestyle='--', label='shoreline')
+    black_line = mlines.Line2D([],[],color='k',linestyle='-', label='shoreline')
     ax2.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
                bbox_to_anchor=(1, 0.5), fontsize=10)
     # create image 3 (MNDWI)

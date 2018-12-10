@@ -616,7 +616,7 @@ def get_reference_sl_manual(metadata, settings):
                     
     Returns:
     -----------
-        ref_sl: np.array
+        reference_shoreline: np.array
             coordinates of the reference shoreline that was manually digitized
             
     """
@@ -625,10 +625,10 @@ def get_reference_sl_manual(metadata, settings):
     
     # check if reference shoreline already exists in the corresponding folder
     filepath = os.path.join(os.getcwd(), 'data', sitename)
-    filename = sitename + '_ref_sl.pkl'
+    filename = sitename + '_reference_shoreline.pkl'
     if filename in os.listdir(filepath):
         print('Reference shoreline already exists and was loaded')
-        with open(os.path.join(filepath, sitename + '_ref_sl.pkl'), 'rb') as f:
+        with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'rb') as f:
             refsl = pickle.load(f)
         return refsl
             
@@ -695,22 +695,42 @@ def get_reference_sl_manual(metadata, settings):
                 keep_button.set_visible(False)
                 skip_button.set_visible(False)
                 # update title (instructions)
-                plt.title('Digitize the shoreline on this image by clicking on it.\n' + 
-                      'When finished digitizing the shoreline click on the scroll wheel ' +
-                      '(middle click).', fontsize=14)     
+                plt.title('Click points along the shoreline every ~500 m.\n' +
+                          'Start at one end of the beach.\n' + 'When finished digitizing, click <ENTER>',
+                          fontsize=14)     
                 plt.draw()
                 # let user click on the shoreline
-                pts = ginput(n=50000, timeout=100000, show_clicks=True)
+                pts = ginput(n=50000, timeout=1e9, show_clicks=True)
                 pts_pix = np.array(pts)
-                plt.close()                
+                
+                # interpolate between points and show the output to the user
+                pts_pix_interp = np.expand_dims(np.array([np.nan, np.nan]),axis=0)
+                for k in range(len(pts_pix)-1):             
+                    if pts_pix[k,0] < pts_pix[k+1,0]:
+                        x = pts_pix[[k,k+1],0]
+                        y = pts_pix[[k,k+1],1]
+                    else:
+                        x = pts_pix[[k+1,k],0]
+                        y = pts_pix[[k+1,k],1]   
+                    xvals = np.linspace(x[0],x[1],50)
+                    yinterp = np.interp(xvals,x,y)                    
+                    pts_pix_interp = np.append(pts_pix_interp,
+                                               np.transpose(np.array([xvals,yinterp])), axis=0)
+                pts_pix_interp = np.delete(pts_pix_interp,0,axis=0)
+                plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r.', markersize=5)
+                plt.title('Saving reference shoreline as ' + sitename + '_reference_shoreline.pkl ...')
+                plt.draw()
+                ginput(n=1, timeout=5, show_clicks=True)
+                plt.close()   
+                
                 # convert image coordinates to world coordinates
-                pts_world = SDS_tools.convert_pix2world(pts_pix[:,[1,0]], georef)
+                pts_world = SDS_tools.convert_pix2world(pts_pix_interp[:,[1,0]], georef)
                 image_epsg = metadata[satname]['epsg'][i]
                 pts_coords = SDS_tools.convert_epsg(pts_world, image_epsg, settings['output_epsg'])
                 
                 # save the reference shoreline
                 filepath = os.path.join(os.getcwd(), 'data', sitename)
-                with open(os.path.join(filepath, sitename + '_ref_sl.pkl'), 'wb') as f:
+                with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'wb') as f:
                     pickle.dump(pts_coords, f)
                 print('Reference shoreline has been saved')
                 break

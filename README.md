@@ -2,7 +2,7 @@
 
 This software enables the users to extract time-series of shoreline change over the last 30+ years at their site of interest.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/example.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/example.gif)
 
 The algorithms used in this software are described in:
 
@@ -149,7 +149,7 @@ output = SDS_shoreline.extract_shorelines(metadata, settings)
 ```
 When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by clicking on `keep` or `skip`.
 
-![2017-12-01_s2](https://user-images.githubusercontent.com/7217258/49489667-4c199180-f8a0-11e8-8599-169ed635c295.jpg)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/batch_detection.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image. The list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.
@@ -166,16 +166,20 @@ As mentioned above, there are extra parameters that can be modified to optimise 
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This allows to discard small contours that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
 
-It is also possible (optional) to add a reference shoreline which can be manually digitized by the user on one of the images by calling:
+### Reference shoreline
+
+There is also an option to manually digitize a reference shoreline before running the batch shoreline detection on all the images. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a distance from this reference shoreline.
+
+ The user can manually digitize a reference shoreline on one of the images by calling:
 ```
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
 settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the reference shoreline
 ```
-This function allows the user to click points along the shoreline on one of the satellite images, as shown in the figure below.
+This function allows the user to click points along the shoreline on one of the satellite images, as shown in the animation below.
 
-![manual_shoreline4](https://user-images.githubusercontent.com/7217258/49489420-f5f81e80-f89e-11e8-859c-0d69e29b9d38.png)
+![ref_shoreline](https://user-images.githubusercontent.com/7217258/49710753-94b1c000-fc8f-11e8-9b6c-b5e96aadc5c9.gif)
 
-This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a distance from this reference shoreline. In the below example, you can see that the shoreline at the right hand side of the image was not included in the reference so will not be detected in the analysis. Also the lagoon system (left hand lower corner of the image) is also disregarded. The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that your shoreline will move more than 100 m, please change this parameter to an appropriate distance. This may be the case for large nourishments or eroding/accreting coastlines.
+The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that your shoreline will move more than 100 m, please change this parameter to an appropriate distance. This may be the case for large nourishments or eroding/accreting coastlines.
 
 ## Issues and Contributions
 

@@ -109,11 +109,9 @@ jupyter notebook
 A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
 The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia).
 
-To run a Jupyter Notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward.
+To run a Jupyter Notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 
-![example_jupyter](https://user-images.githubusercontent.com/7217258/49705190-edbe2b80-fc70-11e8-86fd-e84bd1d149da.gif)
-
-
+![example_jupyter](https://user-images.githubusercontent.com/7217258/49705486-8dc88480-fc72-11e8-8300-c342baaf54eb.gif)
 
 ### 2.1 Retrieval of the satellite images
 

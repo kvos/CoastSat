@@ -47,7 +47,7 @@ conda activate coastsat
 
 On Linux systems, type `source activate coastsat` instead.
 
-To know if you have activated coastsat, your terminal command line prompt should now start with (coastsat) when it is activated. 
+To know if you have activated coastsat, your terminal command line prompt should now start with (coastsat) when it is activated.
 
 Now you need to populate the environment with the packages needed to run CoastSat. All the necessary packages are contained in three platform specific files: `requirements_win64.txt`, `requirements_osx64.txt`, `requirements_linux64.txt`. To install the packages, run one of the following commands, depending on which platform you are operating:
 
@@ -98,7 +98,7 @@ Now you are ready to start using the CoastSat toolbox!
 ## 2. Usage
 
 **Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat` each time you wish to use it.
-Your terminal command line prompt should start with (coastsat) when it is activated. 
+Your terminal command line prompt should start with (coastsat) when it is activated.
 
 An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run it, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
 
@@ -109,9 +109,11 @@ jupyter notebook
 A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
 The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia).
 
-To run a jupyter notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward. This will run these commands in your terminal window. 
+To run a Jupyter Notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward.
 
-Kilian - can you put in a screen shot here to show the reader an example. 
+![example_jupyter](https://user-images.githubusercontent.com/7217258/49705190-edbe2b80-fc70-11e8-86fd-e84bd1d149da.gif)
+
+
 
 ### 2.1 Retrieval of the satellite images
 

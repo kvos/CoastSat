@@ -2,7 +2,7 @@
 
 This software enables the users to extract time-series of shoreline change over the last 30+ years at their site of interest.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/doc/example.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/example.gif)
 
 The algorithms used in this software are described in:
 
@@ -149,7 +149,7 @@ output = SDS_shoreline.extract_shorelines(metadata, settings)
 ```
 When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by clicking on `keep` or `skip`.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/master/classifiers/doc/batch_detection.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/batch_detection.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image. The list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.

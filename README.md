@@ -104,8 +104,8 @@ An example of how to run the software in a Jupyter Notebook is provided in the r
 jupyter notebook
 ```
 
-A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script is also included `main.py` in the repository.
+A web browser window will open. Point to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script is also included `main.py` in the repository.
 
 To run a Jupyter Notebook, place your cursor inside one of the code sections and then clikc on the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 

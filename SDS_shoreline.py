@@ -616,8 +616,6 @@ def extract_shorelines(metadata, settings):
         os.makedirs(filepath_jpg)
     except:
         print('')
-        
-
     
     # loop through satellite list
     for satname in metadata.keys():
@@ -714,6 +712,9 @@ def extract_shorelines(metadata, settings):
             'idxkeep': 'indices of the images that were kept to extract a shoreline'
             }
     
+    # change the format to have one list sorted by date with all the shorelines (easier to use)
+    output = SDS_tools.merge_output(output)
+    
     # save outputput structure as output.pkl
     filepath = os.path.join(os.getcwd(), 'data', sitename)
     with open(os.path.join(filepath, sitename + '_output.pkl'), 'wb') as f:
@@ -721,17 +722,16 @@ def extract_shorelines(metadata, settings):
         
     # save output as kml for GIS applications
     kml = simplekml.Kml()
-    for satname in metadata.keys():
-        for i in range(len(output[satname]['shoreline'])):
-            if len(output[satname]['shoreline'][i]) == 0:
-                continue
-            sl = output[satname]['shoreline'][i]
-            date = output[satname]['timestamp'][i]
-            newline = kml.newlinestring(name= date.strftime('%Y-%m-%d'))
-            newline.coords = sl
-            newline.description = satname + ' shoreline' + '\n' + 'acquired at ' + date.strftime('%H:%M:%S') + ' UTC'
-     
-    kml.save(os.path.join(filepath, sitename + '_shorelines.kml'))
+    for i in range(len(output['shorelines'])):
+        if len(output['shorelines'][i]) == 0:
+            continue
+        sl = output['shorelines'][i]
+        date = output['dates'][i]
+        newline = kml.newlinestring(name= date.strftime('%Y-%m-%d'))
+        newline.coords = sl
+        newline.description = satname + ' shoreline' + '\n' + 'acquired at ' + date.strftime('%H:%M:%S') + ' UTC'
+ 
+    kml.save(os.path.join(filepath, sitename + '_output.kml'))
     
         
     return output

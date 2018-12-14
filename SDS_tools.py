@@ -368,5 +368,40 @@ def mask_raster(fn, mask):
     # close dataset and flush cache
     raster = None
     
-         
+def merge_output(output):
+    """
+    Function to merge the output dictionnary, which has one key per satellite mission into a 
+    dictionnary containing all the shorelines and dates ordered chronologically.
     
+    Arguments:
+    -----------
+        output: dict
+            contains the extracted shorelines and corresponding dates.
+        
+    Returns:    
+    -----------
+        output_all_sorted: dict
+            contains the extracted shorelines sorted by date in a single list
+        
+    """     
+    output_all = {'dates':[], 'shorelines':[], 'geoaccuracy':[], 'satname':[], 'image_filename':[]}
+    for satname in list(output.keys()):
+        if satname == 'meta':
+            continue
+        output_all['dates'] = output_all['dates'] + output[satname]['timestamp']
+        output_all['shorelines'] = output_all['shorelines'] + output[satname]['shoreline']
+        output_all['geoaccuracy'] = output_all['geoaccuracy'] + output[satname]['geoaccuracy']
+        output_all['satname'] = output_all['satname'] + [_ for _ in np.tile(satname,
+                  len(output[satname]['timestamp']))]
+        output_all['image_filename'] = output_all['image_filename'] + output[satname]['filename']
+    
+    # sort chronologically
+    output_all_sorted = {'dates':[], 'shorelines':[], 'geoaccuracy':[], 'satname':[], 'image_filename':[]}
+    idx_sorted = sorted(range(len(output_all['dates'])), key=output_all['dates'].__getitem__)
+    output_all_sorted['dates'] = [output_all['dates'][i] for i in idx_sorted]
+    output_all_sorted['shorelines'] = [output_all['shorelines'][i] for i in idx_sorted]
+    output_all_sorted['geoaccuracy'] = [output_all['geoaccuracy'][i] for i in idx_sorted]
+    output_all_sorted['satname'] = [output_all['satname'][i] for i in idx_sorted]
+    output_all_sorted['image_filename'] = [output_all['image_filename'][i] for i in idx_sorted]
+
+    return output_all_sorted

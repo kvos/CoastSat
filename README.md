@@ -93,8 +93,6 @@ A web browser will open, login with your GEE credentials, accept the terms and c
 
 Now you are ready to start using the CoastSat toolbox!
 
-
-
 ## 2. Usage
 
 **Note**: remeber to always activate the `coastsat` environment with `conda activate coastsat` each time you wish to use it.
@@ -107,7 +105,7 @@ jupyter notebook
 ```
 
 A web browser window will open, drive to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia).
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script is also included `main.py` in the repository.
 
 To run a Jupyter Notebook, put your cursor inside one of the code sections and then hit the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 
@@ -155,18 +153,18 @@ Once all the shorelines have been mapped, the output is available in two differe
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of the image. The list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.
 - `sitename_output.kml`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
 
-The figure below shows how the satellite-derived shorelines can be opened in GIS software using the `.kml` output.
+The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.kml` output.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
 
-### Advanced shoreline detection parameters
+#### Advanced shoreline detection parameters
 
 As mentioned above, there are extra parameters that can be modified to optimise the shoreline detection:
 - `min_beach_area`: minimum allowable object area (in metres^2) for the class sand. During the image classification, some building roofs may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), decrease the value of this parameter.
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This allows to discard small contours that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
 
-### Reference shoreline
+#### Reference shoreline
 
 There is also an option to manually digitize a reference shoreline before running the batch shoreline detection on all the images. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a distance from this reference shoreline.
 
@@ -180,6 +178,27 @@ This function allows the user to click points along the shoreline on one of the 
 ![ref_shoreline](https://user-images.githubusercontent.com/7217258/49710753-94b1c000-fc8f-11e8-9b6c-b5e96aadc5c9.gif)
 
 The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that your shoreline will move more than 100 m, please change this parameter to an appropriate distance. This may be the case for large nourishments or eroding/accreting coastlines.
+
+### 2.3 Shoreline change analysis
+
+This section shows how to obtain time-series of shoreline change along shore-normal transects.
+
+The user can draw shore-normal transects by calling:
+```
+settings['transect_length'] = 500 # defines the length of the transects in metres
+transects = SDS_transects.draw_transects(output, settings)
+```
+Once the shore-normal transects have been defined, the intersection between the 2D shorelines and the transects is computed with the following function:
+```
+settings['along_dist'] = 25
+cross_distance = SDS_transects.compute_intersection(output, transects, settings)
+```
+The parameter `along_dist` defines the along-shore distance around the transect over which shoreline points are selected to compute the intersection. The default value is 25 m, which means that the intersection is computed as the median of the points located within 25 m of the transect (50 m alongshore-median).
+
+An example is illustrated below:
+
+![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
+
 
 ## Issues and Contributions
 

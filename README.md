@@ -105,7 +105,7 @@ jupyter notebook
 ```
 
 A web browser window will open. Point to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script is also included `main.py` in the repository.
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script `main.py` is also included in the repository. If using `main.py` on Spyder, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
 To run a Jupyter Notebook, place your cursor inside one of the code sections and then clikc on the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 

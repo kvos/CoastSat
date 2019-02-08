@@ -163,40 +163,18 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, satname):
             3D image containing a boolean image for each class (im_classif == label)
 
     """     
-    
-    if satname == 'L5':
-        # load classifier (without panchromatic band)
-        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_nopan.pkl'))
-        # calculate features
-        n_features = 9
-        im_features = np.zeros((im_ms.shape[0], im_ms.shape[1], n_features))
-        im_features[:,:,[0,1,2,3,4]] = im_ms
-        im_features[:,:,5] = nd_index(im_ms[:,:,3], im_ms[:,:,1], cloud_mask) # (NIR-G)
-        im_features[:,:,6] = nd_index(im_ms[:,:,3], im_ms[:,:,2], cloud_mask) # ND(NIR-R)
-        im_features[:,:,7] = nd_index(im_ms[:,:,0], im_ms[:,:,2], cloud_mask) # ND(B-R)
-        im_features[:,:,8] = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask) # ND(SWIR-G)
-        vec_features = im_features.reshape((im_ms.shape[0] * im_ms.shape[1], n_features))
         
-    elif satname in ['L7','L8']:
-        # load classifier (with panchromatic band)
-        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_withpan.pkl'))        
-        # calculate features
-        n_features = 10
-        im_features = np.zeros((im_ms.shape[0], im_ms.shape[1], n_features))
-        im_features[:,:,[0,1,2,3,4]] = im_ms
-        im_features[:,:,5] = im_extra
-        im_features[:,:,6] = nd_index(im_ms[:,:,3], im_ms[:,:,1], cloud_mask) # (NIR-G)
-        im_features[:,:,7] = nd_index(im_ms[:,:,3], im_ms[:,:,2], cloud_mask) # ND(NIR-R)
-        im_features[:,:,8] = nd_index(im_ms[:,:,0], im_ms[:,:,2], cloud_mask) # ND(B-R)
-        im_features[:,:,9] = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask) # ND(SWIR-G)
-        vec_features = im_features.reshape((im_ms.shape[0] * im_ms.shape[1], n_features))
-        
-    elif satname == 'S2':
+    if satname == 'S2':
         # load classifier (special classifier for Sentinel-2 images)
         clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_S2.pkl'))
-        # calculate features
-        vec_features = calculate_features(im_ms, cloud_mask, np.ones(cloud_mask.shape).astype(bool))
-        vec_features[np.isnan(vec_features)] = 1e-9 # NaN values are create when std is too close to 0
+        
+    else:
+        # load classifier (special classifier for Landsat images)
+        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
+        
+    # calculate features
+    vec_features = calculate_features(im_ms, cloud_mask, np.ones(cloud_mask.shape).astype(bool))
+    vec_features[np.isnan(vec_features)] = 1e-9 # NaN values are create when std is too close to 0
               
     # remove NaNs and cloudy pixels
     vec_cloud = cloud_mask.reshape(cloud_mask.shape[0]*cloud_mask.shape[1])

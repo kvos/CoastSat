@@ -146,10 +146,13 @@ def compute_intersection(output, transects, settings):
     -----------
         output: dict
             contains the extracted shorelines and corresponding dates.
+        transects: dict
+            contains the X and Y coordinates of the transects (first and last point needed for each
+            transect).
         settings: dict
             contains parameters defining :
                 along_dist: alongshore distance to caluclate the intersection (median of points 
-                within this distance).            
+                within this distance).      
         
     Returns:    
     -----------

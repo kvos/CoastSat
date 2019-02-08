@@ -104,7 +104,14 @@ with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
 # create shore-normal transects along the beach
 settings['transect_length'] = 500
 transects = SDS_transects.draw_transects(output, settings)
-
+    
+# load transects (origin of transect + a second point to define the orientation)
+#import numpy as np
+#transects = dict([])
+#transects['Transect 1'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
+#transects['Transect 2'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
+#transects['Transect 3'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
+    
 # intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
 settings['along_dist'] = 25
 cross_distance = SDS_transects.compute_intersection(output, transects, settings) 

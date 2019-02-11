@@ -58,9 +58,13 @@ def create_cloud_mask(im_qa, satname):
     # find which pixels have bits corresponding to cloud values
     cloud_mask = np.isin(im_qa, cloud_values)
     
-    # remove isolated cloud pixels (there are some in the swash zone and they are not clouds)
+    # remove isolated cloud pixels and cloud pixels that form very thin features. These are beach or
+    # swash pixels that are erroneously identified as clouds by the CFMASK algorithm from the USGS.
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
-        morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
+        elem = morphology.square(3) # use a square of width 3 pixels 
+        cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
+        # remove small objects (less than 25 connected pixels)
+        morphology.remove_small_objects(cloud_mask, min_size=25, connectivity=1, in_place=True)
     
     return cloud_mask
 

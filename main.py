@@ -8,6 +8,7 @@
 
 # load modules
 import os
+import numpy as np
 import pickle
 import warnings
 warnings.filterwarnings("ignore")
@@ -69,7 +70,7 @@ settings = {
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
-#SDS_preprocess.save_jpg(metadata, settings)
+SDS_preprocess.save_jpg(metadata, settings)
 
 # [OPTIONAL] create a reference shoreline (helps to identify outliers and false detections)
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
@@ -96,23 +97,33 @@ fig.set_size_inches([15.76,  8.52])
 
 #%% 4. Shoreline analysis
 
-# if you have already mapped the shorelines, just load them
+# if you have already mapped the shorelines, load the output.pkl file
 filepath = os.path.join(os.getcwd(), 'data', sitename)
 with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
     output = pickle.load(f) 
 
-# create shore-normal transects along the beach by drawing them (comment this part, if you know the
-# coordinates of your transects)
-settings['transect_length'] = 500
+# now we have to define cross-shore transects over which to quantify the shoreline changes
+# each transect is defined by two points, its origin and a second point that defines its orientation
+# the parameter transect length determines how far from the origin the transect will span
+settings['transect_length'] = 500 
+
+# there are 3 options to create the transects:
+# - option 1: draw the shore-normal transects along the beach
+# - option 2: load the transect coordinates from a .kml file
+# - option 3: create the transects manually by providing the coordinates
+
+# option 1: draw origin of transect first and then a second point to define the orientation
 transects = SDS_transects.draw_transects(output, settings)
     
-# load transects: each transect needs to have two points, the origin of the transect and a second 
-# point to define the orientation. Uncomment this part if you know the coordinates of your transects
-#import numpy as np
+# option 2: load the transects from a .shp file
+
+
+# option 3: create the transects by providing the coordinates of two points 
 #transects = dict([])
 #transects['Transect 1'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
 #transects['Transect 2'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
 #transects['Transect 3'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])
+
     
 # intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
 settings['along_dist'] = 25

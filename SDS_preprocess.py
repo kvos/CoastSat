@@ -722,7 +722,7 @@ def get_reference_sl_manual(metadata, settings):
                                                np.transpose(np.array([xvals,yinterp])), axis=0)
                 pts_pix_interp = np.delete(pts_pix_interp,0,axis=0)
                 plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r.', markersize=3)
-                plt.title('Saving reference shoreline as ' + sitename + '_reference_shoreline.pkl ...')
+                plt.title('Reference shoreline saved as ' + sitename + '_reference_shoreline.pkl ...')
                 plt.draw()
                 ginput(n=1, timeout=5, show_clicks=True)
                 plt.close()   

@@ -101,11 +101,13 @@ filepath = os.path.join(os.getcwd(), 'data', sitename)
 with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
     output = pickle.load(f) 
 
-# create shore-normal transects along the beach
+# create shore-normal transects along the beach by drawing them (comment this part, if you know the
+# coordinates of your transects)
 settings['transect_length'] = 500
 transects = SDS_transects.draw_transects(output, settings)
     
-# load transects (origin of transect + a second point to define the orientation)
+# load transects: each transect needs to have two points, the origin of the transect and a second 
+# point to define the orientation. Uncomment this part if you know the coordinates of your transects
 #import numpy as np
 #transects = dict([])
 #transects['Transect 1'] = np.array([[342917, 6.26917e+06], [343400, 6.26904e+06]])

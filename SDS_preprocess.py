@@ -28,7 +28,7 @@ import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
-def create_cloud_mask(im_qa, satname, settings):
+def create_cloud_mask(im_qa, satname, cloud_mask_issue):
     """
     Creates a cloud mask using the information contained in the QA band.
     
@@ -40,8 +40,6 @@ def create_cloud_mask(im_qa, satname, settings):
             Image containing the QA band
         satname: string
             short name for the satellite (L5, L7, L8 or S2)
-        settings: dict
-            contains the following field:
         cloud_mask_issue: boolean
             True if there is an issue with the cloud mask and sand pixels are being masked on the images
             
@@ -66,7 +64,7 @@ def create_cloud_mask(im_qa, satname, settings):
     # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
         morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
-        if settings['cloud_mask_issue']:
+        if cloud_mask_issue:
             elem = morphology.square(3) # use a square of width 3 pixels 
             cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
             # remove objects with less than 25 connected pixels
@@ -219,7 +217,7 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
     return im_adj
 
-def preprocess_single(fn, satname, settings):
+def preprocess_single(fn, satname, cloud_mask_issue):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands, the 
     georeferencing vector of the image (coordinates of the upper left pixel), the cloud mask and 
@@ -236,8 +234,6 @@ def preprocess_single(fn, satname, settings):
             resolution (30m and 15m for Landsat 7-8, 10m, 20m, 60m for Sentinel-2)
         satname: str
             name of the satellite mission (e.g., 'L5')
-        settings: dict
-            contains the following field:
         cloud_mask_issue: boolean
             True if there is an issue with the cloud mask and sand pixels are being masked on the images
         
@@ -276,7 +272,7 @@ def preprocess_single(fn, satname, settings):
         # create cloud mask
         im_qa = im_ms[:,:,5]
         im_ms = im_ms[:,:,:-1]
-        cloud_mask = create_cloud_mask(im_qa, satname, settings)
+        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
 
         # resize the image using bilinear interpolation (order 1)
         im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
@@ -328,7 +324,7 @@ def preprocess_single(fn, satname, settings):
         
         # create cloud mask
         im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname, settings)
+        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -388,7 +384,7 @@ def preprocess_single(fn, satname, settings):
         
         # create cloud mask
         im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname, settings)
+        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -470,7 +466,7 @@ def preprocess_single(fn, satname, settings):
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im60 = np.stack(bands, 2)
         imQA = im60[:,:,0]
-        cloud_mask = create_cloud_mask(imQA, satname, settings)
+        cloud_mask = create_cloud_mask(imQA, satname, cloud_mask_issue)
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
@@ -565,10 +561,12 @@ def save_jpg(metadata, settings):
             contains all the information about the satellite images that were downloaded
         settings: dict
             contains the following fields:
-        'cloud_thresh': float
+        cloud_thresh: float
             value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        'sitename': string
+        sitename: string
             name of the site (also name of the folder where the images are stored)
+        cloud_mask_issue: boolean
+            True if there is an issue with the cloud mask and sand pixels are being masked on the images
                     
     Returns:
     -----------
@@ -596,7 +594,7 @@ def save_jpg(metadata, settings):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -675,7 +673,7 @@ def get_reference_sl_manual(metadata, settings):
             
             # read image
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))

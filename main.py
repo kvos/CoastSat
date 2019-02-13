@@ -43,12 +43,12 @@ inputs = {
 #%% 2. Retrieve images
 
 # retrieve satellite images from GEE
-#metadata = SDS_download.retrieve_images(inputs)
+metadata = SDS_download.retrieve_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
-filepath = os.path.join(os.getcwd(), 'data', sitename)
-with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
-    metadata = pickle.load(f) 
+#filepath = os.path.join(os.getcwd(), 'data', sitename)
+#with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
+#    metadata = pickle.load(f) 
     
 #%% 3. Batch shoreline detection
     
@@ -117,8 +117,8 @@ settings['transect_length'] = 500
 transects = SDS_transects.draw_transects(output, settings)
     
 # option 2: load the transects from a KML file
-kml_file = 'NARRA_transects.kml'
-transects = SDS_transects.load_transects_from_kml(kml_file)
+#kml_file = 'NARRA_transects.kml'
+#transects = SDS_transects.load_transects_from_kml(kml_file)
 
 # option 3: create the transects by manually providing the coordinates of two points 
 #transects = dict([])
@@ -126,7 +126,7 @@ transects = SDS_transects.load_transects_from_kml(kml_file)
 #transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
 #transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
    
-#%% intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
+# intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
 settings['along_dist'] = 25
 cross_distance = SDS_transects.compute_intersection(output, transects, settings) 
 

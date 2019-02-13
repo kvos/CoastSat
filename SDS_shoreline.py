@@ -247,7 +247,7 @@ def find_wl_contours1(im_ndwi, cloud_mask):
     
     return contours
 
-def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
+def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size, is_reference_sl):
     """
     New robust method for extracting shorelines. Incorporates the classification component to
     refine the treshold and make it specific to the sand/water interface.
@@ -265,6 +265,8 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
         buffer_size: int
             size of the buffer around the sandy beach over which the pixels are considered in the
             thresholding algorithm.
+        is_reference_sl: boolean
+            True if there is a reference shoreline, False otherwise
                 
     Returns:    -----------
         contours_wi: list of np.arrays 
@@ -317,8 +319,13 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
     im_wi_buffer[~im_buffer] = np.nan
     im_mwi_buffer = np.copy(im_mwi)
     im_mwi_buffer[~im_buffer] = np.nan
-    contours_wi = measure.find_contours(im_wi_buffer, t_wi)
-    contours_mwi = measure.find_contours(im_mwi, t_mwi)
+    
+    if is_reference_sl: # if there is a reference_shoreline map the shoreline on the entire image
+        contours_wi = measure.find_contours(im_wi, t_wi)
+        contours_mwi = measure.find_contours(im_mwi, t_mwi)
+    else: # otherwise only map the shoreline along the sandy pixels
+        contours_wi = measure.find_contours(im_wi_buffer, t_wi)
+        contours_mwi = measure.find_contours(im_mwi_buffer, t_mwi)        
     
     # remove contour points that are NaNs (around clouds)
     contours = contours_wi
@@ -628,7 +635,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover
@@ -653,8 +660,9 @@ def extract_shorelines(metadata, settings):
                     contours_mwi = find_wl_contours1(im_mndwi, cloud_mask)
                 else:
                     # use classification to refine threshold and extract sand/water interface
+                    is_reference_sl = 'reference_shoreline' in settings.keys()
                     contours_wi, contours_mwi = find_wl_contours2(im_ms, im_labels, 
-                                                cloud_mask, buffer_size_pixels)
+                                                cloud_mask, buffer_size_pixels, is_reference_sl)
             except:
                 continue
             

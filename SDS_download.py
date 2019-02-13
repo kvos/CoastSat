@@ -643,7 +643,7 @@ def merge_overlapping_images(metadata,inputs):
             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m'))])
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat) 
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat, False) 
         
             # in Sentinel2 images close to the edge of the image there are some artefacts, 
             # that are squares with constant pixel intensities. They need to be masked in the 
@@ -772,7 +772,7 @@ def remove_cloudy_images(metadata,inputs,cloud_thresh):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, False)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))

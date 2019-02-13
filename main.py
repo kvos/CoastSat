@@ -126,7 +126,7 @@ transects = SDS_transects.load_transects_from_kml(kml_file)
 #transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
 #transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
    
-#%% intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
+# intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
 settings['along_dist'] = 25
 cross_distance = SDS_transects.compute_intersection(output, transects, settings) 
 

@@ -318,7 +318,7 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
     im_mwi_buffer = np.copy(im_mwi)
     im_mwi_buffer[~im_buffer] = np.nan
     contours_wi = measure.find_contours(im_wi_buffer, t_wi)
-    contours_mwi = measure.find_contours(im_mwi, t_mwi)
+    contours_mwi = measure.find_contours(im_mwi_buffer, t_mwi)
     
     # remove contour points that are NaNs (around clouds)
     contours = contours_wi
@@ -628,7 +628,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover

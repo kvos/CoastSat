@@ -28,7 +28,7 @@ import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
-def create_cloud_mask(im_qa, satname):
+def create_cloud_mask(im_qa, satname, settings):
     """
     Creates a cloud mask using the information contained in the QA band.
     
@@ -40,6 +40,10 @@ def create_cloud_mask(im_qa, satname):
             Image containing the QA band
         satname: string
             short name for the satellite (L5, L7, L8 or S2)
+        settings: dict
+            contains the following field:
+        cloud_mask_issue: boolean
+            True if there is an issue with the cloud mask and sand pixels are being masked on the images
             
     Returns:
     -----------
@@ -58,9 +62,15 @@ def create_cloud_mask(im_qa, satname):
     # find which pixels have bits corresponding to cloud values
     cloud_mask = np.isin(im_qa, cloud_values)
     
-    # remove isolated cloud pixels (there are some in the swash zone and they are not clouds)
+    # remove cloud pixels that form very thin features. These are beach or swash pixels that are 
+    # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
         morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
+        if settings['cloud_mask_issue']:
+            elem = morphology.square(3) # use a square of width 3 pixels 
+            cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
+            # remove objects with less than 25 connected pixels
+            morphology.remove_small_objects(cloud_mask, min_size=25, connectivity=1, in_place=True)
     
     return cloud_mask
 
@@ -209,7 +219,7 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
     return im_adj
 
-def preprocess_single(fn, satname):
+def preprocess_single(fn, satname, settings):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands, the 
     georeferencing vector of the image (coordinates of the upper left pixel), the cloud mask and 
@@ -226,6 +236,10 @@ def preprocess_single(fn, satname):
             resolution (30m and 15m for Landsat 7-8, 10m, 20m, 60m for Sentinel-2)
         satname: str
             name of the satellite mission (e.g., 'L5')
+        settings: dict
+            contains the following field:
+        cloud_mask_issue: boolean
+            True if there is an issue with the cloud mask and sand pixels are being masked on the images
         
     Returns:
     -----------
@@ -262,7 +276,7 @@ def preprocess_single(fn, satname):
         # create cloud mask
         im_qa = im_ms[:,:,5]
         im_ms = im_ms[:,:,:-1]
-        cloud_mask = create_cloud_mask(im_qa, satname)
+        cloud_mask = create_cloud_mask(im_qa, satname, settings)
 
         # resize the image using bilinear interpolation (order 1)
         im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
@@ -314,7 +328,7 @@ def preprocess_single(fn, satname):
         
         # create cloud mask
         im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname)
+        cloud_mask = create_cloud_mask(im_qa, satname, settings)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -374,7 +388,7 @@ def preprocess_single(fn, satname):
         
         # create cloud mask
         im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname)
+        cloud_mask = create_cloud_mask(im_qa, satname, settings)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -456,7 +470,7 @@ def preprocess_single(fn, satname):
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im60 = np.stack(bands, 2)
         imQA = im60[:,:,0]
-        cloud_mask = create_cloud_mask(imQA, satname)
+        cloud_mask = create_cloud_mask(imQA, satname, settings)
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
@@ -582,7 +596,7 @@ def save_jpg(metadata, settings):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -592,6 +606,10 @@ def save_jpg(metadata, settings):
             # save .jpg with date and satellite in the title
             date = filenames[i][:10]
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
+            
+    # print the location where the images have been saved
+    print('Satellite images saved as .jpg in ' + os.path.join(os.getcwd(), 'data', sitename,
+                                                    'jpg_files', 'preprocessed'))
                 
 def get_reference_sl_manual(metadata, settings):
     """
@@ -657,7 +675,7 @@ def get_reference_sl_manual(metadata, settings):
             
             # read image
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings)
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -718,7 +736,7 @@ def get_reference_sl_manual(metadata, settings):
                                                np.transpose(np.array([xvals,yinterp])), axis=0)
                 pts_pix_interp = np.delete(pts_pix_interp,0,axis=0)
                 plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r.', markersize=3)
-                plt.title('Saving reference shoreline as ' + sitename + '_reference_shoreline.pkl ...')
+                plt.title('Reference shoreline saved as ' + sitename + '_reference_shoreline.pkl')
                 plt.draw()
                 ginput(n=1, timeout=5, show_clicks=True)
                 plt.close()   
@@ -732,64 +750,7 @@ def get_reference_sl_manual(metadata, settings):
                 filepath = os.path.join(os.getcwd(), 'data', sitename)
                 with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'wb') as f:
                     pickle.dump(pts_coords, f)
-                print('Reference shoreline has been saved')
+                print('Reference shoreline has been saved in ' + filepath)
                 break
             
     return pts_coords
-
-def get_reference_sl_Australia(settings):
-    """
-    Automatically finds a reference shoreline from a high resolution coastline of Australia 
-    (Smartline from Geoscience Australia). It finds the points of the national coastline vector
-    that are situated inside the area of interest (polygon).
-    
-    KV WRL 2018
-
-    Arguments:
-    -----------
-        settings: dict
-            contains the following fields:
-        'cloud_thresh': float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        'sitename': string
-            name of the site (also name of the folder where the images are stored)
-        'output_epsg': int
-            epsg code of the desired spatial reference system
-                    
-    Returns:
-    -----------
-        ref_sl: np.array
-            coordinates of the reference shoreline found in the shapefile
-            
-    """    
-    
-    # load high-resolution shoreline of Australia
-    filename = os.path.join(os.getcwd(), 'data', 'shoreline_Australia.pkl')
-    with open(filename, 'rb') as f:
-        sl = pickle.load(f)    
-    # spatial reference system of this shoreline
-    sl_epsg = 4283          # GDA94 geographic 
-    
-    # only select the points that sit inside the area of interest (polygon)
-    polygon = settings['inputs']['polygon']
-    # spatial reference system of the polygon (latitudes and longitudes)
-    polygon_epsg = 4326     # WGS84 geographic
-    polygon = SDS_tools.convert_epsg(np.array(polygon[0]), polygon_epsg, sl_epsg)[:,:-1]
-    
-    # use matplotlib function Path
-    path = mpltPath.Path(polygon)
-    sl_inside = sl[np.where(path.contains_points(sl))]
-        
-    # convert to desired output coordinate system
-    ref_sl = SDS_tools.convert_epsg(sl_inside, sl_epsg, settings['output_epsg'])[:,:-1]
-    
-    # make a figure for quality control
-    plt.figure()
-    plt.axis('equal')
-    plt.xlabel('Eastings [m]')
-    plt.ylabel('Northings [m]')
-    plt.plot(ref_sl[:,0], ref_sl[:,1], 'r.')
-    polygon = SDS_tools.convert_epsg(polygon, sl_epsg, settings['output_epsg'])[:,:-1]
-    plt.plot(polygon[:,0], polygon[:,1], 'k-')
-    
-    return ref_sl

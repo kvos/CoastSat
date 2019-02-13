@@ -8,14 +8,15 @@
 
 # load modules
 import os
+import numpy as np
 import pickle
 import warnings
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
 import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
-# region of interest (longitude, latitude), can also be loaded from a .kml polygon
-polygon = SDS_tools.coords_from_kml('NARRA.kml')
+# region of interest (longitude, latitude in WGS84), can be loaded from a .kml polygon
+polygon = SDS_tools.coords_from_kml('NARRA_polygon.kml')
 #polygon = [[[151.301454, -33.700754],
 #            [151.311453, -33.702075],
 #            [151.307237, -33.739761],
@@ -23,7 +24,7 @@ polygon = SDS_tools.coords_from_kml('NARRA.kml')
 #            [151.301454, -33.700754]]]
             
 # date range
-dates = ['2017-12-01', '2018-06-01']
+dates = ['2017-12-01', '2018-02-01']
 
 # satellite missions
 sat_list = ['L8','S2']
@@ -65,11 +66,12 @@ settings = {
     # [ONLY FOR ADVANCED USERS] shoreline detection parameters:
     'min_beach_area': 4500,     # minimum area (in metres^2) for an object to be labelled as a beach
     'buffer_size': 150,         # radius (in metres) of the buffer around sandy pixels considered in the shoreline detection
-    'min_length_sl': 200,       # minimum length (in metres) of shoreline perimeter to be valid 
+    'min_length_sl': 200,       # minimum length (in metres) of shoreline perimeter to be valid
+    'cloud_mask_issue': False,  # switch this parameter to True if sand pixels are masked (in black) on many images  
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
-#SDS_preprocess.save_jpg(metadata, settings)
+SDS_preprocess.save_jpg(metadata, settings)
 
 # [OPTIONAL] create a reference shoreline (helps to identify outliers and false detections)
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
@@ -96,22 +98,40 @@ fig.set_size_inches([15.76,  8.52])
 
 #%% 4. Shoreline analysis
 
-# if you have already mapped the shorelines, just load them
+# if you have already mapped the shorelines, load the output.pkl file
 filepath = os.path.join(os.getcwd(), 'data', sitename)
 with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
     output = pickle.load(f) 
 
-# create shore-normal transects along the beach
-settings['transect_length'] = 500
-transects = SDS_transects.draw_transects(output, settings)
+# now we have to define cross-shore transects over which to quantify the shoreline changes
+# each transect is defined by two points, its origin and a second point that defines its orientation
+# the parameter transect length determines how far from the origin the transect will span
+settings['transect_length'] = 500 
 
-# intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
+# there are 3 options to create the transects:
+# - option 1: draw the shore-normal transects along the beach
+# - option 2: load the transect coordinates from a .kml file
+# - option 3: create the transects manually by providing the coordinates
+
+# option 1: draw origin of transect first and then a second point to define the orientation
+transects = SDS_transects.draw_transects(output, settings)
+    
+# option 2: load the transects from a KML file
+kml_file = 'NARRA_transects.kml'
+transects = SDS_transects.load_transects_from_kml(kml_file)
+
+# option 3: create the transects by manually providing the coordinates of two points 
+#transects = dict([])
+#transects['Transect 1'] = np.array([[342836, 6269215], [343315, 6269071]])
+#transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
+#transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
+   
+#%% intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
 settings['along_dist'] = 25
 cross_distance = SDS_transects.compute_intersection(output, transects, settings) 
 
 # plot the time-series
 from matplotlib import gridspec
-import numpy as np
 fig = plt.figure()
 gs = gridspec.GridSpec(len(cross_distance),1)
 gs.update(left=0.05, right=0.95, bottom=0.05, top=0.95, hspace=0.05)

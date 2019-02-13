@@ -163,40 +163,18 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, satname):
             3D image containing a boolean image for each class (im_classif == label)
 
     """     
-    
-    if satname == 'L5':
-        # load classifier (without panchromatic band)
-        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_nopan.pkl'))
-        # calculate features
-        n_features = 9
-        im_features = np.zeros((im_ms.shape[0], im_ms.shape[1], n_features))
-        im_features[:,:,[0,1,2,3,4]] = im_ms
-        im_features[:,:,5] = nd_index(im_ms[:,:,3], im_ms[:,:,1], cloud_mask) # (NIR-G)
-        im_features[:,:,6] = nd_index(im_ms[:,:,3], im_ms[:,:,2], cloud_mask) # ND(NIR-R)
-        im_features[:,:,7] = nd_index(im_ms[:,:,0], im_ms[:,:,2], cloud_mask) # ND(B-R)
-        im_features[:,:,8] = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask) # ND(SWIR-G)
-        vec_features = im_features.reshape((im_ms.shape[0] * im_ms.shape[1], n_features))
         
-    elif satname in ['L7','L8']:
-        # load classifier (with panchromatic band)
-        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_withpan.pkl'))        
-        # calculate features
-        n_features = 10
-        im_features = np.zeros((im_ms.shape[0], im_ms.shape[1], n_features))
-        im_features[:,:,[0,1,2,3,4]] = im_ms
-        im_features[:,:,5] = im_extra
-        im_features[:,:,6] = nd_index(im_ms[:,:,3], im_ms[:,:,1], cloud_mask) # (NIR-G)
-        im_features[:,:,7] = nd_index(im_ms[:,:,3], im_ms[:,:,2], cloud_mask) # ND(NIR-R)
-        im_features[:,:,8] = nd_index(im_ms[:,:,0], im_ms[:,:,2], cloud_mask) # ND(B-R)
-        im_features[:,:,9] = nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask) # ND(SWIR-G)
-        vec_features = im_features.reshape((im_ms.shape[0] * im_ms.shape[1], n_features))
-        
-    elif satname == 'S2':
+    if satname == 'S2':
         # load classifier (special classifier for Sentinel-2 images)
         clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_S2.pkl'))
-        # calculate features
-        vec_features = calculate_features(im_ms, cloud_mask, np.ones(cloud_mask.shape).astype(bool))
-        vec_features[np.isnan(vec_features)] = 1e-9 # NaN values are create when std is too close to 0
+        
+    else:
+        # load classifier (special classifier for Landsat images)
+        clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
+        
+    # calculate features
+    vec_features = calculate_features(im_ms, cloud_mask, np.ones(cloud_mask.shape).astype(bool))
+    vec_features[np.isnan(vec_features)] = 1e-9 # NaN values are create when std is too close to 0
               
     # remove NaNs and cloudy pixels
     vec_cloud = cloud_mask.reshape(cloud_mask.shape[0]*cloud_mask.shape[1])
@@ -340,7 +318,7 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size):
     im_mwi_buffer = np.copy(im_mwi)
     im_mwi_buffer[~im_buffer] = np.nan
     contours_wi = measure.find_contours(im_wi_buffer, t_wi)
-    contours_mwi = measure.find_contours(im_mwi_buffer, t_mwi)
+    contours_mwi = measure.find_contours(im_mwi, t_mwi)
     
     # remove contour points that are NaNs (around clouds)
     contours = contours_wi
@@ -585,20 +563,24 @@ def extract_shorelines(metadata, settings):
         metadata: dict
             contains all the information about the satellite images that were downloaded
             
-        inputs: dict
+        settings: dict
             contains the following fields:
-                sitename: str
-                    String containig the name of the site
-                polygon: list
-                    polygon containing the lon/lat coordinates to be extracted
-                    longitudes in the first column and latitudes in the second column
-                dates: list of str
-                    list that contains 2 strings with the initial and final dates in format 
-                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
-                sat_list: list of str
-                    list that contains the names of the satellite missions to include 
-                    e.g. ['L5', 'L7', 'L8', 'S2']
-        
+        sitename: str
+            String containig the name of the site
+        cloud_mask_issue: boolean
+            True if there is an issue with the cloud mask and sand pixels are being masked on the images
+        buffer_size: int
+            size of the buffer (m) around the sandy beach over which the pixels are considered in the
+            thresholding algorithm
+        min_beach_area: int
+            minimum allowable object area (in metres^2) for the class 'sand'
+        cloud_thresh: float
+            value between 0 and 1 defining the maximum percentage of cloud cover allowed in the images
+        output_epsg: int
+            output spatial reference system as EPSG code
+        check_detection: boolean
+            True to show each invidual detection and let the user validate the mapped shoreline
+                
     Returns:
     -----------
         output: dict
@@ -646,7 +628,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings)
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover

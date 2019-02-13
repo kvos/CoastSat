@@ -138,7 +138,7 @@ In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_l
 
 An example of settings is provided here:
 
-![settings](https://user-images.githubusercontent.com/7217258/49565578-ba7f5200-f97b-11e8-9bb4-8d933329b625.PNG)
+![settings_v2](https://user-images.githubusercontent.com/7217258/52684207-876bc700-2f99-11e9-9e5c-086f523bcdc2.PNG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -162,6 +162,7 @@ As mentioned above, there are some additional parameters that can be modified to
 - `min_beach_area`: minimum allowable object area (in metres^2) for the class 'sand'. During the image classification, some features (for example, building roofs) may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), try decreasing the value of this parameter.
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the sand-water shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
+- `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds in the cloud mask (appear as black pixels on your images). If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features (as often these are beaches and not clouds). Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
 
 #### Reference shoreline
 
@@ -180,13 +181,25 @@ The maximum distance (in metres) allowed from the reference shoreline is defined
 
 ### 2.3 Shoreline change analysis
 
-This section shows how to obtain time-series of shoreline change along shore-normal transects.
-
-The user can draw shore-normal transects by calling:
+This section shows how to obtain time-series of shoreline change along shore-normal transects. Each transect is defined by two points, its origin and a second point that defines its orientation. The parameter `transect_length` determines how far (in metres) from the origin the transect will span. There are 3 options to define the coordinates of the transects:
+1. The user can interactively draw shore-normal transects along the beach:
 ```
-settings['transect_length'] = 500 # defines the length of the transects in metres
 transects = SDS_transects.draw_transects(output, settings)
 ```
+2. Load the transect coordinates from a KML file:
+```
+transects = SDS_transects.load_transects_from_kml('transects.kml')
+```
+3. Create the transects by manually providing the coordinates of two points:
+```
+transects = dict([])
+transects['Transect 1'] = np.array([[342836, ,6269215], [343315, 6269071]])
+transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
+transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
+```
+
+**Note:** if you choose option 2 or 3, make sure that the points that you are providing are in the spatial reference system defined by `settings['output_epsg']`.
+
 Once the shore-normal transects have been defined, the intersection between the 2D shorelines and the transects is computed with the following function:
 ```
 settings['along_dist'] = 25

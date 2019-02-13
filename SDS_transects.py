@@ -14,6 +14,8 @@ import skimage.transform as transform
 from pylab import ginput
 import pickle
 import simplekml
+import json
+from osgeo import ogr
     
 def find_indices(lst, condition):
     "imitation of MATLAB find function"
@@ -107,7 +109,7 @@ def draw_transects(output, settings):
         except:
             fig1.gca().set_title('Transect locations', fontsize=16)
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
-            plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ...')
+            plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ')
             plt.draw()
             ginput(n=1, timeout=5, show_clicks=True)
             plt.close(fig1)
@@ -138,7 +140,51 @@ def draw_transects(output, settings):
         newline.coords = transects[key]
         newline.description = 'user-defined cross-shore transect'
     kml.save(os.path.join(filepath, sitename + '_transects.kml'))
+    print('Transect locations saved in ' + filepath)
         
+    return transects
+
+def load_transects_from_kml(filename):
+    """
+    Reads transect coordinates from a KML file.
+    
+    Arguments:
+    -----------
+        filename: str
+            contains the path and filename of the KML file to be loaded
+        
+    Returns:    
+    -----------
+        transects: dict
+            contains the X and Y coordinates of each transect.
+        
+    """  
+
+    # set driver
+    drv = ogr.GetDriverByName('KML')
+    # read file
+    file = drv.Open(filename)
+    layer = file.GetLayer()
+    feature = layer.GetNextFeature()
+    # initialise transects dictionnary
+    transects = dict([])
+    
+    while feature:
+        
+        f_dict = json.loads(feature.ExportToJson())
+        
+        # raise an exception if the KML file contains other features that LineString geometries
+        if not f_dict['geometry']['type'] == 'LineString':
+            raise Exception('The KML file you provided does not contain LineString geometries. Modify your KML file and try again.')
+        # store the name of the feature and coordinates in the transects dictionnary
+        else:
+            name = f_dict['properties']['Name']
+            coords = np.array(f_dict['geometry']['coordinates'])[:,:-1]
+            transects[name] = coords
+            feature = layer.GetNextFeature()
+            
+    print('%d transects have been loaded' % len(transects.keys()))
+
     return transects
 
 def compute_intersection(output, transects, settings):

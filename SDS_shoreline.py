@@ -563,20 +563,24 @@ def extract_shorelines(metadata, settings):
         metadata: dict
             contains all the information about the satellite images that were downloaded
             
-        inputs: dict
+        settings: dict
             contains the following fields:
-                sitename: str
-                    String containig the name of the site
-                polygon: list
-                    polygon containing the lon/lat coordinates to be extracted
-                    longitudes in the first column and latitudes in the second column
-                dates: list of str
-                    list that contains 2 strings with the initial and final dates in format 
-                    'yyyy-mm-dd' e.g. ['1987-01-01', '2018-01-01']
-                sat_list: list of str
-                    list that contains the names of the satellite missions to include 
-                    e.g. ['L5', 'L7', 'L8', 'S2']
-        
+        sitename: str
+            String containig the name of the site
+        cloud_mask_issue: boolean
+            True if there is an issue with the cloud mask and sand pixels are being masked on the images
+        buffer_size: int
+            size of the buffer (m) around the sandy beach over which the pixels are considered in the
+            thresholding algorithm
+        min_beach_area: int
+            minimum allowable object area (in metres^2) for the class 'sand'
+        cloud_thresh: float
+            value between 0 and 1 defining the maximum percentage of cloud cover allowed in the images
+        output_epsg: int
+            output spatial reference system as EPSG code
+        check_detection: boolean
+            True to show each invidual detection and let the user validate the mapped shoreline
+                
     Returns:
     -----------
         output: dict
@@ -624,7 +628,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname)
+            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings)
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover

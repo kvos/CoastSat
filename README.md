@@ -134,7 +134,7 @@ The following user-defined settings are required:
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
 
-In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
+In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 

@@ -666,7 +666,7 @@ def get_reference_sl_manual(metadata, settings):
             filepath = SDS_tools.get_filepath(settings['inputs'],satname)
             filenames = metadata[satname]['filenames'] 
         else:
-            print('You cannot digitize the shoreline on L7 images, add another L8, S2 or L5 to your dataset.') 
+            raise Exception('You cannot digitize the shoreline on L7 images, add another L8, S2 or L5 to your dataset.') 
         
         # loop trhough the images
         for i in range(len(filenames)):
@@ -700,7 +700,7 @@ def get_reference_sl_manual(metadata, settings):
             mng = plt.get_current_fig_manager()                                         
             mng.window.showMaximized()
             # let user click on the image once
-            pt_input = ginput(n=1, timeout=1000000, show_clicks=True)
+            pt_input = ginput(n=1, timeout=1e9, show_clicks=False)
             pt_input = np.array(pt_input)
             # if clicks next to <skip>, show another image
             if pt_input[0][0] > im_ms.shape[1]/2:
@@ -710,39 +710,72 @@ def get_reference_sl_manual(metadata, settings):
                 # remove keep and skip buttons
                 keep_button.set_visible(False)
                 skip_button.set_visible(False)
-                # update title (instructions)
-                plt.title('Click points along the shoreline every ~500 m.\n' +
-                          'Start at one end of the beach.\n' + 'When finished digitizing, click <ENTER>',
-                          fontsize=14)     
-                plt.draw()
-                # let user click on the shoreline
-                pts = ginput(n=50000, timeout=1e9, show_clicks=True)
-                pts_pix = np.array(pts)
+                # create two new buttons
+                add_button = plt.text(0, 0.9, 'add', size=16, ha="left", va="top",
+                                       transform=plt.gca().transAxes,
+                                       bbox=dict(boxstyle="square", ec='k',fc='w'))   
+                end_button = plt.text(1, 0.9, 'end', size=16, ha="right", va="top",
+                                       transform=plt.gca().transAxes,
+                                       bbox=dict(boxstyle="square", ec='k',fc='w'))      
+                # add multiple reference shorelines (until user clicks on <end> button)
+                pts_sl = np.expand_dims(np.array([np.nan, np.nan]),axis=0)
+                while 1:
+                    add_button.set_visible(False)
+                    end_button.set_visible(False) 
+                    # update title (instructions)
+                    plt.title('Click points along the shoreline (enough points to capture the beach curvature).\n' +
+                              'Start at one end of the beach.\n' + 'When finished digitizing, click <ENTER>',
+                              fontsize=14)     
+                    plt.draw()
+                    # let user click on the shoreline
+                    pts = ginput(n=50000, timeout=1e9, show_clicks=True)
+                    pts_pix = np.array(pts)       
+                    # convert pixel coordinates to world coordinates
+                    pts_world = SDS_tools.convert_pix2world(pts_pix[:,[1,0]], georef)                    
+                    # interpolate between points clicked by the user (1m resolution)
+                    pts_world_interp = np.expand_dims(np.array([np.nan, np.nan]),axis=0)
+                    for k in range(len(pts_world)-1):
+                        pt_dist = np.linalg.norm(pts_world[k,:]-pts_world[k+1,:])
+                        xvals = np.arange(0,pt_dist)
+                        yvals = np.zeros(len(xvals))
+                        pt_coords = np.zeros((len(xvals),2))
+                        pt_coords[:,0] = xvals
+                        pt_coords[:,1] = yvals
+                        phi = 0
+                        deltax = pts_world[k+1,0] - pts_world[k,0]
+                        deltay = pts_world[k+1,1] - pts_world[k,1]
+                        phi = np.pi/2 - np.math.atan2(deltax, deltay)
+                        tf = transform.EuclideanTransform(rotation=phi, translation=pts_world[k,:])
+                        pts_world_interp = np.append(pts_world_interp,tf(pt_coords), axis=0) 
+                    pts_world_interp = np.delete(pts_world_interp,0,axis=0)
+                    # convert to pixel coordinates and plot
+                    pts_pix_interp = SDS_tools.convert_world2pix(pts_world_interp, georef)
+                    pts_sl = np.append(pts_sl, pts_world_interp, axis=0)
+                    plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r--')
+                    plt.plot(pts_pix_interp[0,0], pts_pix_interp[0,1],'ko')
+                    plt.plot(pts_pix_interp[-1,0], pts_pix_interp[-1,1],'ko')                    
+                    # update title and buttons
+                    add_button.set_visible(True)
+                    end_button.set_visible(True) 
+                    plt.title('click <add> to digitize another shoreline or <end> to finish and save the shoreline(s)',
+                              fontsize=14)     
+                    plt.draw()                    
+                    pt_input = ginput(n=1, timeout=1e9, show_clicks=False)
+                    pt_input = np.array(pt_input) 
+                    # if user clicks on <end>, save the points and break the loop
+                    if pt_input[0][0] > im_ms.shape[1]/2: 
+                        add_button.set_visible(False)
+                        end_button.set_visible(False)                                                                         
+                        plt.title('Reference shoreline saved as ' + sitename + '_reference_shoreline.pkl')
+                        plt.draw()
+                        ginput(n=1, timeout=5, show_clicks=False)
+                        plt.close()  
+                        break
+                pts_sl = np.delete(pts_sl,0,axis=0)     
+                # convert world coordinates to user-defined coordinates
                 
-                # interpolate between points and show the output to the user
-                pts_pix_interp = np.expand_dims(np.array([np.nan, np.nan]),axis=0)
-                for k in range(len(pts_pix)-1):             
-                    if pts_pix[k,0] < pts_pix[k+1,0]:
-                        x = pts_pix[[k,k+1],0]
-                        y = pts_pix[[k,k+1],1]
-                    else:
-                        x = pts_pix[[k+1,k],0]
-                        y = pts_pix[[k+1,k],1]   
-                    xvals = np.linspace(x[0],x[1],50)
-                    yinterp = np.interp(xvals,x,y)                    
-                    pts_pix_interp = np.append(pts_pix_interp,
-                                               np.transpose(np.array([xvals,yinterp])), axis=0)
-                pts_pix_interp = np.delete(pts_pix_interp,0,axis=0)
-                plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r.', markersize=3)
-                plt.title('Reference shoreline saved as ' + sitename + '_reference_shoreline.pkl')
-                plt.draw()
-                ginput(n=1, timeout=5, show_clicks=True)
-                plt.close()   
-                
-                # convert image coordinates to world coordinates
-                pts_world = SDS_tools.convert_pix2world(pts_pix_interp[:,[1,0]], georef)
                 image_epsg = metadata[satname]['epsg'][i]
-                pts_coords = SDS_tools.convert_epsg(pts_world, image_epsg, settings['output_epsg'])
+                pts_coords = SDS_tools.convert_epsg(pts_sl, image_epsg, settings['output_epsg'])
                 
                 # save the reference shoreline
                 filepath = os.path.join(os.getcwd(), 'data', sitename)

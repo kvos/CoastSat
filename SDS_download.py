@@ -543,14 +543,20 @@ def retrieve_images(inputs):
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
             # Sentinel-2 products don't provide a georeferencing accuracy (RMSE as in Landsat)
             # but they have a flag indicating if the geometric quality control was passed or failed
-            # if passed a value of 1 is stored if faile a value of -1 is stored in the metadata
-            try:
+            # if passed a value of 1 is stored if failed a value of -1 is stored in the metadata
+            if 'GEOMETRIC_QUALITY_FLAG' in im_dic['properties'].keys():
                 if im_dic['properties']['GEOMETRIC_QUALITY_FLAG'] == 'PASSED':
                     acc_georef.append(1)
                 else:
                     acc_georef.append(-1)
-            except:
+            elif 'quality_check' in im_dic['properties'].keys():
+                if im_dic['properties']['quality_check'] == 'PASSED':
+                    acc_georef.append(1) 
+                else:
+                    acc_georef.append(-1)
+            else:
                 acc_georef.append(-1)
+                
             print(i+1, end='..')
     
         # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
@@ -564,7 +570,7 @@ def retrieve_images(inputs):
                 'epsg':im_epsg_sorted, 'filenames':filenames_sorted} 
         print('\nFinished with ' + satname)
     
-    # merge overlapping images (only if polygon is at the edge of an image)
+    # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     if 'S2' in metadata.keys():
         metadata = merge_overlapping_images(metadata,inputs)
 

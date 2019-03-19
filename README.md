@@ -129,7 +129,7 @@ It is now time to map the sandy shorelines!
 
 The following user-defined settings are required:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation)
-- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates
+- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesion coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). 
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.

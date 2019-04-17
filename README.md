@@ -105,7 +105,7 @@ jupyter notebook
 ```
 
 A web browser window will open. Point to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use Spyder or PyCharm or other integrated development environments (IDEs), a Python script `main.py` is also included in the repository. If using `main.py` on Spyder, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use **Spyder**, **PyCharm** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository. If using `example.py` on Spyder, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
 To run a Jupyter Notebook, place your cursor inside one of the code sections and then clikc on the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 
@@ -118,10 +118,11 @@ To retrieve from the GEE server the avaiable satellite images cropped around the
 - `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)
 - `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections)
 - `sitename`: name of the site (user-defined name of the subfolder where the images and other accompanying files will be stored)
+- `filepath`: filepath to the directory where the data will be stored
 
-The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under *.data\sitename*). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly from this file. The screenshot below shows an example where all the images of Collaroy-Narrrabeen (Australia) acquired in December 2017 are retrieved.
+The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under *filepath\sitename*). The metadata contains the exact time of acquisition (UTC) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly from this file. The screenshot below shows an example of inputs that will retrieve all the images of Collaroy-Narrrabeen (Australia) acquired by Sentinel-2 in December 2017.
 
-![retrieval](https://user-images.githubusercontent.com/7217258/49353105-0037e280-f710-11e8-9454-c03ce6116c54.PNG)
+![doc1](https://user-images.githubusercontent.com/7217258/56278746-20f65700-614a-11e9-8715-ba5b8f938063.PNG)
 
 ### 2.2 Shoreline detection
 
@@ -129,16 +130,17 @@ It is now time to map the sandy shorelines!
 
 The following user-defined settings are required:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation)
-- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesion coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). 
+- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesion coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles).
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
+- `save_figure`: if set to `True` a figure of each mapped shoreline is saved (under *filepath/sitename/jpg_files/detection*)
 
 See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
 
-In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
+In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `dark sand`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![settings_v2](https://user-images.githubusercontent.com/7217258/52684207-876bc700-2f99-11e9-9e5c-086f523bcdc2.PNG)
+![doc2](https://user-images.githubusercontent.com/7217258/56278918-7a5e8600-614a-11e9-9184-77b69427b834.PNG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -152,7 +154,7 @@ Once all the shorelines have been mapped, the output is available in two differe
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of each indivdual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.
 - `sitename_output.kml`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
 
-The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.kml` output.
+The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.kml` output. Note that the coordinates in the `.kml` file are in the spatial reference system defined by the `output_epsg`, so you have to define the projection when loading it into a GIS software.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
 
@@ -163,6 +165,7 @@ As mentioned above, there are some additional parameters that can be modified to
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the sand-water shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds in the cloud mask (appear as black pixels on your images). If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features (as often these are beaches and not clouds). Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
+- `dark_sand`: if your beach has dark sand (grey/black sand beaches), you can set this parameter to `True` and the classifier will be able to pick up the dark sand. At this stage this option is only available for Landsat images.
 
 #### Reference shoreline
 
@@ -177,7 +180,7 @@ This function allows the user to click points along the shoreline on one of the 
 
 ![ref_shoreline](https://user-images.githubusercontent.com/7217258/49710753-94b1c000-fc8f-11e8-9b6c-b5e96aadc5c9.gif)
 
-The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that your shoreline will move more than 100 m, please change this parameter to an appropriate distance. This may be the case for large nourishments or eroding/accreting coastlines.
+The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
 
 ### 2.3 Shoreline change analysis
 

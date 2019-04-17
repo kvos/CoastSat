@@ -66,9 +66,7 @@ def draw_transects(output, settings):
         output: dict
             contains the extracted shorelines and corresponding dates.
         settings: dict
-            contains parameters defining :
-                transect_length: length of the transect in metres
-        
+            contains the inputs
     Returns:    
     -----------
         transects: dict
@@ -77,8 +75,7 @@ def draw_transects(output, settings):
         
     """    
     sitename = settings['inputs']['sitename']
-    length = settings['transect_length']
-    filepath = os.path.join(os.getcwd(), 'data', sitename)
+    filepath = os.path.join(settings['inputs']['filepath'], sitename)
 
     # plot all shorelines
     fig1 = plt.figure()
@@ -103,10 +100,11 @@ def draw_transects(output, settings):
     counter = 0
     # loop until user breaks it by click <enter>
     while 1:
-        try:
-            pts = ginput(n=2, timeout=1e9)
+        # let user click two points
+        pts = ginput(n=2, timeout=1e9)
+        if len(pts) > 0:
             origin = pts[0]
-        except:
+        else:
             fig1.gca().set_title('Transect locations', fontsize=16)
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
             plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ')
@@ -119,6 +117,7 @@ def draw_transects(output, settings):
         temp = np.array(pts[1]) - np.array(origin)
         phi = np.arctan2(temp[1], temp[0])
         orientation = -(phi*180/np.pi - 90)
+        length = np.linalg.norm(temp)
         transect = create_transect(origin, orientation, length)
         transects[str(counter)] = transect
         

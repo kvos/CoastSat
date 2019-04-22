@@ -480,13 +480,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     ax1.imshow(im_RGB)
     ax1.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     ax1.axis('off')
-    btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
-                           transform=ax1.transAxes,
-                           bbox=dict(boxstyle="square", ec='k',fc='w'))   
-    btn_skip = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
-                           transform=ax1.transAxes,
-                           bbox=dict(boxstyle="square", ec='k',fc='w'))
-    ax1.set_title(sitename + '    ' + date + '     ' + satname, fontweight='bold', fontsize=16)
+    ax1.set_title(sitename, fontweight='bold', fontsize=16)
 
     # create image 2 (classification)
     ax2.imshow(im_class)
@@ -498,10 +492,14 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     black_line = mlines.Line2D([],[],color='k',linestyle='-', label='shoreline')
     ax2.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
                bbox_to_anchor=(1, 0.5), fontsize=10)
+    ax2.set_title(date, fontweight='bold', fontsize=16)
+
     # create image 3 (MNDWI)
     ax3.imshow(im_mwi, cmap='bwr')
     ax3.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
     ax3.axis('off')
+    ax3.set_title(satname, fontweight='bold', fontsize=16)
+
     
     fig.set_size_inches([12.53, 9.3])
     mng = plt.get_current_fig_manager()                                         
@@ -534,8 +532,8 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         if pt[0][0] > im_ms.shape[1]/2:
             skip_image = True
     # if save_figure is True, save a .jpg under /jpg_files/detection
-    if settings['save_figure']:
-        fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
+    if settings['save_figure'] and not skip_image:
+        fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
     plt.close()
     
     return skip_image

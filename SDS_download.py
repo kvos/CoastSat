@@ -88,6 +88,8 @@ def retrieve_images(inputs):
         'sat_list': list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
     
     Returns:
     -----------
@@ -195,10 +197,10 @@ def retrieve_images(inputs):
                 os.remove(os.path.join(filepath, filename))
                 os.rename(local_data, os.path.join(filepath, filename))
             # write metadata in .txt file
-            filename = filename.replace('.tif','')
+            filename_txt = filename.replace('.tif','')
             metadict = {'filename':filename,'acc_georef':acc_georef[i],
                         'epsg':im_epsg[i]}
-            with open(os.path.join(filepath_meta,filename + '.txt'), 'w') as f:
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
                 for key in metadict.keys():
                     f.write('%s\t%s\n'%(key,metadict[key]))
                     
@@ -307,10 +309,10 @@ def retrieve_images(inputs):
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
             # write metadata in .txt file
-            filename = filename_pan.replace('_pan','').replace('.tif','')
+            filename_txt = filename_pan.replace('_pan','').replace('.tif','')
             metadict = {'filename':filename_pan,'acc_georef':acc_georef[i],
                         'epsg':im_epsg[i]}
-            with open(os.path.join(filepath_meta,filename + '.txt'), 'w') as f:
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
                 for key in metadict.keys():
                     f.write('%s\t%s\n'%(key,metadict[key]))
                     
@@ -419,10 +421,10 @@ def retrieve_images(inputs):
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
             # write metadata in .txt file
-            filename = filename_pan.replace('_pan','').replace('.tif','')
+            filename_txt = filename_pan.replace('_pan','').replace('.tif','')
             metadict = {'filename':filename_pan,'acc_georef':acc_georef[i],
                         'epsg':im_epsg[i]}
-            with open(os.path.join(filepath_meta,filename + '.txt'), 'w') as f:
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
                 for key in metadict.keys():
                     f.write('%s\t%s\n'%(key,metadict[key]))
                 
@@ -585,10 +587,10 @@ def retrieve_images(inputs):
             else:
                 acc_georef.append(-1)
             # write metadata in .txt file
-            filename = filename10.replace('_10m','').replace('.tif','')
+            filename_txt = filename10.replace('_10m','').replace('.tif','')
             metadict = {'filename':filename10,'acc_georef':acc_georef[i],
                         'epsg':im_epsg[i]}
-            with open(os.path.join(filepath_meta,filename + '.txt'), 'w') as f:
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
                 for key in metadict.keys():
                     f.write('%s\t%s\n'%(key,metadict[key]))
                 
@@ -644,6 +646,8 @@ def merge_overlapping_images(metadata,inputs):
         'sat_list': list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
         
     Returns:
     -----------
@@ -766,4 +770,63 @@ def merge_overlapping_images(metadata,inputs):
     for key in metadata_updated[sat].keys():
         metadata_updated[sat][key] = [metadata_updated[sat][key][_] for _ in index_list]
         
-    return metadata_updated                  
+    return metadata_updated 
+
+def get_metadata(inputs):
+    """
+    Gets the metadata from the downloaded .txt files in the \meta folders. 
+    
+    KV WRL 2018
+        
+    Arguments:
+    -----------
+        inputs: dict 
+            dictionnary that contains the following fields:
+        'sitename': str
+            String containig the name of the site
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
+    
+    Returns:
+    -----------
+        metadata: dict
+            contains the information about the satellite images that were downloaded: filename, 
+            georeferencing accuracy and image coordinate reference system 
+           
+    """
+    # directory containing the images
+    filepath = os.path.join(inputs['filepath'],inputs['sitename'])
+    # initialize metadata dict
+    metadata = dict([])
+    # loop through the satellite missions
+    for satname in ['L5','L7','L8','S2']:
+        # if a folder has been created for the given satellite mission
+        if satname in os.listdir(filepath):
+            # update the metadata dict
+            metadata[satname] = {'filenames':[], 'acc_georef':[], 'epsg':[], 'dates':[]}
+            # directory where the metadata .txt files are stored
+            filepath_meta = os.path.join(filepath, satname, 'meta')
+            # loop through the .txt files
+            for im_meta in os.listdir(filepath_meta):
+                # read them and extract the metadata info: filename, georeferencing accuracy
+                # epsg code and date
+                with open(os.path.join(filepath_meta, im_meta), 'r') as f:
+                    filename = f.readline().split('\t')[1].replace('\n','')
+                    acc_georef = float(f.readline().split('\t')[1].replace('\n',''))
+                    epsg = int(f.readline().split('\t')[1].replace('\n',''))
+                date_str = filename[0:19]
+                date = pytz.utc.localize(datetime(int(date_str[:4]),int(date_str[5:7]),
+                                                  int(date_str[8:10]),int(date_str[11:13]),
+                                                  int(date_str[14:16]),int(date_str[17:19])))
+                # store the information in the metadata dict
+                metadata[satname]['filenames'].append(filename)
+                metadata[satname]['acc_georef'].append(acc_georef)
+                metadata[satname]['epsg'].append(epsg)
+                metadata[satname]['dates'].append(date)
+                
+    # save a .pkl file containing the metadata dict
+    with open(os.path.join(filepath, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:
+        pickle.dump(metadata, f)
+    
+    return metadata
+                 

@@ -24,10 +24,10 @@ polygon = SDS_tools.coords_from_kml('NARRA_polygon.kml')
 #            [151.301454, -33.700754]]]
             
 # date range
-dates = ['2018-01-20', '2018-02-20']
+dates = ['2017-12-01', '2018-01-01']
 
 # satellite missions
-sat_list = ['L7','L8','S2']
+sat_list = ['S2']
 
 # name of the site
 sitename = 'NARRA'
@@ -50,10 +50,8 @@ inputs = {
 #metadata = SDS_download.retrieve_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
-filepath = os.path.join(inputs['filepath'], sitename)
-with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
-    metadata = pickle.load(f) 
-    
+metadata = SDS_download.get_metadata(inputs) 
+
 #%% 3. Batch shoreline detection
     
 # settings for the shoreline extraction

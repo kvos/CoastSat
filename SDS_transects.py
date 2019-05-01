@@ -16,11 +16,6 @@ import pickle
 import simplekml
 import json
 from osgeo import ogr
-    
-def find_indices(lst, condition):
-    "imitation of MATLAB find function"
-    return [i for i, elem in enumerate(lst) if condition(elem)]
-
 
 def create_transect(origin, orientation, length):
     """
@@ -239,12 +234,18 @@ def compute_intersection(output, transects, settings):
             d_origin = np.array([np.linalg.norm(sl[k,:] - p1) for k in range(len(sl))])
             # find the shoreline points that are close to the transects and to the origin
             # the distance to the origin is hard-coded here to 1 km 
-            logic_close = np.logical_and(d_line <= along_dist, d_origin <= 1000)
-            idx_close = find_indices(logic_close, lambda e: e == True)
-            idx_points_all.append(idx_close)
+            idx_dist = np.logical_and(d_line <= along_dist, d_origin <= 1000)
+            # find the shoreline points that are in the direction of the transect (within 90 degrees)
+            temp_sl = sl - np.array(transects[key][0,:])
+            phi_sl = np.array([np.arctan2(temp_sl[k,1], temp_sl[k,0]) for k in range(len(temp_sl))])
+            diff_angle = (phi - phi_sl)
+            idx_angle = np.abs(diff_angle) < np.pi/2
+            # combine the transects that are close in distance and close in orientation
+            idx_close = np.where(np.logical_and(idx_dist,idx_angle))[0]
+            idx_points_all.append(idx_close)        
             
             # in case there are no shoreline points close to the transect 
-            if not idx_close:
+            if len(idx_close) == 0:
                 chainage_mtx[i,j,:] = np.tile(np.nan,(1,6))
             else:
                 # change of base to shore-normal coordinate system

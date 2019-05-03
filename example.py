@@ -136,6 +136,8 @@ fig = plt.figure()
 gs = gridspec.GridSpec(len(cross_distance),1)
 gs.update(left=0.05, right=0.95, bottom=0.05, top=0.95, hspace=0.05)
 for i,key in enumerate(cross_distance.keys()):
+    if np.all(np.isnan(cross_distance[key])):
+        continue
     ax = fig.add_subplot(gs[i,0])
     ax.grid(linestyle=':', color='0.5')
     ax.set_ylim([-50,50])

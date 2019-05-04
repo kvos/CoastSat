@@ -24,57 +24,59 @@ polygon = SDS_tools.coords_from_kml('NARRA_polygon.kml')
 #            [151.301454, -33.700754]]]
             
 # date range
-dates = ['2017-12-01', '2018-02-01']
+dates = ['2017-12-01', '2018-01-01']
 
 # satellite missions
-sat_list = ['L8','S2']
+sat_list = ['S2']
 
 # name of the site
 sitename = 'NARRA'
+
+# filepath where data will be stored
+filepath_data = os.path.join(os.getcwd(), 'data')
 
 # put all the inputs into a dictionnary
 inputs = {
     'polygon': polygon,
     'dates': dates,
     'sat_list': sat_list,
-    'sitename': sitename
+    'sitename': sitename,
+    'filepath': filepath_data
         }
 
 #%% 2. Retrieve images
 
 # retrieve satellite images from GEE
-metadata = SDS_download.retrieve_images(inputs)
+#metadata = SDS_download.retrieve_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
-#filepath = os.path.join(os.getcwd(), 'data', sitename)
-#with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'rb') as f:
-#    metadata = pickle.load(f) 
-    
+metadata = SDS_download.get_metadata(inputs) 
+
 #%% 3. Batch shoreline detection
     
 # settings for the shoreline extraction
 settings = { 
     # general parameters:
-    'cloud_thresh': 0.2,        # threshold on maximum cloud cover
+    'cloud_thresh': 0.5,        # threshold on maximum cloud cover
     'output_epsg': 28356,       # epsg code of spatial reference system desired for the output   
     # quality control:
     'check_detection': True,    # if True, shows each shoreline detection to the user for validation
-
+    'save_figure': True,        # if True, saves a figure showing the mapped shoreline for each image
     # add the inputs defined previously
     'inputs': inputs,
-    
     # [ONLY FOR ADVANCED USERS] shoreline detection parameters:
     'min_beach_area': 4500,     # minimum area (in metres^2) for an object to be labelled as a beach
     'buffer_size': 150,         # radius (in metres) of the buffer around sandy pixels considered in the shoreline detection
     'min_length_sl': 200,       # minimum length (in metres) of shoreline perimeter to be valid
     'cloud_mask_issue': False,  # switch this parameter to True if sand pixels are masked (in black) on many images  
+    'dark_sand': False,         # only switch to True if your site has dark sand (e.g. black sand beach)
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
 SDS_preprocess.save_jpg(metadata, settings)
 
 # [OPTIONAL] create a reference shoreline (helps to identify outliers and false detections)
-settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
+settings['reference_shoreline'] = SDS_preprocess.get_reference_sl(metadata, settings)
 # set the max distance (in meters) allowed from the reference shoreline for a detected shoreline to be valid
 settings['max_dist_ref'] = 100        
 
@@ -99,14 +101,12 @@ fig.set_size_inches([15.76,  8.52])
 #%% 4. Shoreline analysis
 
 # if you have already mapped the shorelines, load the output.pkl file
-filepath = os.path.join(os.getcwd(), 'data', sitename)
+filepath = os.path.join(inputs['filepath'], sitename)
 with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
     output = pickle.load(f) 
 
 # now we have to define cross-shore transects over which to quantify the shoreline changes
 # each transect is defined by two points, its origin and a second point that defines its orientation
-# the parameter transect length determines how far from the origin the transect will span
-settings['transect_length'] = 500 
 
 # there are 3 options to create the transects:
 # - option 1: draw the shore-normal transects along the beach
@@ -136,6 +136,8 @@ fig = plt.figure()
 gs = gridspec.GridSpec(len(cross_distance),1)
 gs.update(left=0.05, right=0.95, bottom=0.05, top=0.95, hspace=0.05)
 for i,key in enumerate(cross_distance.keys()):
+    if np.all(np.isnan(cross_distance[key])):
+        continue
     ax = fig.add_subplot(gs[i,0])
     ax.grid(linestyle=':', color='0.5')
     ax.set_ylim([-50,50])

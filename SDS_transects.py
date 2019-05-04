@@ -16,11 +16,6 @@ import pickle
 import simplekml
 import json
 from osgeo import ogr
-    
-def find_indices(lst, condition):
-    "imitation of MATLAB find function"
-    return [i for i, elem in enumerate(lst) if condition(elem)]
-
 
 def create_transect(origin, orientation, length):
     """
@@ -66,9 +61,7 @@ def draw_transects(output, settings):
         output: dict
             contains the extracted shorelines and corresponding dates.
         settings: dict
-            contains parameters defining :
-                transect_length: length of the transect in metres
-        
+            contains the inputs
     Returns:    
     -----------
         transects: dict
@@ -77,8 +70,7 @@ def draw_transects(output, settings):
         
     """    
     sitename = settings['inputs']['sitename']
-    length = settings['transect_length']
-    filepath = os.path.join(os.getcwd(), 'data', sitename)
+    filepath = os.path.join(settings['inputs']['filepath'], sitename)
 
     # plot all shorelines
     fig1 = plt.figure()
@@ -103,10 +95,11 @@ def draw_transects(output, settings):
     counter = 0
     # loop until user breaks it by click <enter>
     while 1:
-        try:
-            pts = ginput(n=2, timeout=1e9)
+        # let user click two points
+        pts = ginput(n=2, timeout=1e9)
+        if len(pts) > 0:
             origin = pts[0]
-        except:
+        else:
             fig1.gca().set_title('Transect locations', fontsize=16)
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
             plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ')
@@ -119,6 +112,7 @@ def draw_transects(output, settings):
         temp = np.array(pts[1]) - np.array(origin)
         phi = np.arctan2(temp[1], temp[0])
         orientation = -(phi*180/np.pi - 90)
+        length = np.linalg.norm(temp)
         transect = create_transect(origin, orientation, length)
         transects[str(counter)] = transect
         
@@ -240,12 +234,18 @@ def compute_intersection(output, transects, settings):
             d_origin = np.array([np.linalg.norm(sl[k,:] - p1) for k in range(len(sl))])
             # find the shoreline points that are close to the transects and to the origin
             # the distance to the origin is hard-coded here to 1 km 
-            logic_close = np.logical_and(d_line <= along_dist, d_origin <= 1000)
-            idx_close = find_indices(logic_close, lambda e: e == True)
-            idx_points_all.append(idx_close)
+            idx_dist = np.logical_and(d_line <= along_dist, d_origin <= 1000)
+            # find the shoreline points that are in the direction of the transect (within 90 degrees)
+            temp_sl = sl - np.array(transects[key][0,:])
+            phi_sl = np.array([np.arctan2(temp_sl[k,1], temp_sl[k,0]) for k in range(len(temp_sl))])
+            diff_angle = (phi - phi_sl)
+            idx_angle = np.abs(diff_angle) < np.pi/2
+            # combine the transects that are close in distance and close in orientation
+            idx_close = np.where(np.logical_and(idx_dist,idx_angle))[0]
+            idx_points_all.append(idx_close)        
             
             # in case there are no shoreline points close to the transect 
-            if not idx_close:
+            if len(idx_close) == 0:
                 chainage_mtx[i,j,:] = np.tile(np.nan,(1,6))
             else:
                 # change of base to shore-normal coordinate system

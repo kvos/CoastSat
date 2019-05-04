@@ -18,10 +18,9 @@ import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
 
 # other modules
-from osgeo import gdal, ogr, osr
+from osgeo import gdal
 from pylab import ginput
 import pickle
-import matplotlib.path as mpltPath
 
 # own modules
 import SDS_tools
@@ -342,9 +341,6 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            
-        # calculate cloud cover
-        cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
         
         # pansharpen Green, Red, NIR (where there is overlapping with pan band in L7)
         try:
@@ -402,9 +398,6 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            
-        # calculate cloud cover
-        cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
 
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
@@ -476,8 +469,6 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_nan = np.isnan(im_ms[:,:,k])
                 cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
           
-        # calculate cloud cover
-        cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
         # the extra image is the 20m SWIR band
         im_extra = im20
     
@@ -487,6 +478,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     """
     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
+    This functions can be modified to obtain different visualisations of the multispectral images.
     
     KV WRL 2018
 
@@ -509,10 +501,10 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
 
     # rescale image intensity for display purposes
     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
-    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
+#    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
+#    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
     
-    # make figure
+    # make figure (just RGB)
     fig = plt.figure()
     fig.set_size_inches([18,9])
     fig.set_tight_layout(True)
@@ -575,13 +567,12 @@ def save_jpg(metadata, settings):
     
     sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
+    filepath_data = settings['inputs']['filepath']
     
     # create subfolder to store the jpg files
-    filepath_jpg = os.path.join(os.getcwd(), 'data', sitename, 'jpg_files', 'preprocessed')
-    try:
-        os.makedirs(filepath_jpg)
-    except:
-        print('')
+    filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'preprocessed')
+    if not os.path.exists(filepath_jpg):      
+            os.makedirs(filepath_jpg)
             
     # loop through satellite list
     for satname in metadata.keys():
@@ -602,14 +593,14 @@ def save_jpg(metadata, settings):
             if cloud_cover > cloud_thresh or cloud_cover == 1:
                 continue
             # save .jpg with date and satellite in the title
-            date = filenames[i][:10]
+            date = filenames[i][:19]
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
             
     # print the location where the images have been saved
-    print('Satellite images saved as .jpg in ' + os.path.join(os.getcwd(), 'data', sitename,
+    print('Satellite images saved as .jpg in ' + os.path.join(filepath_data, sitename,
                                                     'jpg_files', 'preprocessed'))
                 
-def get_reference_sl_manual(metadata, settings):
+def get_reference_sl(metadata, settings):
     """
     Allows the user to manually digitize a reference shoreline that is used seed the shoreline 
     detection algorithm. The reference shoreline helps to detect the outliers, making the shoreline
@@ -638,9 +629,10 @@ def get_reference_sl_manual(metadata, settings):
     """
     
     sitename = settings['inputs']['sitename']
+    filepath_data = settings['inputs']['filepath']
     
     # check if reference shoreline already exists in the corresponding folder
-    filepath = os.path.join(os.getcwd(), 'data', sitename)
+    filepath = os.path.join(filepath_data, sitename)
     filename = sitename + '_reference_shoreline.pkl'
     if filename in os.listdir(filepath):
         print('Reference shoreline already exists and was loaded')
@@ -778,7 +770,7 @@ def get_reference_sl_manual(metadata, settings):
                 pts_coords = SDS_tools.convert_epsg(pts_sl, image_epsg, settings['output_epsg'])
                 
                 # save the reference shoreline
-                filepath = os.path.join(os.getcwd(), 'data', sitename)
+                filepath = os.path.join(filepath_data, sitename)
                 with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'wb') as f:
                     pickle.dump(pts_coords, f)
                 print('Reference shoreline has been saved in ' + filepath)

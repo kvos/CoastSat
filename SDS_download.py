@@ -77,19 +77,25 @@ def retrieve_images(inputs):
         'sitename': str
             String containig the name of the site
         'polygon': list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
+            polygon containing the lon/lat coordinates to be extracted,
+            longitudes in the first column and latitudes in the second column,
+            there are 5 pairs of lat/lon with the fifth point equal to the first point.
+            e.g. [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+            [151.3, -33.7]]]
         'dates': list of str
             list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
             e.g. ['1987-01-01', '2018-01-01']
         'sat_list': list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
     
     Returns:
     -----------
         metadata: dict
-            contains all the information about the satellite images that were downloaded
+            contains the information about the satellite images that were downloaded: filename, 
+            georeferencing accuracy and image coordinate reference system 
            
     """
     
@@ -98,19 +104,20 @@ def retrieve_images(inputs):
     polygon = inputs['polygon']
     dates = inputs['dates']
     sat_list= inputs['sat_list']
+    filepath_data = inputs['filepath']
     
     # format in which the images are downloaded
     suffix = '.tif'
  
-    # initialize metadata dictionnary (stores timestamps and georefencing accuracy of each image)       
+    # initialize metadata dictionnary (stores information about each image)       
     metadata = dict([])
     
-    # create directories
-    try:
-        os.makedirs(os.path.join(os.getcwd(), 'data',sitename))
-    except:
-        print('')
+    # create a new directory for this site
+    if not os.path.exists(os.path.join(filepath_data,sitename)):
+        os.makedirs(os.path.join(filepath_data,sitename))
         
+    print('Downloading images:')
+    
     #=============================================================================================#
     # download L5 images
     #=============================================================================================#
@@ -119,12 +126,13 @@ def retrieve_images(inputs):
         
         satname = 'L5'
         # create a subfolder to store L5 images
-        filepath = os.path.join(os.getcwd(), 'data', sitename, satname, '30m')
-        try:
+        filepath = os.path.join(filepath_data, sitename, satname, '30m')
+        filepath_meta = os.path.join(filepath_data, sitename, satname, 'meta')
+        if not os.path.exists(filepath):
             os.makedirs(filepath)
-        except:
-            print('')
-        
+        if not os.path.exists(filepath_meta):
+            os.makedirs(filepath_meta)   
+            
         # Landsat 5 collection
         input_col = ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
         # filter by location and dates
@@ -135,12 +143,12 @@ def retrieve_images(inputs):
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
             idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
-            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+            im_col = [x for k,x in enumerate(im_all) if k not in idx_delete]
         else:
-            im_all_cloud = im_all
-        n_img = len(im_all_cloud)
+            im_col = im_all
+        n_img = len(im_col)
         # print how many images there are
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img) 
+        print('%s: %d images'%(satname,n_img))
        
        # loop trough images
         timestamps = []
@@ -151,11 +159,11 @@ def retrieve_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all_cloud[i].get('id'))
+            im = ee.Image(im_col[i]['id'])
             # read metadata
-            im_dic = im.getInfo()
+            im_dic = im_col[i]
             # get bands
-            im_bands = im_dic.get('bands')
+            im_bands = im_dic['bands']
             # get time of acquisition (UNIX time)
             t = im_dic['properties']['system:time_start']
             # convert to datetime
@@ -165,11 +173,10 @@ def retrieve_images(inputs):
             # get EPSG code of reference system
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
             # get geometric accuracy
-            try:
+            if 'GEOMETRIC_RMSE_MODEL' in im_dic['properties'].keys():
                 acc_georef.append(im_dic['properties']['GEOMETRIC_RMSE_MODEL'])
-            except:
-                # default value of accuracy (RMSE = 12m)
-                acc_georef.append(12)   
+            else:
+                acc_georef.append(12) # default value of accuracy (RMSE = 12m)
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']
             # bands for L5
@@ -189,10 +196,18 @@ def retrieve_images(inputs):
             except:
                 os.remove(os.path.join(filepath, filename))
                 os.rename(local_data, os.path.join(filepath, filename))
+            # write metadata in .txt file
+            filename_txt = filename.replace('.tif','')
+            metadict = {'filename':filename,'acc_georef':acc_georef[i],
+                        'epsg':im_epsg[i]}
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
+                for key in metadict.keys():
+                    f.write('%s\t%s\n'%(key,metadict[key]))
                     
-            print(i+1, end='..')
+            print('\r%d%%' % (int(((i+1)/n_img)*100)), end='')
+        print('')
         
-        # sort timestamps and georef accuracy (downloaded images are sorted by date in directory)
+        # sort metadata (downloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
@@ -200,10 +215,7 @@ def retrieve_images(inputs):
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         # save into dict
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}   
-        print('\nFinished with ' + satname)
-    
-    
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}       
     
     #=============================================================================================#
     # download L7 images
@@ -213,15 +225,17 @@ def retrieve_images(inputs):
         
         satname = 'L7'
         # create subfolders (one for 30m multispectral bands and one for 15m pan bands)
-        filepath = os.path.join(os.getcwd(), 'data', sitename, 'L7')
+        filepath = os.path.join(filepath_data, sitename, 'L7')
         filepath_pan = os.path.join(filepath, 'pan')
         filepath_ms = os.path.join(filepath, 'ms')
-        try:
+        filepath_meta = os.path.join(filepath, 'meta')
+        if not os.path.exists(filepath_pan):
             os.makedirs(filepath_pan)
+        if not os.path.exists(filepath_ms):
             os.makedirs(filepath_ms)
-        except:
-            print('')
-         
+        if not os.path.exists(filepath_meta):
+            os.makedirs(filepath_meta)
+            
         # landsat 7 collection
         input_col = ee.ImageCollection('LANDSAT/LE07/C01/T1_RT_TOA')
         # filter by location and dates
@@ -232,12 +246,12 @@ def retrieve_images(inputs):
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
             idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
-            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+            im_col = [x for k,x in enumerate(im_all) if k not in idx_delete]
         else:
-            im_all_cloud = im_all
-        n_img = len(im_all_cloud)
+            im_col = im_all
+        n_img = len(im_col)
         # print how many images there are
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img) 
+        print('%s: %d images'%(satname,n_img)) 
         
         # loop trough images
         timestamps = []
@@ -248,11 +262,11 @@ def retrieve_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all_cloud[i].get('id'))
+            im = ee.Image(im_col[i]['id'])
             # read metadata
-            im_dic = im.getInfo()
+            im_dic = im_col[i]
             # get bands
-            im_bands = im_dic.get('bands')
+            im_bands = im_dic['bands']
             # get time of acquisition (UNIX time)
             t = im_dic['properties']['system:time_start']
             # convert to datetime
@@ -262,11 +276,10 @@ def retrieve_images(inputs):
             # get EPSG code of reference system
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
             # get geometric accuracy
-            try:
+            if 'GEOMETRIC_RMSE_MODEL' in im_dic['properties'].keys():
                 acc_georef.append(im_dic['properties']['GEOMETRIC_RMSE_MODEL'])
-            except:
-                # default value of accuracy (RMSE = 12m)
-                acc_georef.append(12)   
+            else:
+                acc_georef.append(12) # default value of accuracy (RMSE = 12m)  
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']   
             # bands for L7
@@ -295,10 +308,18 @@ def retrieve_images(inputs):
             except:
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            # write metadata in .txt file
+            filename_txt = filename_pan.replace('_pan','').replace('.tif','')
+            metadict = {'filename':filename_pan,'acc_georef':acc_georef[i],
+                        'epsg':im_epsg[i]}
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
+                for key in metadict.keys():
+                    f.write('%s\t%s\n'%(key,metadict[key]))
+                    
+            print('\r%d%%' % (int(((i+1)/n_img)*100)), end='')
+        print('')
             
-            print(i+1, end='..')  
-            
-        # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
+        # sort metadata (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
@@ -306,9 +327,7 @@ def retrieve_images(inputs):
         im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
         # save into dict
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}
-        print('\nFinished with ' + satname)
-        
+                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}        
         
     #=============================================================================================#
     # download L8 images
@@ -318,14 +337,16 @@ def retrieve_images(inputs):
 
         satname = 'L8'  
         # create subfolders (one for 30m multispectral bands and one for 15m pan bands)
-        filepath = os.path.join(os.getcwd(), 'data', sitename, 'L8')
+        filepath = os.path.join(filepath_data, sitename, 'L8')
         filepath_pan = os.path.join(filepath, 'pan')
         filepath_ms = os.path.join(filepath, 'ms')
-        try:
+        filepath_meta = os.path.join(filepath, 'meta')
+        if not os.path.exists(filepath_pan):
             os.makedirs(filepath_pan)
+        if not os.path.exists(filepath_ms):
             os.makedirs(filepath_ms)
-        except:
-            print('')
+        if not os.path.exists(filepath_meta):
+            os.makedirs(filepath_meta)
             
         # landsat 8 collection
         input_col = ee.ImageCollection('LANDSAT/LC08/C01/T1_RT_TOA')
@@ -337,12 +358,12 @@ def retrieve_images(inputs):
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
             idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
-            im_all_cloud = [x for k,x in enumerate(im_all) if k not in idx_delete]
+            im_col = [x for k,x in enumerate(im_all) if k not in idx_delete]
         else:
-            im_all_cloud = im_all
-        n_img = len(im_all_cloud)
+            im_col = im_all
+        n_img = len(im_col)
         # print how many images there are
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)   
+        print('%s: %d images'%(satname,n_img)) 
         
        # loop trough images
         timestamps = []
@@ -353,11 +374,11 @@ def retrieve_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all_cloud[i].get('id'))
+            im = ee.Image(im_col[i]['id'])
             # read metadata
-            im_dic = im.getInfo()
+            im_dic = im_col[i]
             # get bands
-            im_bands = im_dic.get('bands')
+            im_bands = im_dic['bands']
             # get time of acquisition (UNIX time)
             t = im_dic['properties']['system:time_start']
             # convert to datetime
@@ -367,11 +388,10 @@ def retrieve_images(inputs):
             # get EPSG code of reference system
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
             # get geometric accuracy
-            try:
+            if 'GEOMETRIC_RMSE_MODEL' in im_dic['properties'].keys():
                 acc_georef.append(im_dic['properties']['GEOMETRIC_RMSE_MODEL'])
-            except:
-                # default value of accuracy (RMSE = 12m)
-                acc_georef.append(12)   
+            else:
+                acc_georef.append(12) # default value of accuracy (RMSE = 12m)
             # delete dimensions key from dictionnary, otherwise the entire image is extracted
             for j in range(len(im_bands)): del im_bands[j]['dimensions']   
             # bands for L8    
@@ -400,10 +420,18 @@ def retrieve_images(inputs):
             except:
                 os.remove(os.path.join(filepath_ms, filename_ms))
                 os.rename(local_data_ms, os.path.join(filepath_ms, filename_ms))
+            # write metadata in .txt file
+            filename_txt = filename_pan.replace('_pan','').replace('.tif','')
+            metadict = {'filename':filename_pan,'acc_georef':acc_georef[i],
+                        'epsg':im_epsg[i]}
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
+                for key in metadict.keys():
+                    f.write('%s\t%s\n'%(key,metadict[key]))
                 
-            print(i+1, end='..')
+            print('\r%d%%' % (int(((i+1)/n_img)*100)), end='')
+        print('')
     
-        # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
+        # sort metadata (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
@@ -412,7 +440,6 @@ def retrieve_images(inputs):
         
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
                 'epsg':im_epsg_sorted, 'filenames':filenames_sorted}
-        print('\nFinished with ' + satname)
 
     #=============================================================================================#
     # download S2 images
@@ -422,14 +449,17 @@ def retrieve_images(inputs):
 
         satname = 'S2' 
         # create subfolders for the 10m, 20m and 60m multipectral bands
-        filepath = os.path.join(os.getcwd(), 'data', sitename, 'S2')
-        try:
+        filepath = os.path.join(filepath_data, sitename, 'S2')
+        if not os.path.exists(os.path.join(filepath, '10m')):
             os.makedirs(os.path.join(filepath, '10m'))
+        if not os.path.exists(os.path.join(filepath, '20m')):
             os.makedirs(os.path.join(filepath, '20m'))
+        if not os.path.exists(os.path.join(filepath, '60m')):
             os.makedirs(os.path.join(filepath, '60m'))
-        except:
-            print('')
-    
+        filepath_meta = os.path.join(filepath, 'meta')
+        if not os.path.exists(filepath_meta):
+            os.makedirs(filepath_meta)
+            
         # Sentinel2 collection
         input_col = ee.ImageCollection('COPERNICUS/S2')
         # filter by location and dates
@@ -471,13 +501,13 @@ def retrieve_images(inputs):
         cloud_cover = [_['properties']['CLOUDY_PIXEL_PERCENTAGE'] for _ in im_all_updated]
         if np.any([_ > 95 for _ in cloud_cover]):
             idx_delete = np.where([_ > 95 for _ in cloud_cover])[0]
-            im_all_cloud = [x for k,x in enumerate(im_all_updated) if k not in idx_delete]
+            im_col = [x for k,x in enumerate(im_all_updated) if k not in idx_delete]
         else:
-            im_all_cloud = im_all_updated
+            im_col = im_all_updated
         
-        n_img = len(im_all_cloud)
+        n_img = len(im_col)
         # print how many images there are
-        print('Number of ' + satname + ' images covering ' + sitename + ':', n_img)    
+        print('%s: %d images'%(satname,n_img)) 
     
        # loop trough images
         timestamps = []
@@ -488,11 +518,11 @@ def retrieve_images(inputs):
         for i in range(n_img):
             
             # find each image in ee database
-            im = ee.Image(im_all_cloud[i].get('id'))
+            im = ee.Image(im_col[i]['id'])
             # read metadata
-            im_dic = im.getInfo()
+            im_dic = im_col[i]
             # get bands
-            im_bands = im_dic.get('bands')
+            im_bands = im_dic['bands']
             # get time of acquisition (UNIX time)
             t = im_dic['properties']['system:time_start']
             # convert to datetime
@@ -537,7 +567,7 @@ def retrieve_images(inputs):
             except:
                 os.remove(os.path.join(filepath, '60m', filename60))
                 os.rename(local_data, os.path.join(filepath, '60m', filename60))
-    
+                    
             # save timestamp, epsg code and georeferencing accuracy (1 if passed 0 if not passed)
             timestamps.append(im_timestamp)
             im_epsg.append(int(im_dic['bands'][0]['crs'][5:]))
@@ -556,10 +586,17 @@ def retrieve_images(inputs):
                     acc_georef.append(-1)
             else:
                 acc_georef.append(-1)
+            # write metadata in .txt file
+            filename_txt = filename10.replace('_10m','').replace('.tif','')
+            metadict = {'filename':filename10,'acc_georef':acc_georef[i],
+                        'epsg':im_epsg[i]}
+            with open(os.path.join(filepath_meta,filename_txt + '.txt'), 'w') as f:
+                for key in metadict.keys():
+                    f.write('%s\t%s\n'%(key,metadict[key]))
                 
-            print(i+1, end='..')
-    
-        # sort timestamps and georef accuracy (dowloaded images are sorted by date in directory)
+            print('\r%d%%' % (int(((i+1)/n_img)*100)), end='')
+        print('')
+        # sort metadata (dowloaded images are sorted by date in directory)
         timestamps_sorted = sorted(timestamps)
         idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
         acc_georef_sorted = [acc_georef[j] for j in idx_sorted]
@@ -568,14 +605,13 @@ def retrieve_images(inputs):
         
         metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
                 'epsg':im_epsg_sorted, 'filenames':filenames_sorted} 
-        print('\nFinished with ' + satname)
     
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     if 'S2' in metadata.keys():
         metadata = merge_overlapping_images(metadata,inputs)
 
     # save metadata dict
-    filepath = os.path.join(os.getcwd(), 'data', sitename)
+    filepath = os.path.join(filepath_data, sitename)
     with open(os.path.join(filepath, sitename + '_metadata' + '.pkl'), 'wb') as f:
         pickle.dump(metadata, f)
     
@@ -599,30 +635,34 @@ def merge_overlapping_images(metadata,inputs):
         'sitename': str
             String containig the name of the site
         'polygon': list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
+            polygon containing the lon/lat coordinates to be extracted,
+            longitudes in the first column and latitudes in the second column,
+            there are 5 pairs of lat/lon with the fifth point equal to the first point.
+            e.g. [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+            [151.3, -33.7]]]
         'dates': list of str
             list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
             e.g. ['1987-01-01', '2018-01-01']
         'sat_list': list of str
             list that contains the names of the satellite missions to include 
             e.g. ['L5', 'L7', 'L8', 'S2']
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
         
     Returns:
     -----------
-        metadata: dict
+        metadata_updated: dict
             updated metadata with the information of the merged images
             
     """
 
-    # only for Sentinel-2 at this stage (could be implemented for Landsat as well)
+    # only for Sentinel-2 at this stage (not sure if this is needed for Landsat images)
     sat = 'S2'
-    filepath = os.path.join(os.getcwd(), 'data', inputs['sitename'])
+    filepath = os.path.join(inputs['filepath'], inputs['sitename'])
     
     # find the images that are overlapping (same date in S2 filenames)
     filenames = metadata[sat]['filenames']
     filenames_copy = filenames.copy()
-    
     # loop through all the filenames and find the pairs of overlapping images (same date and time of acquisition)
     pairs = []
     for i,fn in enumerate(filenames):
@@ -635,20 +675,17 @@ def merge_overlapping_images(metadata,inputs):
                 pairs.append([idx_dup,i])
             else:
                 pairs.append([i,idx_dup])
-            
-    msg = 'Merging %d pairs of overlapping images...' % len(pairs)
-    print(msg)
-    
+                
     # for each pair of images, merge them into one complete image
     for i,pair in enumerate(pairs):
-        print(i+1, end='..')
         
         fn_im = []
         for index in range(len(pair)):            
             # read image
             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
-                  os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m'))])
+                  os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m')),
+                  os.path.join(filepath, 'S2', 'meta', filenames[pair[index]].replace('_10m','').replace('.tif','.txt'))])
             im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn_im[index], sat, False) 
         
             # in Sentinel2 images close to the edge of the image there are some artefacts, 
@@ -715,91 +752,81 @@ def merge_overlapping_images(metadata,inputs):
         os.remove(fn_im[0][2])
         os.chmod(fn_im[1][2], 0o777)
         os.remove(fn_im[1][2])
-        os.rename(fn_merged, fn_im[0][2])            
-            
+        os.rename(fn_merged, fn_im[0][2])
+        
+        # remove the metadata .txt file of the duplicate image
+        os.chmod(fn_im[1][3], 0o777)
+        os.remove(fn_im[1][3])
+          
+    print('%d pairs of overlapping Sentinel-2 images were merged' % len(pairs))
+    
     # update the metadata dict (delete all the duplicates)
-    metadata2 = copy.deepcopy(metadata)
-    filenames_copy = metadata2[sat]['filenames']
+    metadata_updated = copy.deepcopy(metadata)
+    filenames_copy = metadata_updated[sat]['filenames']
     index_list = []
     for i in range(len(filenames_copy)):
             if filenames_copy[i].find('dup') == -1:
                 index_list.append(i)
-    for key in metadata2[sat].keys():
-        metadata2[sat][key] = [metadata2[sat][key][_] for _ in index_list]
+    for key in metadata_updated[sat].keys():
+        metadata_updated[sat][key] = [metadata_updated[sat][key][_] for _ in index_list]
         
-    return metadata2
+    return metadata_updated 
 
-def remove_cloudy_images(metadata,inputs,cloud_thresh):
+def get_metadata(inputs):
     """
-    Deletes the .TIF file of images that have a cloud cover percentage that is above the cloud 
-    threshold.
+    Gets the metadata from the downloaded .txt files in the \meta folders. 
     
     KV WRL 2018
         
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
         inputs: dict 
             dictionnary that contains the following fields:
         'sitename': str
             String containig the name of the site
-        'polygon': list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
-        'dates': list of str
-            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
-            e.g. ['1987-01-01', '2018-01-01']
-        'sat_list': list of str
-            list that contains the names of the satellite missions to include 
-            e.g. ['L5', 'L7', 'L8', 'S2']
-        cloud_thresh: float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        
+        'filepath_data': str
+            Filepath to the directory where the images are downloaded
+    
     Returns:
     -----------
         metadata: dict
-            updated metadata with the information of the merged images
-            
-    """    
+            contains the information about the satellite images that were downloaded: filename, 
+            georeferencing accuracy and image coordinate reference system 
+           
+    """
+    # directory containing the images
+    filepath = os.path.join(inputs['filepath'],inputs['sitename'])
+    # initialize metadata dict
+    metadata = dict([])
+    # loop through the satellite missions
+    for satname in ['L5','L7','L8','S2']:
+        # if a folder has been created for the given satellite mission
+        if satname in os.listdir(filepath):
+            # update the metadata dict
+            metadata[satname] = {'filenames':[], 'acc_georef':[], 'epsg':[], 'dates':[]}
+            # directory where the metadata .txt files are stored
+            filepath_meta = os.path.join(filepath, satname, 'meta')
+            # loop through the .txt files
+            for im_meta in os.listdir(filepath_meta):
+                # read them and extract the metadata info: filename, georeferencing accuracy
+                # epsg code and date
+                with open(os.path.join(filepath_meta, im_meta), 'r') as f:
+                    filename = f.readline().split('\t')[1].replace('\n','')
+                    acc_georef = float(f.readline().split('\t')[1].replace('\n',''))
+                    epsg = int(f.readline().split('\t')[1].replace('\n',''))
+                date_str = filename[0:19]
+                date = pytz.utc.localize(datetime(int(date_str[:4]),int(date_str[5:7]),
+                                                  int(date_str[8:10]),int(date_str[11:13]),
+                                                  int(date_str[14:16]),int(date_str[17:19])))
+                # store the information in the metadata dict
+                metadata[satname]['filenames'].append(filename)
+                metadata[satname]['acc_georef'].append(acc_georef)
+                metadata[satname]['epsg'].append(epsg)
+                metadata[satname]['dates'].append(date)
+                
+    # save a .pkl file containing the metadata dict
+    with open(os.path.join(filepath, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:
+        pickle.dump(metadata, f)
     
-    # create a deep copy
-    metadata2 = copy.deepcopy(metadata)
-
-    for satname in metadata.keys():
-            
-        # get the image filenames
-        filepath = SDS_tools.get_filepath(inputs,satname)
-        filenames = metadata[satname]['filenames']
-
-        # loop through images
-        idx_good = []
-        for i in range(len(filenames)):
-            # image filename
-            fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
-            # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, False)
-            # calculate cloud cover
-            cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
-                                    (cloud_mask.shape[0]*cloud_mask.shape[1]))
-            # skip image if cloud cover is above threshold
-            if cloud_cover > cloud_thresh or cloud_cover == 1:
-                # remove image files
-                if satname == 'L5':
-                    os.chmod(fn, 0o777)
-                    os.remove(fn)
-                else:                    
-                    for j in range(len(fn)):
-                        os.chmod(fn[j], 0o777)
-                        os.remove(fn[j])  
-            else:
-                idx_good.append(i)
-            
-        msg = '\n%d cloudy images were removed for %s.' % (len(filenames)-len(idx_good), satname)
-        print(msg)
-        
-        # update the metadata dict (delete all cloudy images)
-        for key in metadata2[satname].keys():
-            metadata2[satname][key] = [metadata2[satname][key][_] for _ in idx_good] 
-
-    return metadata2                   
+    return metadata
+                 

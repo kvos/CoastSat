@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pdb
 
 # other modules
-from osgeo import gdal, ogr, osr
+from osgeo import gdal, osr
 import skimage.transform as transform
 import simplekml
 from scipy.ndimage.filters import uniform_filter
@@ -54,8 +54,7 @@ def convert_pix2world(points, georef):
         points_converted = tform(tmp)
         
     else:
-        print('invalid input type')
-        raise
+        raise Exception('invalid input type')
         
     return points_converted
 
@@ -139,8 +138,8 @@ def convert_epsg(points, epsg_in, epsg_out):
     elif type(points) is np.ndarray:
         points_converted = np.array(coordTransform.TransformPoints(points))  
     else:
-        print('invalid input type')
-        raise
+        raise Exception('invalid input type')
+
         
     return points_converted
 
@@ -230,14 +229,15 @@ def get_filepath(inputs,satname):
     """     
     
     sitename = inputs['sitename']
+    filepath_data = inputs['filepath']
     # access the images
     if satname == 'L5':
         # access downloaded Landsat 5 images
-        filepath = os.path.join(os.getcwd(), 'data', sitename, satname, '30m')
+        filepath = os.path.join(filepath_data, sitename, satname, '30m')
     elif satname == 'L7':
         # access downloaded Landsat 7 images
-        filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'pan')
-        filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L7', 'ms')
+        filepath_pan = os.path.join(filepath_data, sitename, 'L7', 'pan')
+        filepath_ms = os.path.join(filepath_data, sitename, 'L7', 'ms')
         filenames_pan = os.listdir(filepath_pan)
         filenames_ms = os.listdir(filepath_ms)
         if (not len(filenames_pan) == len(filenames_ms)):
@@ -245,8 +245,8 @@ def get_filepath(inputs,satname):
         filepath = [filepath_pan, filepath_ms]
     elif satname == 'L8':
         # access downloaded Landsat 8 images
-        filepath_pan = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'pan')
-        filepath_ms = os.path.join(os.getcwd(), 'data', sitename, 'L8', 'ms')
+        filepath_pan = os.path.join(filepath_data, sitename, 'L8', 'pan')
+        filepath_ms = os.path.join(filepath_data, sitename, 'L8', 'ms')
         filenames_pan = os.listdir(filepath_pan)
         filenames_ms = os.listdir(filepath_ms)
         if (not len(filenames_pan) == len(filenames_ms)):
@@ -254,11 +254,11 @@ def get_filepath(inputs,satname):
         filepath = [filepath_pan, filepath_ms]
     elif satname == 'S2':
         # access downloaded Sentinel 2 images
-        filepath10 = os.path.join(os.getcwd(), 'data', sitename, satname, '10m')
+        filepath10 = os.path.join(filepath_data, sitename, satname, '10m')
         filenames10 = os.listdir(filepath10)
-        filepath20 = os.path.join(os.getcwd(), 'data', sitename, satname, '20m')
+        filepath20 = os.path.join(filepath_data, sitename, satname, '20m')
         filenames20 = os.listdir(filepath20)
-        filepath60 = os.path.join(os.getcwd(), 'data', sitename, satname, '60m')
+        filepath60 = os.path.join(filepath_data, sitename, satname, '60m')
         filenames60 = os.listdir(filepath60)
         if (not len(filenames10) == len(filenames20)) or (not len(filenames20) == len(filenames60)):
             raise 'error: not the same amount of files for 10, 20 and 60 m bands'
@@ -376,32 +376,31 @@ def merge_output(output):
     Arguments:
     -----------
         output: dict
-            contains the extracted shorelines and corresponding dates.
+            contains the extracted shorelines and corresponding dates, organised by satellite mission
         
     Returns:    
     -----------
-        output_all_sorted: dict
-            contains the extracted shorelines sorted by date in a single list
+        output_all: dict
+            contains the extracted shorelines in a single list sorted by date
         
     """     
-    output_all = {'dates':[], 'shorelines':[], 'geoaccuracy':[], 'satname':[], 'image_filename':[]}
-    for satname in list(output.keys()):
-        if satname == 'meta':
-            continue
-        output_all['dates'] = output_all['dates'] + output[satname]['timestamp']
-        output_all['shorelines'] = output_all['shorelines'] + output[satname]['shoreline']
-        output_all['geoaccuracy'] = output_all['geoaccuracy'] + output[satname]['geoaccuracy']
-        output_all['satname'] = output_all['satname'] + [_ for _ in np.tile(satname,
-                  len(output[satname]['timestamp']))]
-        output_all['image_filename'] = output_all['image_filename'] + output[satname]['filename']
     
+    # initialize output dict
+    output_all = dict([])
+    satnames = list(output.keys())
+    for key in output[satnames[0]].keys():
+        output_all[key] = []
+    # create extra key for the satellite name
+    output_all['satname'] = []
+    # fill the output dict
+    for satname in list(output.keys()):
+        for key in output[satnames[0]].keys():
+            output_all[key] = output_all[key] + output[satname][key]
+        output_all['satname'] = output_all['satname'] + [_ for _ in np.tile(satname,
+                  len(output[satname]['dates']))]
     # sort chronologically
-    output_all_sorted = {'dates':[], 'shorelines':[], 'geoaccuracy':[], 'satname':[], 'image_filename':[]}
     idx_sorted = sorted(range(len(output_all['dates'])), key=output_all['dates'].__getitem__)
-    output_all_sorted['dates'] = [output_all['dates'][i] for i in idx_sorted]
-    output_all_sorted['shorelines'] = [output_all['shorelines'][i] for i in idx_sorted]
-    output_all_sorted['geoaccuracy'] = [output_all['geoaccuracy'][i] for i in idx_sorted]
-    output_all_sorted['satname'] = [output_all['satname'][i] for i in idx_sorted]
-    output_all_sorted['image_filename'] = [output_all['image_filename'][i] for i in idx_sorted]
+    for key in output_all.keys():
+        output_all[key] = [output_all[key][i] for i in idx_sorted]
 
-    return output_all_sorted
+    return output_all

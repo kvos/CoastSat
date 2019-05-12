@@ -2,15 +2,16 @@
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/example.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
 
 The underlying approach and application of the CoastSat toolkit are described in detail in:
 
 *Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*.
 
-There are two main steps:
-- assisted retrieval from Google Earth Engine of all avaiable satellite images spanning the user-defined region of interest and time period
+There are three main steps:
+- assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
 - automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
+- intersection of the 2D shorelines with user-defined shore-normal transects
 
 
 ### Description
@@ -31,7 +32,7 @@ If you are not a regular Python user and are not sure how to install these packa
 ### 1.1 Installing the packages (Anaconda)
 
 If Anaconda is not already installed on your PC, it can be freely downloaded at https://www.anaconda.com/download/.
-Open the *Anaconda prompt* (in Mac and Linux, open a terminal window) and select the folder where you have downloaded/cloned this repository.
+Open the *Anaconda prompt* (in Mac and Linux, open a terminal window) and use the `cd` command (change directory) to go into the **/requirements** folder of this repository.
 
 Create a new environment named *coastsat*:
 
@@ -105,7 +106,9 @@ jupyter notebook
 ```
 
 A web browser window will open. Point to the directory where you downloaded/cloned this repository and click on `example_jupyter.ipynb`.
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use **Spyder**, **PyCharm** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository. If using `example.py` on Spyder, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
+The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use **Spyder**, **PyCharm** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository.
+
+If using `example.py` on **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
 To run a Jupyter Notebook, place your cursor inside one of the code sections and then clikc on the 'run' button up in the top menu to run that section and progress forward (as shown in the animation below).
 
@@ -124,6 +127,8 @@ The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retri
 
 ![doc1](https://user-images.githubusercontent.com/7217258/56278746-20f65700-614a-11e9-8715-ba5b8f938063.PNG)
 
+**Note:** The are of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
+
 ### 2.2 Shoreline detection
 
 It is now time to map the sandy shorelines!
@@ -134,7 +139,9 @@ The following user-defined settings are required:
 - `check_detection`: if set to `True` allows the user to quality control each shoreline detection
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved (under *filepath/sitename/jpg_files/detection*)
 
-See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`.
+See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. CoastSat only accepts **cartesian coordinates systems** (i.e., projected), do not use spherical coordinate systems (lat, lon) like WGS84.
+
+If the user wants to quality control the mapped shorelines and manually validate each detection, the parameter `check_detection` should be set to `True`. This setting is recommended when using the tool for the first time.
 
 In addition, there are extra parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `dark sand`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
@@ -148,7 +155,7 @@ output = SDS_shoreline.extract_shorelines(metadata, settings)
 ```
 When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by clicking on `keep` or `skip`.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/development/classifiers/doc/batch_detection.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/batch_detection.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates and the exact timestamp at which the image was captured (UTC time) as well as the geometric accuracy and the cloud cover of each indivdual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the main script.
@@ -157,15 +164,6 @@ Once all the shorelines have been mapped, the output is available in two differe
 The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.kml` output. Note that the coordinates in the `.kml` file are in the spatial reference system defined by the `output_epsg`, so you have to define the projection when loading it into a GIS software.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
-
-#### Advanced shoreline detection parameters
-
-As mentioned above, there are some additional parameters that can be modified to optimise the shoreline detection:
-- `min_beach_area`: minimum allowable object area (in metres^2) for the class 'sand'. During the image classification, some features (for example, building roofs) may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), try decreasing the value of this parameter.
-- `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
-- `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the sand-water shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
-- `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds in the cloud mask (appear as black pixels on your images). If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features (as often these are beaches and not clouds). Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
-- `dark_sand`: if your beach has dark sand (grey/black sand beaches), you can set this parameter to `True` and the classifier will be able to pick up the dark sand. At this stage this option is only available for Landsat images.
 
 #### Reference shoreline
 
@@ -181,6 +179,15 @@ This function allows the user to click points along the shoreline on one of the 
 ![ref_shoreline](https://user-images.githubusercontent.com/7217258/49710753-94b1c000-fc8f-11e8-9b6c-b5e96aadc5c9.gif)
 
 The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
+
+#### Advanced shoreline detection parameters
+
+As mentioned above, there are some additional parameters that can be modified to optimise the shoreline detection:
+- `min_beach_area`: minimum allowable object area (in metres^2) for the class 'sand'. During the image classification, some features (for example, building roofs) may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value of `min_beach_area` is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), try decreasing the value of this parameter.
+- `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered for the shoreline detection. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
+- `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the sand-water shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
+- `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds in the cloud mask (appear as black pixels on your images). If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features (as often these are beaches and not clouds). Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
+- `dark_sand`: if your beach has dark sand (grey/black sand beaches), you can set this parameter to `True` and the classifier will be able to pick up the dark sand. At this stage this option is only available for Landsat images.
 
 ### 2.3 Shoreline change analysis
 
@@ -215,6 +222,14 @@ An example is illustrated below:
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
 
-## Issues and Contributions
+## Issues
+Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues).
 
-Having a problem or looking to contribute to the code? Please see the [Issues page](https://github.com/kvos/coastsat/issues).
+## Contributing
+1. Fork the repository (https://github.com/kvos/coastsat/fork).
+A fork is a copy on which you can make your changes.
+2. Create a new branch on your fork
+3. Commit your changes and push them to your branch
+4. When the branch is ready to be merged, create a Pull Request
+
+Check the following link for more information on how to make a clean pull request: https://gist.github.com/MarcDiethelm/7303312).

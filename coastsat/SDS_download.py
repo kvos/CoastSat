@@ -15,7 +15,7 @@ import ee
 from urllib.request import urlretrieve
 import zipfile
 import copy
-import gdal_merge
+from coastsat import gdal_merge
 
 # additional modules
 from datetime import datetime
@@ -24,7 +24,7 @@ import pickle
 import skimage.morphology as morphology
 
 # own modules
-import SDS_preprocess, SDS_tools
+from coastsat import SDS_preprocess, SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 

@@ -13,10 +13,12 @@ import pickle
 import warnings
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
-import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
+from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
 # region of interest (longitude, latitude in WGS84), can be loaded from a .kml polygon
-polygon = SDS_tools.coords_from_kml('NARRA_polygon.kml')
+kml_polygon = os.path.join(os.getcwd(), 'examples', 'NARRA_polygon.kml')
+polygon = SDS_tools.polygon_from_kml(kml_polygon)
+# or the user can also input the polygon coordinates manually
 #polygon = [[[151.301454, -33.700754],
 #            [151.311453, -33.702075],
 #            [151.307237, -33.739761],
@@ -47,7 +49,7 @@ inputs = {
 #%% 2. Retrieve images
 
 # retrieve satellite images from GEE
-#metadata = SDS_download.retrieve_images(inputs)
+metadata = SDS_download.retrieve_images(inputs)
 
 # if you have already downloaded the images, just load the metadata file
 metadata = SDS_download.get_metadata(inputs) 
@@ -117,8 +119,8 @@ with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
 transects = SDS_transects.draw_transects(output, settings)
     
 # option 2: load the transects from a KML file
-#kml_file = 'NARRA_transects.kml'
-#transects = SDS_transects.load_transects_from_kml(kml_file)
+#kml_transects = os.path.join(os.getcwd(), 'examples', 'NARRA_transects.kml')
+#transects = SDS_transects.load_transects_from_kml(kml_transects)
 
 # option 3: create the transects by manually providing the coordinates of two points 
 #transects = dict([])
@@ -141,8 +143,6 @@ for i,key in enumerate(cross_distance.keys()):
     ax = fig.add_subplot(gs[i,0])
     ax.grid(linestyle=':', color='0.5')
     ax.set_ylim([-50,50])
-    if not i == len(cross_distance.keys()):
-        ax.set_xticks = []
     ax.plot(output['dates'], cross_distance[key]- np.nanmedian(cross_distance[key]), '-^', markersize=6)
     ax.set_ylabel('distance [m]', fontsize=12)
     ax.text(0.5,0.95,'Transect ' + key, bbox=dict(boxstyle="square", ec='k',fc='w'), ha='center',

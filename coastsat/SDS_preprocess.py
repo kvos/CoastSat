@@ -23,7 +23,7 @@ from pylab import ginput
 import pickle
 
 # own modules
-import SDS_tools
+from coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
@@ -63,6 +63,7 @@ def create_cloud_mask(im_qa, satname, cloud_mask_issue):
     # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
         morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
+        
         if cloud_mask_issue:
             elem = morphology.square(3) # use a square of width 3 pixels 
             cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
@@ -760,7 +761,7 @@ def get_reference_sl(metadata, settings):
                         end_button.set_visible(False)                                                                         
                         plt.title('Reference shoreline saved as ' + sitename + '_reference_shoreline.pkl')
                         plt.draw()
-                        ginput(n=1, timeout=5, show_clicks=False)
+                        ginput(n=1, timeout=3, show_clicks=False)
                         plt.close()  
                         break
                 pts_sl = np.delete(pts_sl,0,axis=0)     

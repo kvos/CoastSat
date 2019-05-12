@@ -104,7 +104,7 @@ def draw_transects(output, settings):
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
             plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ')
             plt.draw()
-            ginput(n=1, timeout=5, show_clicks=True)
+            ginput(n=1, timeout=3, show_clicks=True)
             plt.close(fig1)
             break
         counter = counter + 1

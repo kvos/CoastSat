@@ -588,6 +588,9 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         if key_event.get('pressed') == 'backspace':
             skip_image = True
             last_image_status = 'Last image skipped'
+        elif key_event.get('pressed') == 'escape':
+            plt.close()
+            raise StopIteration('User cancelled checking shoreline detection')
         else:
             last_image_status = 'Last image kept'
 

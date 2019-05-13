@@ -494,6 +494,8 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
+    # Define instructions for the user
+    instructions = '<any key> to keep\n<backspace> to skip'
 
     if plt.get_fignums():
         # Get open figure if it exists
@@ -504,6 +506,14 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         fig.set_size_inches([19,10])
         mng = plt.get_current_fig_manager()
         mng.window.showMaximized()
+
+        # Update info text so user can see what happened on last image
+        info_text = fig.text(0.05, 0.9, 
+                instructions, 
+                size=10, ha="left", va="top",
+                bbox=dict(boxstyle="square", ec='k',fc='w'))
+
+
     # according to the image shape, decide whether it is better to have the images in the subplot
     # in different rows or different columns
     if im_RGB.shape[1] > 2*im_RGB.shape[0]:
@@ -559,30 +569,40 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 #    cb.set_label('MNDWI values')
 #    ax3.set_anchor('W')
 
+    # This variable needs to be immuatable so we can access it after the keypress event.
+    # See https://stackoverflow.com/a/15033071
+    key_event = {}
+    def press(event):
+        # Store what key was pressed in the dictionary
+        key_event['pressed'] = event.key
+
     # if check_detection is True, let user manually accept/reject the images
     skip_image = False
     if settings['check_detection']:
-        # create two buttons, <skip> and <keep>
-        btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
-                               transform=ax1.transAxes,
-                               bbox=dict(boxstyle="square", ec='k',fc='w'))
-        btn_skip = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
-                               transform=ax1.transAxes,
-                               bbox=dict(boxstyle="square", ec='k',fc='w'))
-        # wait for user's selection: <keep> or <skip>
-        pt = ginput(n=1, timeout=100000, show_clicks=True)
-        pt = np.array(pt)
-        btn_skip.set_visible(False)
-        btn_keep.set_visible(False)
-        # if user clicks around the <skip> button, return skip_image = True
-        if pt[0][0] > im_ms.shape[1]/2:
+
+        plt.draw()
+        fig.canvas.mpl_connect('key_press_event', press)
+        plt.waitforbuttonpress()
+
+        # Skip image if backspace is pressed, otherwise keep image
+        if key_event.get('pressed') == 'backspace':
             skip_image = True
+            last_image_status = 'Last image skipped'
+        else:
+            last_image_status = 'Last image kept'
+
     # if save_figure is True, save a .jpg under /jpg_files/detection
     if settings['save_figure'] and not skip_image:
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
 
     # Don't close the figure window, but remove all axes and settings, ready for next plot
     fig.clear()
+
+    # Update info text so user can see what happened on last image
+    info_text = fig.text(0.05, 0.9, 
+            '{}\n{}'.format(instructions, last_image_status), 
+            size=10, ha="left", va="top",
+            bbox=dict(boxstyle="square", ec='k',fc='w'))
 
     return skip_image
 

@@ -764,6 +764,10 @@ def extract_shorelines(metadata, settings):
                 }
         print('')
 
+    # Close figure window if still open
+    if plt.get_fignums():
+        plt.close()
+
     # change the format to have one list sorted by date with all the shorelines (easier to use)
     output = SDS_tools.merge_output(output)
 

@@ -494,9 +494,18 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
+
+    if plt.get_fignums():
+        # Get open figure if it exists
+        fig = plt.gcf()
+    else:
+        # Or else create a new figure
+        fig = plt.figure()
+        fig.set_size_inches([19,10])
+        mng = plt.get_current_fig_manager()
+        mng.window.showMaximized()
     # according to the image shape, decide whether it is better to have the images in the subplot
     # in different rows or different columns
-    fig = plt.figure()
     if im_RGB.shape[1] > 2*im_RGB.shape[0]:
         # vertical subplots
         gs = gridspec.GridSpec(3, 1)
@@ -542,10 +551,6 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     ax3.axis('off')
     ax3.set_title(satname, fontweight='bold', fontsize=16)
 
-    fig.set_size_inches([19, 10])
-    mng = plt.get_current_fig_manager()
-    mng.window.showMaximized()
-
 # additional options
 #    ax1.set_anchor('W')
 #    ax2.set_anchor('W')
@@ -575,7 +580,9 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     # if save_figure is True, save a .jpg under /jpg_files/detection
     if settings['save_figure'] and not skip_image:
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
-    plt.close()
+
+    # Don't close the figure window, but remove all axes and settings, ready for next plot
+    fig.clear()
 
     return skip_image
 

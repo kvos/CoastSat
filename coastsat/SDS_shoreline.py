@@ -512,6 +512,12 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         ax2 = fig.add_subplot(gs[0,1])
         ax3 = fig.add_subplot(gs[0,2])
 
+    # Change the color nans to either black (0.0) or white (1.0) or somewhere in between.
+    # This is to help distinguish between shorelines and no-data values
+    nan_color = 1.0
+    im_RGB = np.where(np.isnan(im_RGB), nan_color, im_RGB)
+    im_class = np.where(np.isnan(im_class), 1.0, im_class)
+
     # create image 1 (RGB)
     ax1.imshow(im_RGB)
     ax1.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)

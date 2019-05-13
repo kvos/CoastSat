@@ -494,42 +494,35 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
-    # Define instructions for the user
-    instructions = '<any key> to keep\n<backspace> to skip'
-
     if plt.get_fignums():
-        # Get open figure if it exists
-        fig = plt.gcf()
-    else:
-        # Or else create a new figure
-        fig = plt.figure()
-        fig.set_size_inches([19,10])
-        mng = plt.get_current_fig_manager()
-        mng.window.showMaximized()
+            # Get open figure if it exists
+            fig = plt.gcf()
+            ax1 = fig.axes[0]
+            ax2 = fig.axes[1]
+            ax3 = fig.axes[2]
+        else:
+            # Or else create a new figure
+            fig = plt.figure()
+            fig.set_size_inches([12.53, 9.3])
+            mng = plt.get_current_fig_manager()
+            mng.window.showMaximized()
 
-        # Update info text so user can see what happened on last image
-        info_text = fig.text(0.05, 0.9, 
-                instructions, 
-                size=10, ha="left", va="top",
-                bbox=dict(boxstyle="square", ec='k',fc='w'))
-
-
-    # according to the image shape, decide whether it is better to have the images in the subplot
-    # in different rows or different columns
-    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-        # vertical subplots
-        gs = gridspec.GridSpec(3, 1)
-        gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[1,0])
-        ax3 = fig.add_subplot(gs[2,0])
-    else:
-        # horizontal subplots
-        gs = gridspec.GridSpec(1, 3)
-        gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[0,1])
-        ax3 = fig.add_subplot(gs[0,2])
+            # according to the image shape, decide whether it is better to have the images in the subplot
+            # in different rows or different columns
+            if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+                # vertical subplots
+                gs = gridspec.GridSpec(3, 1)
+                gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
+                ax1 = fig.add_subplot(gs[0,0])
+                ax2 = fig.add_subplot(gs[1,0])
+                ax3 = fig.add_subplot(gs[2,0])
+            else:
+                # horizontal subplots
+                gs = gridspec.GridSpec(1, 3)
+                gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
+                ax1 = fig.add_subplot(gs[0,0])
+                ax2 = fig.add_subplot(gs[0,1])
+                ax3 = fig.add_subplot(gs[0,2])
 
     # Change the color nans to either black (0.0) or white (1.0) or somewhere in between.
     # This is to help distinguish between shorelines and no-data values
@@ -580,32 +573,43 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     skip_image = False
     if settings['check_detection']:
 
-        plt.draw()
-        fig.canvas.mpl_connect('key_press_event', press)
-        plt.waitforbuttonpress()
+        while True:
+            btn_keep = plt.text(1, 0.9, '<right arrow> to keep', size=10, ha="right", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            btn_skip = plt.text(0, 0.9, '<left arrow> to skip', size=10, ha="left", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            btn_esc = plt.text(0, 0.83, '<esc> to quit', size=10, ha="left", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            plt.draw()
+            fig.canvas.mpl_connect('key_press_event', press)
+            plt.waitforbuttonpress()
 
-        # Skip image if backspace is pressed, otherwise keep image
-        if key_event.get('pressed') == 'backspace':
-            skip_image = True
-            last_image_status = 'Last image skipped'
-        elif key_event.get('pressed') == 'escape':
-            plt.close()
-            raise StopIteration('User cancelled checking shoreline detection')
-        else:
-            last_image_status = 'Last image kept'
+            btn_skip.remove()
+            btn_keep.remove()
+            btn_esc.remove()
+
+            if key_event.get('pressed') == 'right':
+                skip_image = False
+                break
+            elif key_event.get('pressed') == 'left':
+                skip_image = True
+                break
+            elif key_event.get('pressed') == 'escape':
+                plt.close()
+                raise StopIteration('User cancelled checking shoreline detection')
+            else:
+                plt.waitforbuttonpress()
 
     # if save_figure is True, save a .jpg under /jpg_files/detection
     if settings['save_figure'] and not skip_image:
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
 
     # Don't close the figure window, but remove all axes and settings, ready for next plot
-    fig.clear()
-
-    # Update info text so user can see what happened on last image
-    info_text = fig.text(0.05, 0.9, 
-            '{}\n{}'.format(instructions, last_image_status), 
-            size=10, ha="left", va="top",
-            bbox=dict(boxstyle="square", ec='k',fc='w'))
+    for ax in fig.axes:
+        ax.clear()
 
     return skip_image
 

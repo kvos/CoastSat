@@ -1,5 +1,7 @@
 # CoastSat
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779294.svg)](https://doi.org/10.5281/zenodo.2779294)
+
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)

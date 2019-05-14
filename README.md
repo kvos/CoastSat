@@ -129,7 +129,7 @@ The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retri
 
 ![doc1](https://user-images.githubusercontent.com/7217258/56278746-20f65700-614a-11e9-8715-ba5b8f938063.PNG)
 
-**Note:** The are of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
+**Note:** The area of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
 
 ### 2.2 Shoreline detection
 
@@ -155,7 +155,7 @@ Once all the settings have been defined, the batch shoreline detection can be la
 ```
 output = SDS_shoreline.extract_shorelines(metadata, settings)
 ```
-When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by clicking on `keep` or `skip`.
+When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by pressing the `right arrow` (⇨) to `keep` the shoreline or `left arrow` (⇦) to `skip` the shoreline. The user can break the loop at any time by pressing `escape` (nothing will be saved though).
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/batch_detection.gif)
 

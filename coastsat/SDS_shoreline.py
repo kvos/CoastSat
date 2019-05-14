@@ -495,37 +495,36 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
     if plt.get_fignums():
-            # Get open figure if it exists
+            # get open figure if it exists
             fig = plt.gcf()
             ax1 = fig.axes[0]
             ax2 = fig.axes[1]
             ax3 = fig.axes[2]
+    else:
+        # else create a new figure
+        fig = plt.figure()
+        fig.set_size_inches([12.53, 9.3])
+        mng = plt.get_current_fig_manager()
+        mng.window.showMaximized()
+
+        # according to the image shape, decide whether it is better to have the images 
+        # in vertical subplots or horizontal subplots
+        if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+            # vertical subplots
+            gs = gridspec.GridSpec(3, 1)
+            gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
+            ax1 = fig.add_subplot(gs[0,0])
+            ax2 = fig.add_subplot(gs[1,0])
+            ax3 = fig.add_subplot(gs[2,0])
         else:
-            # Or else create a new figure
-            fig = plt.figure()
-            fig.set_size_inches([12.53, 9.3])
-            mng = plt.get_current_fig_manager()
-            mng.window.showMaximized()
+            # horizontal subplots
+            gs = gridspec.GridSpec(1, 3)
+            gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
+            ax1 = fig.add_subplot(gs[0,0])
+            ax2 = fig.add_subplot(gs[0,1])
+            ax3 = fig.add_subplot(gs[0,2])
 
-            # according to the image shape, decide whether it is better to have the images in the subplot
-            # in different rows or different columns
-            if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-                # vertical subplots
-                gs = gridspec.GridSpec(3, 1)
-                gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
-                ax1 = fig.add_subplot(gs[0,0])
-                ax2 = fig.add_subplot(gs[1,0])
-                ax3 = fig.add_subplot(gs[2,0])
-            else:
-                # horizontal subplots
-                gs = gridspec.GridSpec(1, 3)
-                gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
-                ax1 = fig.add_subplot(gs[0,0])
-                ax2 = fig.add_subplot(gs[0,1])
-                ax3 = fig.add_subplot(gs[0,2])
-
-    # Change the color nans to either black (0.0) or white (1.0) or somewhere in between.
-    # This is to help distinguish between shorelines and no-data values
+    # change the color of nans to either black (0.0) or white (1.0) or somewhere in between
     nan_color = 1.0
     im_RGB = np.where(np.isnan(im_RGB), nan_color, im_RGB)
     im_class = np.where(np.isnan(im_class), 1.0, im_class)
@@ -562,35 +561,37 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 #    cb.set_label('MNDWI values')
 #    ax3.set_anchor('W')
 
-    # This variable needs to be immuatable so we can access it after the keypress event.
-    # See https://stackoverflow.com/a/15033071
-    key_event = {}
-    def press(event):
-        # Store what key was pressed in the dictionary
-        key_event['pressed'] = event.key
-
     # if check_detection is True, let user manually accept/reject the images
     skip_image = False
     if settings['check_detection']:
-
+            
+        # set a key event to accept/reject the detections (see https://stackoverflow.com/a/15033071)
+        # this variable needs to be immuatable so we can access it after the keypress event
+        key_event = {}
+        def press(event):
+            # store what key was pressed in the dictionary
+            key_event['pressed'] = event.key
+        # let the user press a key, right arrow to keep the image, left arrow to skip it
+        # to break the loop the user can press 'escape'
         while True:
-            btn_keep = plt.text(1, 0.9, '<right arrow> to keep', size=10, ha="right", va="top",
+            btn_keep = plt.text(1.1, 0.9, 'keep ⇨', size=12, ha="right", va="top",
                                 transform=ax1.transAxes,
                                 bbox=dict(boxstyle="square", ec='k',fc='w'))
-            btn_skip = plt.text(0, 0.9, '<left arrow> to skip', size=10, ha="left", va="top",
+            btn_skip = plt.text(-0.1, 0.9, '⇦ skip', size=12, ha="left", va="top",
                                 transform=ax1.transAxes,
                                 bbox=dict(boxstyle="square", ec='k',fc='w'))
-            btn_esc = plt.text(0, 0.83, '<esc> to quit', size=10, ha="left", va="top",
+            btn_esc = plt.text(0.5, 0, '<esc> to quit', size=12, ha="center", va="top",
                                 transform=ax1.transAxes,
                                 bbox=dict(boxstyle="square", ec='k',fc='w'))
             plt.draw()
             fig.canvas.mpl_connect('key_press_event', press)
             plt.waitforbuttonpress()
-
+            # after button is pressed, remove the buttons
             btn_skip.remove()
             btn_keep.remove()
             btn_esc.remove()
-
+            
+            # keep/skip image according to the pressed key, 'escape' to break the loop
             if key_event.get('pressed') == 'right':
                 skip_image = False
                 break
@@ -653,11 +654,13 @@ def extract_shorelines(metadata, settings):
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
     # initialise output structure
-    output = dict([])
+    output = dict([])    
     # create a subfolder to store the .jpg images showing the detection
     filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'detection')
     if not os.path.exists(filepath_jpg):
             os.makedirs(filepath_jpg)
+    # close all open figures
+    plt.close('all')
 
     print('Mapping shorelines:')
 
@@ -739,8 +742,8 @@ def extract_shorelines(metadata, settings):
             shoreline = process_shoreline(contours_mwi, georef, image_epsg, settings)
 
             # visualise the mapped shorelines, there are two options:
-            # if settings['check_detection'] = True, show the detection to the user for accept/reject
-            # if settings['save_figure'] = True, save a figure for each mapped shoreline
+            # if settings['check_detection'] = True, shows the detection to the user for accept/reject
+            # if settings['save_figure'] = True, saves a figure for each mapped shoreline
             if settings['check_detection'] or settings['save_figure']:
                 date = filenames[i][:19]
                 skip_image = show_detection(im_ms, cloud_mask, im_labels, shoreline,

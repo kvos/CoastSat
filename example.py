@@ -15,16 +15,16 @@ warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
-# region of interest (longitude, latitude in WGS84), can be loaded from a .kml polygon
-kml_polygon = os.path.join(os.getcwd(), 'examples', 'NARRA_polygon.kml')
-polygon = SDS_tools.polygon_from_kml(kml_polygon)
-# or the user can also input the polygon coordinates manually
-#polygon = [[[151.301454, -33.700754],
-#            [151.311453, -33.702075],
-#            [151.307237, -33.739761],
-#            [151.294220, -33.736329],
-#            [151.301454, -33.700754]]]
-            
+# region of interest (longitude, latitude in WGS84)
+polygon = [[[151.301454, -33.700754],
+            [151.311453, -33.702075],
+            [151.307237, -33.739761],
+            [151.294220, -33.736329],
+            [151.301454, -33.700754]]]
+# can also be loaded from a .kml polygon
+#kml_polygon = os.path.join(os.getcwd(), 'examples', 'NARRA_polygon.kml')
+#polygon = SDS_tools.polygon_from_kml(kml_polygon)
+       
 # date range
 dates = ['2017-12-01', '2018-01-01']
 
@@ -118,9 +118,9 @@ with open(os.path.join(filepath, sitename + '_output' + '.pkl'), 'rb') as f:
 # option 1: draw origin of transect first and then a second point to define the orientation
 transects = SDS_transects.draw_transects(output, settings)
     
-# option 2: load the transects from a KML file
-#kml_transects = os.path.join(os.getcwd(), 'examples', 'NARRA_transects.kml')
-#transects = SDS_transects.load_transects_from_kml(kml_transects)
+# option 2: load the transects from a .geojson file
+#geojson_file = os.path.join(os.getcwd(), 'examples', 'NARRA_transects.geojson')
+#transects = SDS_tools.transects_from_geojson(geojson_file)
 
 # option 3: create the transects by manually providing the coordinates of two points 
 #transects = dict([])

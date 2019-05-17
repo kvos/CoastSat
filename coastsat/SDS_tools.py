@@ -11,6 +11,8 @@ import pdb
 
 # other modules
 from osgeo import gdal, osr
+import geopandas as gpd
+from shapely import geometry
 import skimage.transform as transform
 from scipy.ndimage.filters import uniform_filter
 
@@ -384,6 +386,10 @@ def merge_output(output):
 
     return output_all
 
+###################################################################################################
+# CONVERSIONS FROM DICT TO GEODATAFRAME AND READ/WRITE GEOJSON
+###################################################################################################
+    
 def polygon_from_kml(fn):
     """
     Extracts coordinates from a .kml file.
@@ -415,3 +421,93 @@ def polygon_from_kml(fn):
         polygon.append([float(coordlist[i].split(',')[0]), float(coordlist[i].split(',')[1])])
         
     return [polygon]
+
+def transects_from_geojson(filename):
+    """
+    Reads transect coordinates from a .geojson file.
+    
+    Arguments:
+    -----------
+        filename: str
+            contains the path and filename of the geojson file to be loaded
+        
+    Returns:    
+    -----------
+        transects: dict
+            contains the X and Y coordinates of each transect.
+        
+    """  
+    
+    gdf = gpd.read_file(filename)
+    transects = dict([])
+    for i in gdf.index:
+        transects[gdf.loc[i,'name']] = np.array(gdf.loc[i,'geometry'].coords)
+        
+    print('%d transects have been loaded' % len(transects.keys()))
+
+    return transects
+
+def output_to_gdf(output):
+    """
+    Saves the mapped shorelines as a gpd.GeoDataFrame    
+    
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    output: dict
+        contains the coordinates of the mapped shorelines + attributes          
+                
+    Returns:    -----------
+        gdf_all: gpd.GeoDataFrame
+
+        
+    """         
+    # loop through the mapped shorelines
+    for i in range(len(output['shorelines'])):
+        # save the geometry + attributes
+        geom = geometry.LineString(output['shorelines'][i])
+        gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
+        gdf.index = [i]
+        gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')
+        gdf.loc[i,'satname'] = output['satname'][i]
+        gdf.loc[i,'geoaccuracy'] = output['geoaccuracy'][i]
+        gdf.loc[i,'cloud_cover'] = output['cloud_cover'][i]
+        # store into geodataframe
+        if i == 0:
+            gdf_all = gdf
+        else:
+            gdf_all = gdf_all.append(gdf)
+            
+    return gdf_all
+
+def transects_to_gdf(transects):
+    """
+    Saves the shore-normal transects as a gpd.GeoDataFrame    
+    
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    transects: dict
+        contains the coordinates of the transects          
+                
+    Returns:    -----------
+        gdf_all: gpd.GeoDataFrame
+
+        
+    """         
+    # loop through the mapped shorelines
+    for i,key in enumerate(list(transects.keys())):
+        # save the geometry + attributes
+        geom = geometry.LineString(transects[key])
+        gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
+        gdf.index = [i]
+        gdf.loc[i,'name'] = key
+        # store into geodataframe
+        if i == 0:
+            gdf_all = gdf
+        else:
+            gdf_all = gdf_all.append(gdf)
+            
+    return gdf_all

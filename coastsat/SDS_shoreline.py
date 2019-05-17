@@ -25,7 +25,6 @@ import matplotlib.cm as cm
 from matplotlib import gridspec
 from pylab import ginput
 import pickle
-import simplekml
 
 # own modules
 from coastsat import SDS_tools, SDS_preprocess
@@ -494,23 +493,40 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
-    # according to the image shape, decide whether it is better to have the images in the subplot
-    # in different rows or different columns
-    fig = plt.figure()
-    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-        # vertical subplots
-        gs = gridspec.GridSpec(3, 1)
-        gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[1,0])
-        ax3 = fig.add_subplot(gs[2,0])
+    if plt.get_fignums():
+            # get open figure if it exists
+            fig = plt.gcf()
+            ax1 = fig.axes[0]
+            ax2 = fig.axes[1]
+            ax3 = fig.axes[2]
     else:
-        # horizontal subplots
-        gs = gridspec.GridSpec(1, 3)
-        gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[0,1])
-        ax3 = fig.add_subplot(gs[0,2])
+        # else create a new figure
+        fig = plt.figure()
+        fig.set_size_inches([12.53, 9.3])
+        mng = plt.get_current_fig_manager()
+        mng.window.showMaximized()
+
+        # according to the image shape, decide whether it is better to have the images 
+        # in vertical subplots or horizontal subplots
+        if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+            # vertical subplots
+            gs = gridspec.GridSpec(3, 1)
+            gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
+            ax1 = fig.add_subplot(gs[0,0])
+            ax2 = fig.add_subplot(gs[1,0])
+            ax3 = fig.add_subplot(gs[2,0])
+        else:
+            # horizontal subplots
+            gs = gridspec.GridSpec(1, 3)
+            gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
+            ax1 = fig.add_subplot(gs[0,0])
+            ax2 = fig.add_subplot(gs[0,1])
+            ax3 = fig.add_subplot(gs[0,2])
+
+    # change the color of nans to either black (0.0) or white (1.0) or somewhere in between
+    nan_color = 1.0
+    im_RGB = np.where(np.isnan(im_RGB), nan_color, im_RGB)
+    im_class = np.where(np.isnan(im_class), 1.0, im_class)
 
     # create image 1 (RGB)
     ax1.imshow(im_RGB)
@@ -536,10 +552,6 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     ax3.axis('off')
     ax3.set_title(satname, fontweight='bold', fontsize=16)
 
-    fig.set_size_inches([19, 10])
-    mng = plt.get_current_fig_manager()
-    mng.window.showMaximized()
-
 # additional options
 #    ax1.set_anchor('W')
 #    ax2.set_anchor('W')
@@ -551,25 +563,53 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     # if check_detection is True, let user manually accept/reject the images
     skip_image = False
     if settings['check_detection']:
-        # create two buttons, <skip> and <keep>
-        btn_keep = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
-                               transform=ax1.transAxes,
-                               bbox=dict(boxstyle="square", ec='k',fc='w'))
-        btn_skip = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
-                               transform=ax1.transAxes,
-                               bbox=dict(boxstyle="square", ec='k',fc='w'))
-        # wait for user's selection: <keep> or <skip>
-        pt = ginput(n=1, timeout=100000, show_clicks=True)
-        pt = np.array(pt)
-        btn_skip.set_visible(False)
-        btn_keep.set_visible(False)
-        # if user clicks around the <skip> button, return skip_image = True
-        if pt[0][0] > im_ms.shape[1]/2:
-            skip_image = True
+            
+        # set a key event to accept/reject the detections (see https://stackoverflow.com/a/15033071)
+        # this variable needs to be immuatable so we can access it after the keypress event
+        key_event = {}
+        def press(event):
+            # store what key was pressed in the dictionary
+            key_event['pressed'] = event.key
+        # let the user press a key, right arrow to keep the image, left arrow to skip it
+        # to break the loop the user can press 'escape'
+        while True:
+            btn_keep = plt.text(1.1, 0.9, 'keep ⇨', size=12, ha="right", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            btn_skip = plt.text(-0.1, 0.9, '⇦ skip', size=12, ha="left", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            btn_esc = plt.text(0.5, 0, '<esc> to quit', size=12, ha="center", va="top",
+                                transform=ax1.transAxes,
+                                bbox=dict(boxstyle="square", ec='k',fc='w'))
+            plt.draw()
+            fig.canvas.mpl_connect('key_press_event', press)
+            plt.waitforbuttonpress()
+            # after button is pressed, remove the buttons
+            btn_skip.remove()
+            btn_keep.remove()
+            btn_esc.remove()
+            
+            # keep/skip image according to the pressed key, 'escape' to break the loop
+            if key_event.get('pressed') == 'right':
+                skip_image = False
+                break
+            elif key_event.get('pressed') == 'left':
+                skip_image = True
+                break
+            elif key_event.get('pressed') == 'escape':
+                plt.close()
+                raise StopIteration('User cancelled checking shoreline detection')
+            else:
+                plt.waitforbuttonpress()
+
     # if save_figure is True, save a .jpg under /jpg_files/detection
     if settings['save_figure'] and not skip_image:
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
-    plt.close()
+
+    # Don't close the figure window, but remove all axes and settings, ready for next plot
+    for ax in fig.axes:
+        ax.clear()
 
     return skip_image
 
@@ -613,11 +653,13 @@ def extract_shorelines(metadata, settings):
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
     # initialise output structure
-    output = dict([])
+    output = dict([])    
     # create a subfolder to store the .jpg images showing the detection
     filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'detection')
     if not os.path.exists(filepath_jpg):
             os.makedirs(filepath_jpg)
+    # close all open figures
+    plt.close('all')
 
     print('Mapping shorelines:')
 
@@ -699,8 +741,8 @@ def extract_shorelines(metadata, settings):
             shoreline = process_shoreline(contours_mwi, georef, image_epsg, settings)
 
             # visualise the mapped shorelines, there are two options:
-            # if settings['check_detection'] = True, show the detection to the user for accept/reject
-            # if settings['save_figure'] = True, save a figure for each mapped shoreline
+            # if settings['check_detection'] = True, shows the detection to the user for accept/reject
+            # if settings['save_figure'] = True, saves a figure for each mapped shoreline
             if settings['check_detection'] or settings['save_figure']:
                 date = filenames[i][:19]
                 skip_image = show_detection(im_ms, cloud_mask, im_labels, shoreline,
@@ -728,6 +770,10 @@ def extract_shorelines(metadata, settings):
                 }
         print('')
 
+    # Close figure window if still open
+    if plt.get_fignums():
+        plt.close()
+
     # change the format to have one list sorted by date with all the shorelines (easier to use)
     output = SDS_tools.merge_output(output)
 
@@ -736,16 +782,11 @@ def extract_shorelines(metadata, settings):
     with open(os.path.join(filepath, sitename + '_output.pkl'), 'wb') as f:
         pickle.dump(output, f)
 
-    # save output as kml for GIS applications
-    kml = simplekml.Kml()
-    for i in range(len(output['shorelines'])):
-        if len(output['shorelines'][i]) == 0:
-            continue
-        sl = output['shorelines'][i]
-        date = output['dates'][i]
-        newline = kml.newlinestring(name= date.strftime('%Y-%m-%d %H:%M:%S'))
-        newline.coords = sl
-        newline.description = output['satname'][i] + ' shoreline' + '\n' + 'acquired at ' + date.strftime('%H:%M:%S') + ' UTC'
-    kml.save(os.path.join(filepath, sitename + '_output.kml'))
+    # save output into a gdb.GeoDataFrame
+    gdf = SDS_tools.output_to_gdf(output)
+    # set projection
+    gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
+    # save as geojson    
+    gdf.to_file(os.path.join(filepath, sitename + '_output.geojson'), driver='GeoJSON', encoding='utf-8')
 
     return output

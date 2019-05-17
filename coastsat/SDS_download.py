@@ -806,8 +806,11 @@ def get_metadata(inputs):
             metadata[satname] = {'filenames':[], 'acc_georef':[], 'epsg':[], 'dates':[]}
             # directory where the metadata .txt files are stored
             filepath_meta = os.path.join(filepath, satname, 'meta')
+            # get the list of filenames and sort it chronologically
+            filenames_meta = os.listdir(filepath_meta)
+            filenames_meta.sort()
             # loop through the .txt files
-            for im_meta in os.listdir(filepath_meta):
+            for im_meta in filenames_meta:
                 # read them and extract the metadata info: filename, georeferencing accuracy
                 # epsg code and date
                 with open(os.path.join(filepath_meta, im_meta), 'r') as f:

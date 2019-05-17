@@ -12,10 +12,10 @@ import pdb
 # other modules
 import skimage.transform as transform
 from pylab import ginput
-import pickle
-import simplekml
-import json
-from osgeo import ogr
+import geopandas as gpd
+
+# own modules
+from coastsat import SDS_tools
 
 def create_transect(origin, orientation, length):
     """
@@ -66,7 +66,7 @@ def draw_transects(output, settings):
     -----------
         transects: dict
             contains the X and Y coordinates of all the transects drawn. These are also saved
-            as a .pkl and .kml (+ a .jpg figure showing the location of the transects)
+             as a .geojson (+ a .jpg figure showing the location of the transects)
         
     """    
     sitename = settings['inputs']['sitename']
@@ -102,83 +102,38 @@ def draw_transects(output, settings):
         else:
             fig1.gca().set_title('Transect locations', fontsize=16)
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
-            plt.title('Transects saved as ' + sitename + '_transects.pkl and ' + sitename + '_transects.kml ')
+            plt.title('Transect coordinates saved as ' + sitename + '_transects.geojson')
             plt.draw()
             ginput(n=1, timeout=3, show_clicks=True)
             plt.close(fig1)
             break
         counter = counter + 1
-        # create the transect using the origin, orientation and length
-        temp = np.array(pts[1]) - np.array(origin)
-        phi = np.arctan2(temp[1], temp[0])
-        orientation = -(phi*180/np.pi - 90)
-        length = np.linalg.norm(temp)
-        transect = create_transect(origin, orientation, length)
+        transect = np.array([pts[0], pts[1]])
+        
+        # alternative of making the transect the origin, orientation and length
+#        temp = np.array(pts[1]) - np.array(origin)
+#        phi = np.arctan2(temp[1], temp[0])
+#        orientation = -(phi*180/np.pi - 90)
+#        length = np.linalg.norm(temp)
+#        transect = create_transect(origin, orientation, length)
+        
         transects[str(counter)] = transect
         
         # plot the transects on the figure
-        ax1.plot(transect[:,0], transect[:,1], 'b.', markersize=4)
+        ax1.plot(transect[:,0], transect[:,1], 'b-', lw=2.5)
         ax1.plot(transect[0,0], transect[0,1], 'rx', markersize=10)
         ax1.text(transect[-1,0], transect[-1,1], str(counter), size=16,
                  bbox=dict(boxstyle="square", ec='k',fc='w'))
         plt.draw()
-
-    # save as transects.pkl
-    with open(os.path.join(filepath, sitename + '_transects.pkl'), 'wb') as f:
-        pickle.dump(transects, f)
         
-    # save as transects.kml (for GIS)
-    kml = simplekml.Kml()
-    for key in transects.keys():
-        newline = kml.newlinestring(name=key)
-        newline.coords = transects[key]
-        newline.description = 'user-defined cross-shore transect'
-    kml.save(os.path.join(filepath, sitename + '_transects.kml'))
+    # save as transects.geojson (for GIS)
+    gdf = SDS_tools.transects_to_gdf(transects)
+    # set projection
+    gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
+    # save as geojson    
+    gdf.to_file(os.path.join(filepath, sitename + '_transects.geojson'), driver='GeoJSON', encoding='utf-8')
     print('Transect locations saved in ' + filepath)
         
-    return transects
-
-def load_transects_from_kml(filename):
-    """
-    Reads transect coordinates from a KML file.
-    
-    Arguments:
-    -----------
-        filename: str
-            contains the path and filename of the KML file to be loaded
-        
-    Returns:    
-    -----------
-        transects: dict
-            contains the X and Y coordinates of each transect.
-        
-    """  
-
-    # set driver
-    drv = ogr.GetDriverByName('KML')
-    # read file
-    file = drv.Open(filename)
-    layer = file.GetLayer()
-    feature = layer.GetNextFeature()
-    # initialise transects dictionnary
-    transects = dict([])
-    
-    while feature:
-        
-        f_dict = json.loads(feature.ExportToJson())
-        
-        # raise an exception if the KML file contains other features that LineString geometries
-        if not f_dict['geometry']['type'] == 'LineString':
-            raise Exception('The KML file you provided does not contain LineString geometries. Modify your KML file and try again.')
-        # store the name of the feature and coordinates in the transects dictionnary
-        else:
-            name = f_dict['properties']['Name']
-            coords = np.array(f_dict['geometry']['coordinates'])[:,:-1]
-            transects[name] = coords
-            feature = layer.GetNextFeature()
-            
-    print('%d transects have been loaded' % len(transects.keys()))
-
     return transects
 
 def compute_intersection(output, transects, settings):

@@ -123,9 +123,9 @@ When `check_detection` is set to `True`, a figure like the one below appears and
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.
-- `sitename_output.kml`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
+- `sitename_output.geojson`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
 
-The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.kml` output. Note that the coordinates in the `.kml` file are in the spatial reference system defined by the `output_epsg`, so you have to define the projection when loading it into a GIS software.
+The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.geojson` output. Note that the coordinates in the `.geojson` file are in the spatial reference system defined by the `output_epsg`.
 
 ![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
 
@@ -160,9 +160,9 @@ This section shows how to obtain time-series of shoreline change along shore-nor
 ```
 transects = SDS_transects.draw_transects(output, settings)
 ```
-2. Load the transect coordinates from a .KML file:
+2. Load the transect coordinates from a .geojson file:
 ```
-transects = SDS_transects.load_transects_from_kml('transects.kml')
+transects = SDS_tools.transects_from_geojson(path_to_geojson_file)
 ```
 3. Create the transects by manually providing the coordinates of two points:
 ```

@@ -25,7 +25,6 @@ import matplotlib.cm as cm
 from matplotlib import gridspec
 from pylab import ginput
 import pickle
-import simplekml
 
 # own modules
 from coastsat import SDS_tools, SDS_preprocess
@@ -783,16 +782,11 @@ def extract_shorelines(metadata, settings):
     with open(os.path.join(filepath, sitename + '_output.pkl'), 'wb') as f:
         pickle.dump(output, f)
 
-    # save output as kml for GIS applications
-    kml = simplekml.Kml()
-    for i in range(len(output['shorelines'])):
-        if len(output['shorelines'][i]) == 0:
-            continue
-        sl = output['shorelines'][i]
-        date = output['dates'][i]
-        newline = kml.newlinestring(name= date.strftime('%Y-%m-%d %H:%M:%S'))
-        newline.coords = sl
-        newline.description = output['satname'][i] + ' shoreline' + '\n' + 'acquired at ' + date.strftime('%H:%M:%S') + ' UTC'
-    kml.save(os.path.join(filepath, sitename + '_output.kml'))
+    # save output into a gdb.GeoDataFrame
+    gdf = SDS_tools.output_to_gdf(output)
+    # set projection
+    gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
+    # save as geojson    
+    gdf.to_file(os.path.join(filepath, sitename + '_output.geojson'), driver='GeoJSON', encoding='utf-8')
 
     return output

@@ -56,7 +56,7 @@ Once you have created a Google Earth Engine account, go back to the Anaconda pro
 earthengine authenticate
 ```
 
-A web browser will open, login with your GEE credential and accept the terms and conditions. Then authorization code into the Anaconda terminal.
+A web browser will open, login with your GEE credential and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.
 
 Now you are ready to start using the CoastSat toolbox!
 

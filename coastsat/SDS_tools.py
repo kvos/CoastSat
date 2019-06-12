@@ -465,6 +465,9 @@ def output_to_gdf(output):
     """         
     # loop through the mapped shorelines
     for i in range(len(output['shorelines'])):
+        # skip if there shoreline is empty 
+        if len(output['shorelines'][i]) == 0:
+            continue
         # save the geometry + attributes
         geom = geometry.LineString(output['shorelines'][i])
         gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))

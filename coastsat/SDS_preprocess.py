@@ -29,7 +29,7 @@ from coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
-def create_cloud_mask(im_qa, satname, cloud_mask_issue):
+def create_cloud_mask(im_QA, satname, cloud_mask_issue):
     """
     Creates a cloud mask using the information contained in the QA band.
     
@@ -37,7 +37,7 @@ def create_cloud_mask(im_qa, satname, cloud_mask_issue):
     
     Arguments:
     -----------
-        im_qa: np.array
+        im_QA: np.array
             Image containing the QA band
         satname: string
             short name for the satellite (L5, L7, L8 or S2)
@@ -59,7 +59,7 @@ def create_cloud_mask(im_qa, satname, cloud_mask_issue):
         cloud_values = [1024, 2048] # 1024 = dense cloud, 2048 = cirrus clouds
     
     # find which pixels have bits corresponding to cloud values
-    cloud_mask = np.isin(im_qa, cloud_values)
+    cloud_mask = np.isin(im_QA, cloud_values)
     
     # remove cloud pixels that form very thin features. These are beach or swash pixels that are 
     # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
@@ -251,8 +251,10 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_extra : np.array
             2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution 
             panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
-        imQA: np.array
+        im_QA: np.array
             2D array containing the QA band, from which the cloud_mask can be computed.
+        im_nodata: np.array
+            2D array with True where no data values (-inf) are located
             
     """
         
@@ -272,9 +274,9 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         ncols = im_ms.shape[1]*2
         
         # create cloud mask
-        im_qa = im_ms[:,:,5]
+        im_QA = im_ms[:,:,5]
         im_ms = im_ms[:,:,:-1]
-        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
 
         # resize the image using bilinear interpolation (order 1)
         im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
@@ -291,16 +293,14 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         georef[3] = georef[3] - 7.5
         
         # check if -inf or nan values on any band and add to cloud mask
+        im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):   
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            
-        # calculate cloud cover
-        cloud_cover = sum(sum(cloud_mask.astype(int)))/(cloud_mask.shape[0]*cloud_mask.shape[1])
+            im_nodata = np.logical_or(im_nodata, im_inf)
         # no extra image for Landsat 5 (they are all 30 m bands)
         im_extra = []
-        imQA = im_qa
         
     #=============================================================================================#
     # L7 images
@@ -325,8 +325,8 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_ms = np.stack(bands, 2)
         
         # create cloud mask
-        im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
+        im_QA = im_ms[:,:,5]
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -336,6 +336,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_') 
         # check if -inf or nan values on any band and eventually add those pixels to cloud mask
+        im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]+1): 
             if k == 5:
                 im_inf = np.isin(im_pan, -np.inf)
@@ -344,7 +345,8 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-        
+            im_nodata = np.logical_or(im_nodata, im_inf)
+
         # pansharpen Green, Red, NIR (where there is overlapping with pan band in L7)
         try:
             im_ms_ps = pansharpen(im_ms[:,:,[1,2,3]], im_pan, cloud_mask)
@@ -357,7 +359,6 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_ms = im_ms_ps.copy()
         # the extra image is the 15m panchromatic band
         im_extra = im_pan
-        imQA = im_qa
         
     #=============================================================================================#
     # L8 images
@@ -382,8 +383,8 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_ms = np.stack(bands, 2)
         
         # create cloud mask
-        im_qa = im_ms[:,:,5]
-        cloud_mask = create_cloud_mask(im_qa, satname, cloud_mask_issue)
+        im_QA = im_ms[:,:,5]
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
         
         # resize the image using bilinear interpolation (order 1)
         im_ms = im_ms[:,:,:5]
@@ -393,6 +394,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_') 
         # check if -inf or nan values on any band and eventually add those pixels to cloud mask
+        im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]+1): 
             if k == 5:
                 im_inf = np.isin(im_pan, -np.inf)
@@ -401,6 +403,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
+            im_nodata = np.logical_or(im_nodata, im_inf)
 
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
@@ -413,7 +416,6 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_ms = im_ms_ps.copy()
         # the extra image is the 15m panchromatic band
         im_extra = im_pan
-        imQA = im_qa   
         
     #=============================================================================================#
     # S2 images
@@ -461,21 +463,23 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         data = gdal.Open(fn60, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im60 = np.stack(bands, 2)
-        imQA = im60[:,:,0]
-        cloud_mask = create_cloud_mask(imQA, satname, cloud_mask_issue)
+        im_QA = im60[:,:,0]
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
         # check if -inf or nan values on any band and add to cloud mask
+        im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):   
-                im_inf = np.isin(im_ms[:,:,k], -np.inf)
-                im_nan = np.isnan(im_ms[:,:,k])
-                cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
+            im_inf = np.isin(im_ms[:,:,k], -np.inf)
+            im_nan = np.isnan(im_ms[:,:,k])
+            cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
+            im_nodata = np.logical_or(im_nodata, im_inf)
           
         # the extra image is the 20m SWIR band
         im_extra = im20
     
-    return im_ms, georef, cloud_mask, im_extra, imQA
+    return im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata
 
     
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
@@ -588,7 +592,7 @@ def save_jpg(metadata, settings):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings['cloud_mask_issue'])
+            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
@@ -668,7 +672,7 @@ def get_reference_sl(metadata, settings):
             
             # read image
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
-            im_ms, georef, cloud_mask, im_extra, imQA = preprocess_single(fn, satname, settings['cloud_mask_issue'])
+            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
             
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),

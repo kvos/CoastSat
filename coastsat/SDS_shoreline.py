@@ -371,7 +371,7 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
         
     return im_buffer
 
-def process_shoreline(contours, georef, image_epsg, settings):
+def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
     """
     Converts the contours from image coordinates to world coordinates. This function also removes
     the contours that are too small to be a shoreline (based on the parameter
@@ -383,6 +383,8 @@ def process_shoreline(contours, georef, image_epsg, settings):
     -----------
         contours: np.array or list of np.array
             image contours as detected by the function find_contours
+        cloud_mask: np.array
+            2D cloud mask with True where cloud pixels are
         georef: np.array
             vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
         image_epsg: int
@@ -420,7 +422,23 @@ def process_shoreline(contours, georef, image_epsg, settings):
         x_points = np.append(x_points,contours_long[k][:,0])
         y_points = np.append(y_points,contours_long[k][:,1])
     contours_array = np.transpose(np.array([x_points,y_points]))
+    
     shoreline = contours_array
+    
+    # now remove any shoreline points that are attached to cloud pixels
+    if sum(sum(cloud_mask)) > 0:
+        # get the coordinates of the cloud pixels
+        idx_cloud = np.where(cloud_mask)
+        idx_cloud = np.array([(idx_cloud[0][k], idx_cloud[1][k]) for k in range(len(idx_cloud[0]))])
+        # convert to world coordinates and same epsg as the shoreline points
+        coords_cloud = SDS_tools.convert_epsg(SDS_tools.convert_pix2world(idx_cloud, georef),
+                                               image_epsg, settings['output_epsg'])[:,:-1]
+        # only keep the shoreline points that are at least 30m from any cloud pixel
+        idx_keep = np.ones(len(shoreline)).astype(bool)
+        for k in range(len(shoreline)):
+            if np.any(np.linalg.norm(shoreline[k,:] - coords_cloud, axis=1) < 30):
+                idx_keep[k] = False     
+        shoreline = shoreline[idx_keep]     
 
     return shoreline
 
@@ -702,7 +720,7 @@ def extract_shorelines(metadata, settings):
             # get image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # preprocess image (cloud mask + pansharpening/downsampling)
-            im_ms, georef, cloud_mask, im_extra, imQA = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
+            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             # calculate cloud cover
@@ -720,7 +738,7 @@ def extract_shorelines(metadata, settings):
             im_ref_buffer = create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
                                                     pixel_size, settings)
 
-            # there are two options to extract to map the contours:
+            # there are two options to map the contours:
             # if there are pixels in the 'sand' class --> use find_wl_contours2 (enhanced)
             # otherwise use find_wl_contours2 (traditional)
             try: # use try/except structure for long runs
@@ -737,8 +755,8 @@ def extract_shorelines(metadata, settings):
                 print('Could not map shoreline for this image: ' + filenames[i])
                 continue
 
-            # process water contours into shorelines
-            shoreline = process_shoreline(contours_mwi, georef, image_epsg, settings)
+            # process the water contours into a shoreline
+            shoreline = process_shoreline(contours_mwi, cloud_mask, georef, image_epsg, settings)               
 
             # visualise the mapped shorelines, there are two options:
             # if settings['check_detection'] = True, shows the detection to the user for accept/reject

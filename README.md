@@ -36,13 +36,15 @@ Create a new environment named `coastsat` with all the required packages:
 conda env create -f environment.yml -n coastsat
 ```
 
-All the required packages have now been install in an environment called `coastsat`. Now, activate the new environment:
+All the required packages have now been installed in an environment called `coastsat`. Now, activate the new environment:
 
 ```
 conda activate coastsat
 ```
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
+
+**In case errors are raised:**: you should create a new environment and manually install the required packages, which are listed in the environment.yml file. The following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API
 
@@ -56,7 +58,7 @@ Once you have created a Google Earth Engine account, go back to the Anaconda pro
 earthengine authenticate
 ```
 
-A web browser will open, login with your GEE credential and accept the terms and conditions. Then authorization code into the Anaconda terminal.
+A web browser will open, login with your GEE credential and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.
 
 Now you are ready to start using the CoastSat toolbox!
 
@@ -186,7 +188,7 @@ An example is shown in the animation below:
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
 ## Issues
-Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues).
+Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).
 
 ## Contributing
 1. Fork the repository (https://github.com/kvos/coastsat/fork).

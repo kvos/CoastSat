@@ -436,7 +436,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             georef = []
             # skip the image by giving it a full cloud_mask
             cloud_mask = np.ones((im10.shape[0],im10.shape[1])).astype('bool')
-            return im_ms, georef, cloud_mask, [], []
+            return im_ms, georef, cloud_mask, [], [], []
         
         # size of 10m bands
         nrows = im10.shape[0]

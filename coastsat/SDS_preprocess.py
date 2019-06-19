@@ -298,7 +298,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            im_nodata = np.logical_or(im_nodata, im_inf)
+            im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
         # no extra image for Landsat 5 (they are all 30 m bands)
         im_extra = []
         
@@ -345,7 +345,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            im_nodata = np.logical_or(im_nodata, im_inf)
+            im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
 
         # pansharpen Green, Red, NIR (where there is overlapping with pan band in L7)
         try:
@@ -403,7 +403,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
                 im_inf = np.isin(im_ms[:,:,k], -np.inf)
                 im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            im_nodata = np.logical_or(im_nodata, im_inf)
+            im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
 
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
@@ -474,7 +474,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
-            im_nodata = np.logical_or(im_nodata, im_inf)
+            im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
           
         # the extra image is the 20m SWIR band
         im_extra = im20

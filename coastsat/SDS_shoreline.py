@@ -695,7 +695,7 @@ def extract_shorelines(metadata, settings):
         output_cloudcover = [] # cloud cover of the images
         output_geoaccuracy = []# georeferencing accuracy of the images
         output_idxkeep = []    # index that were kept during the analysis (cloudy images are skipped)
-
+        
         # load classifiers and
         if satname in ['L5','L7','L8']:
             pixel_size = 15            
@@ -723,20 +723,32 @@ def extract_shorelines(metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
-            # calculate cloud cover
-            cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
+            # define an advanced cloud mask (for L7 it takes into account the fact that diagonal 
+            # bands of no data are not clouds)
+            if not satname == 'L7' or sum(sum(im_nodata)) == 0 or sum(sum(im_nodata)) > 0.5*im_nodata.size:
+                cloud_mask_adv = cloud_mask
+            else: 
+                cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
+                
+            # calculate cloud cover 
+            cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
             # skip image if cloud cover is above threshold
             if cloud_cover > settings['cloud_thresh']:
                 continue
-
-            # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
-            im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,
-                                    min_beach_area_pixels, clf)
-
+            
             # calculate a buffer around the reference shoreline (if any has been digitised)
             im_ref_buffer = create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
                                                     pixel_size, settings)
+
+            # when running the automated mode, skip image if cloudy pixels are found in the shoreline buffer
+            if not settings['check_detection'] and 'reference_shoreline' in settings.keys():
+                if sum(sum(np.logical_and(im_ref_buffer, cloud_mask_adv))) > 0:
+                    continue
+                
+            # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
+            im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,
+                                    min_beach_area_pixels, clf)
 
             # there are two options to map the contours:
             # if there are pixels in the 'sand' class --> use find_wl_contours2 (enhanced)

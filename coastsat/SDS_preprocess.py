@@ -475,6 +475,15 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_nan = np.isnan(im_ms[:,:,k])
             cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
+
+        # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
+        # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
+        im_zeros = np.ones(cloud_mask.shape).astype(bool)
+        for k in [1,3,4]: # loop through the Green, NIR and SWIR bands 
+            im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
+        # update cloud mask and nodata 
+        cloud_mask = np.logical_or(im_zeros, cloud_mask)
+        im_nodata = np.logical_or(im_zeros, cloud_mask) 
           
         # the extra image is the 20m SWIR band
         im_extra = im20

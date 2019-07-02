@@ -464,23 +464,26 @@ def output_to_gdf(output):
         
     """         
     # loop through the mapped shorelines
+    counter = 0
     for i in range(len(output['shorelines'])):
         # skip if there shoreline is empty 
         if len(output['shorelines'][i]) == 0:
             continue
-        # save the geometry + attributes
-        geom = geometry.LineString(output['shorelines'][i])
-        gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
-        gdf.index = [i]
-        gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')
-        gdf.loc[i,'satname'] = output['satname'][i]
-        gdf.loc[i,'geoaccuracy'] = output['geoaccuracy'][i]
-        gdf.loc[i,'cloud_cover'] = output['cloud_cover'][i]
-        # store into geodataframe
-        if i == 0:
-            gdf_all = gdf
         else:
-            gdf_all = gdf_all.append(gdf)
+            # save the geometry + attributes
+            geom = geometry.LineString(output['shorelines'][i])
+            gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
+            gdf.index = [i]
+            gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')
+            gdf.loc[i,'satname'] = output['satname'][i]
+            gdf.loc[i,'geoaccuracy'] = output['geoaccuracy'][i]
+            gdf.loc[i,'cloud_cover'] = output['cloud_cover'][i]
+            # store into geodataframe
+            if counter == 0:
+                gdf_all = gdf
+            else:
+                gdf_all = gdf_all.append(gdf)
+            counter = counter + 1
             
     return gdf_all
 

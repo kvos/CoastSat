@@ -44,7 +44,7 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
-**In case errors are raised:**: you should create a new environment and manually install the required packages, which are listed in the environment.yml file. The following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
+**In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the *environment.yml* file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API
 
@@ -78,9 +78,9 @@ The following sections guide the reader through the different functionalities of
 
 If using `example.py` on **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
-To run a Jupyter Notebook, place your cursor inside one of the code sections and then click on the `run` button up in the top menu to run that section and progress forward (as shown in the animation below).
+A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (shown below) and progress forward.
 
-![example_jupyter](https://user-images.githubusercontent.com/7217258/49705486-8dc88480-fc72-11e8-8300-c342baaf54eb.gif)
+![run_cell](https://user-images.githubusercontent.com/7217258/60766570-c2100080-a0ee-11e9-9675-e2aeba87e4a7.png)
 
 ### 2.1 Retrieval of the satellite images
 
@@ -104,12 +104,10 @@ The screenshot below shows an example of inputs that will retrieve all the image
 To map the shorelines, the following user-defined settings are needed:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation).
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesian coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system.
-- `check_detection`: if set to `True` the user can quality control each shoreline detection interactively.
+- `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time).
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved (under *filepath/sitename/jpg_files/detection*). Note that this may slow down the process.
 
- The setting `check_detection` is recommended when using the tool for the first time as it will show the user how CoastSat is mapping the shorelines.
-
-There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `dark sand`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
+There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `dark_sand`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
@@ -119,9 +117,9 @@ Once all the settings have been defined, the batch shoreline detection can be la
 ```
 output = SDS_shoreline.extract_shorelines(metadata, settings)
 ```
-When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by pressing the `right arrow` (⇨) to `keep` the shoreline or `left arrow` (⇦) to `skip` the mapped shoreline. The user can break the loop at any time by pressing `escape` (nothing will be saved though).
+When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by pressing **on the keyboard** the `right arrow` (⇨) to `keep` the shoreline or `left arrow` (⇦) to `skip` the mapped shoreline. The user can break the loop at any time by pressing `escape` (nothing will be saved though).
 
-![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/batch_detection.gif)
+![map_shorelines](https://user-images.githubusercontent.com/7217258/60766769-fafda480-a0f1-11e9-8f91-419d848ff98d.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.
@@ -133,7 +131,7 @@ The figure below shows how the satellite-derived shorelines can be opened in a G
 
 #### Reference shoreline
 
-There is also an option to manually digitize a reference shoreline before running the batch shoreline detection on all the images. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a distance from this reference shoreline.
+Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline.
 
  The user can manually digitize a reference shoreline on one of the images by calling:
 ```
@@ -142,9 +140,9 @@ settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the refer
 ```
 This function allows the user to click points along the shoreline on one of the satellite images, as shown in the animation below.
 
-![ref_shoreline](https://user-images.githubusercontent.com/7217258/49710753-94b1c000-fc8f-11e8-9b6c-b5e96aadc5c9.gif)
+![reference_shoreline](https://user-images.githubusercontent.com/7217258/60766913-6c8a2280-a0f3-11e9-89e5-865e11aa26cd.gif)
 
-The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
+The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
 
 #### Advanced shoreline detection parameters
 
@@ -191,12 +189,17 @@ An example is shown in the animation below:
 Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).
 
 ## Contributing
+If you are willing to contribute, check out our todo list in the [Projects page](https://github.com/kvos/CoastSat/projects/1).
 1. Fork the repository (https://github.com/kvos/coastsat/fork).
 A fork is a copy on which you can make your changes.
 2. Create a new branch on your fork
 3. Commit your changes and push them to your branch
-4. When the branch is ready to be merged, create a Pull Request
-
-Check the following link for more information on how to make a clean pull request: https://gist.github.com/MarcDiethelm/7303312).
+4. When the branch is ready to be merged, create a Pull Request (how to make a clean pull request explained [here](https://gist.github.com/MarcDiethelm/7303312))
 
 If you like the repo put a star on it!
+
+## References
+
+1. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L., 2019. Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. Coast. Eng. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+
+2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L., submitted. CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery.

@@ -306,7 +306,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # update cloud mask and nodata
         cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, cloud_mask)
+        im_nodata = np.logical_or(im_zeros, im_nodata)
         # no extra image for Landsat 5 (they are all 30 m bands)
         im_extra = []
 
@@ -357,7 +357,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # update cloud mask and nodata
         cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, cloud_mask)
+        im_nodata = np.logical_or(im_zeros, im_nodata)
 
         # pansharpen Green, Red, NIR (where there is overlapping with pan band in L7)
         try:
@@ -419,7 +419,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # update cloud mask and nodata
         cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, cloud_mask)
+        im_nodata = np.logical_or(im_zeros, im_nodata)
 
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
@@ -499,7 +499,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # update cloud mask and nodata
         cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, cloud_mask)
+        im_nodata = np.logical_or(im_zeros, im_nodata)
 
         # the extra image is the 20m SWIR band
         im_extra = im20

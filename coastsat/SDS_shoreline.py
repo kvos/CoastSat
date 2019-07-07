@@ -160,7 +160,7 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, clf):
 ###################################################################################################
 # CONTOUR MAPPING FUNCTIONS
 ###################################################################################################
-    
+
 def find_wl_contours1(im_ndwi, cloud_mask, im_ref_buffer):
     """
     Traditional method for shorelien detection.
@@ -315,7 +315,7 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size, im_ref_buffer):
 ###################################################################################################
 # SHORELINE PROCESSING FUNCTIONS
 ###################################################################################################
-    
+
 def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
     """
     Creates a buffer around the reference shoreline. The size of the buffer is given by
@@ -339,36 +339,36 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
             output spatial reference system
         reference_shoreline: np.array
             coordinates of the reference shoreline
-        max_dist_ref: int 
+        max_dist_ref: int
             maximum distance from the reference shoreline in metres
 
     Returns:    -----------
         im_buffer: np.array
             binary image, True where the buffer is, False otherwise
 
-    """    
+    """
     # initialise the image buffer
     im_buffer = np.ones(im_shape).astype(bool)
 
     if 'reference_shoreline' in settings.keys():
-        
+
         # convert reference shoreline to pixel coordinates
         ref_sl = settings['reference_shoreline']
         ref_sl_conv = SDS_tools.convert_epsg(ref_sl, settings['output_epsg'],image_epsg)[:,:-1]
         ref_sl_pix = SDS_tools.convert_world2pix(ref_sl_conv, georef)
         ref_sl_pix_rounded = np.round(ref_sl_pix).astype(int)
-        
+
         # create binary image of the reference shoreline (1 where the shoreline is 0 otherwise)
         im_binary = np.zeros(im_shape)
         for j in range(len(ref_sl_pix_rounded)):
             im_binary[ref_sl_pix_rounded[j,1], ref_sl_pix_rounded[j,0]] = 1
         im_binary = im_binary.astype(bool)
-        
+
         # dilate the binary image to create a buffer around the reference shoreline
         max_dist_ref_pixels = np.ceil(settings['max_dist_ref']/pixel_size)
         se = morphology.disk(max_dist_ref_pixels)
         im_buffer = morphology.binary_dilation(im_binary, se)
-        
+
     return im_buffer
 
 def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
@@ -396,7 +396,7 @@ def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
         min_length_sl: float
             minimum length of shoreline perimeter to be kept (in meters)
 
-    Returns:    
+    Returns:
     -----------
         shoreline: np.array
             array of points with the X and Y coordinates of the shoreline
@@ -422,9 +422,9 @@ def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
         x_points = np.append(x_points,contours_long[k][:,0])
         y_points = np.append(y_points,contours_long[k][:,1])
     contours_array = np.transpose(np.array([x_points,y_points]))
-    
+
     shoreline = contours_array
-    
+
     # now remove any shoreline points that are attached to cloud pixels
     if sum(sum(cloud_mask)) > 0:
         # get the coordinates of the cloud pixels
@@ -437,8 +437,8 @@ def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
         idx_keep = np.ones(len(shoreline)).astype(bool)
         for k in range(len(shoreline)):
             if np.any(np.linalg.norm(shoreline[k,:] - coords_cloud, axis=1) < 30):
-                idx_keep[k] = False     
-        shoreline = shoreline[idx_keep]     
+                idx_keep[k] = False
+        shoreline = shoreline[idx_keep]
 
     return shoreline
 
@@ -471,7 +471,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         satname: string
             indicates the satname (L5,L7,L8 or S2)
 
-    Returns:    
+    Returns:
     -----------
         skip_image: boolean
             True if the user wants to skip the image, False otherwise.
@@ -524,7 +524,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         mng = plt.get_current_fig_manager()
         mng.window.showMaximized()
 
-        # according to the image shape, decide whether it is better to have the images 
+        # according to the image shape, decide whether it is better to have the images
         # in vertical subplots or horizontal subplots
         if im_RGB.shape[1] > 2*im_RGB.shape[0]:
             # vertical subplots
@@ -581,7 +581,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     # if check_detection is True, let user manually accept/reject the images
     skip_image = False
     if settings['check_detection']:
-            
+
         # set a key event to accept/reject the detections (see https://stackoverflow.com/a/15033071)
         # this variable needs to be immuatable so we can access it after the keypress event
         key_event = {}
@@ -607,7 +607,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
             btn_skip.remove()
             btn_keep.remove()
             btn_esc.remove()
-            
+
             # keep/skip image according to the pressed key, 'escape' to break the loop
             if key_event.get('pressed') == 'right':
                 skip_image = False
@@ -623,7 +623,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
     # if save_figure is True, save a .jpg under /jpg_files/detection
     if settings['save_figure'] and not skip_image:
-        fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=200)
+        fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
 
     # Don't close the figure window, but remove all axes and settings, ready for next plot
     for ax in fig.axes:
@@ -671,7 +671,7 @@ def extract_shorelines(metadata, settings):
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
     # initialise output structure
-    output = dict([])    
+    output = dict([])
     # create a subfolder to store the .jpg images showing the detection
     filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'detection')
     if not os.path.exists(filepath_jpg):
@@ -695,23 +695,23 @@ def extract_shorelines(metadata, settings):
         output_cloudcover = [] # cloud cover of the images
         output_geoaccuracy = []# georeferencing accuracy of the images
         output_idxkeep = []    # index that were kept during the analysis (cloudy images are skipped)
-        
+
         # load classifiers and
         if satname in ['L5','L7','L8']:
-            pixel_size = 15            
+            pixel_size = 15
             if settings['dark_sand']:
                 clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_dark.pkl'))
             else:
                 clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
-           
+
         elif satname == 'S2':
             pixel_size = 10
             clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_S2.pkl'))
-        
-        # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels            
+
+        # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels
         buffer_size_pixels = np.ceil(settings['buffer_size']/pixel_size)
         min_beach_area_pixels = np.ceil(settings['min_beach_area']/pixel_size**2)
-            
+
         # loop through the images
         for i in range(len(filenames)):
 
@@ -723,20 +723,20 @@ def extract_shorelines(metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
-            # define an advanced cloud mask (for L7 it takes into account the fact that diagonal 
+            # define an advanced cloud mask (for L7 it takes into account the fact that diagonal
             # bands of no data are not clouds)
             if not satname == 'L7' or sum(sum(im_nodata)) == 0 or sum(sum(im_nodata)) > 0.5*im_nodata.size:
                 cloud_mask_adv = cloud_mask
-            else: 
+            else:
                 cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
-                
-            # calculate cloud cover 
+
+            # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
             # skip image if cloud cover is above threshold
             if cloud_cover > settings['cloud_thresh']:
                 continue
-            
+
             # calculate a buffer around the reference shoreline (if any has been digitised)
             im_ref_buffer = create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
                                                     pixel_size, settings)
@@ -745,7 +745,7 @@ def extract_shorelines(metadata, settings):
             if not settings['check_detection'] and 'reference_shoreline' in settings.keys():
                 if sum(sum(np.logical_and(im_ref_buffer, cloud_mask_adv))) > 0:
                     continue
-                
+
             # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
             im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,
                                     min_beach_area_pixels, clf)
@@ -768,7 +768,7 @@ def extract_shorelines(metadata, settings):
                 continue
 
             # process the water contours into a shoreline
-            shoreline = process_shoreline(contours_mwi, cloud_mask, georef, image_epsg, settings)               
+            shoreline = process_shoreline(contours_mwi, cloud_mask, georef, image_epsg, settings)
 
             # visualise the mapped shorelines, there are two options:
             # if settings['check_detection'] = True, shows the detection to the user for accept/reject
@@ -816,7 +816,7 @@ def extract_shorelines(metadata, settings):
     gdf = SDS_tools.output_to_gdf(output)
     # set projection
     gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
-    # save as geojson    
+    # save as geojson
     gdf.to_file(os.path.join(filepath, sitename + '_output.geojson'), driver='GeoJSON', encoding='utf-8')
 
     return output

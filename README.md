@@ -203,3 +203,5 @@ If you like the repo put a star on it!
 1. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L., 2019. Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. Coast. Eng. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
 
 2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L., submitted. CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery.
+
+3. Training dataset used for pixel classification in CoastSat: https://doi.org/10.5281/zenodo.3334147 

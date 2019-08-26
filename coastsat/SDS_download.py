@@ -29,9 +29,6 @@ from coastsat import SDS_preprocess, SDS_tools
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 
-# initialise connection with GEE server
-ee.Initialize()
-
 def download_tif(image, polygon, bandsId, filepath):
     """
     Downloads a .TIF image from the ee server and stores it in a temp file
@@ -98,6 +95,9 @@ def retrieve_images(inputs):
             georeferencing accuracy and image coordinate reference system 
            
     """
+    
+    # initialise connection with GEE server
+    ee.Initialize()
     
     # read inputs dictionnary
     sitename = inputs['sitename']

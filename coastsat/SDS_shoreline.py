@@ -699,8 +699,10 @@ def extract_shorelines(metadata, settings):
         # load classifiers and
         if satname in ['L5','L7','L8']:
             pixel_size = 15
-            if settings['dark_sand']:
+            if settings['sand_color'] == 'dark':
                 clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_dark.pkl'))
+            elif settings['sand_color'] == 'bright':
+                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_bright.pkl'))
             else:
                 clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
 

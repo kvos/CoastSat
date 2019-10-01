@@ -71,7 +71,7 @@ settings = {
     'buffer_size': 150,         # radius (in metres) of the buffer around sandy pixels considered in the shoreline detection
     'min_length_sl': 200,       # minimum length (in metres) of shoreline perimeter to be valid
     'cloud_mask_issue': False,  # switch this parameter to True if sand pixels are masked (in black) on many images  
-    'dark_sand': False,         # only switch to True if your site has dark sand (e.g. black sand beach)
+    'sand_color': 'default',    # 'default', 'dark' (for grey/black sand beaches) or 'bright' (for white sand beaches)
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)

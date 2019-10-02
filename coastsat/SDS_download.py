@@ -29,9 +29,6 @@ from coastsat import SDS_preprocess, SDS_tools
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 
-# initialise connection with GEE server
-ee.Initialize()
-
 def download_tif(image, polygon, bandsId, filepath):
     """
     Downloads a .TIF image from the ee server and stores it in a temp file
@@ -99,6 +96,9 @@ def retrieve_images(inputs):
            
     """
     
+    # initialise connection with GEE server
+    ee.Initialize()
+    
     # read inputs dictionnary
     sitename = inputs['sitename']
     polygon = inputs['polygon']
@@ -131,14 +131,21 @@ def retrieve_images(inputs):
         if not os.path.exists(filepath):
             os.makedirs(filepath)
         if not os.path.exists(filepath_meta):
-            os.makedirs(filepath_meta)   
+            os.makedirs(filepath_meta)
             
         # Landsat 5 collection
-        input_col = ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
-        # filter by location and dates
-        flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
-        # get all images in the filtered collection
-        im_all = flt_col.getInfo().get('features')
+        count_loop = 0
+        while count_loop < 1:
+            try:
+                input_col = ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
+                # filter by location and dates
+                flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
+                # get all images in the filtered collection
+                im_all = flt_col.getInfo().get('features')
+                count_loop = 1
+            except: 
+                count_loop = 0   
+                
         # remove very cloudy images (>95% cloud)
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
@@ -157,9 +164,14 @@ def retrieve_images(inputs):
         all_names = []
         im_epsg = []
         for i in range(n_img):
-            
-            # find each image in ee database
-            im = ee.Image(im_col[i]['id'])
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    # find each image in ee database
+                    im = ee.Image(im_col[i]['id'])
+                    count_loop = 1
+                except: 
+                    count_loop = 0 
             # read metadata
             im_dic = im_col[i]
             # get bands
@@ -189,7 +201,13 @@ def retrieve_images(inputs):
             all_names.append(filename)
             filenames.append(filename)
             # download .TIF image
-            local_data = download_tif(im, polygon, ms_bands, filepath)
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data = download_tif(im, polygon, ms_bands, filepath)
+                    count_loop = 1
+                except: 
+                    count_loop = 0   
             # update filename
             try:
                 os.rename(local_data, os.path.join(filepath, filename))
@@ -237,11 +255,18 @@ def retrieve_images(inputs):
             os.makedirs(filepath_meta)
             
         # landsat 7 collection
-        input_col = ee.ImageCollection('LANDSAT/LE07/C01/T1_RT_TOA')
-        # filter by location and dates
-        flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
-        # get all images in the filtered collection
-        im_all = flt_col.getInfo().get('features')
+        count_loop = 0
+        while count_loop < 1:
+            try:
+                input_col = ee.ImageCollection('LANDSAT/LE07/C01/T1_RT_TOA')
+                # filter by location and dates
+                flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
+                # get all images in the filtered collection
+                im_all = flt_col.getInfo().get('features')
+                count_loop = 1
+            except: 
+                count_loop = 0  
+
         # remove very cloudy images (>95% cloud)
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
@@ -261,8 +286,14 @@ def retrieve_images(inputs):
         im_epsg = []
         for i in range(n_img):
             
-            # find each image in ee database
-            im = ee.Image(im_col[i]['id'])
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    # find each image in ee database
+                    im = ee.Image(im_col[i]['id'])
+                    count_loop = 1
+                except: 
+                    count_loop = 0            
             # read metadata
             im_dic = im_col[i]
             # get bands
@@ -295,8 +326,14 @@ def retrieve_images(inputs):
             all_names.append(filename_pan)
             filenames.append(filename_pan)
             # download .TIF image
-            local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
-            local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
+                    local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
+                    count_loop = 1
+                except: 
+                    count_loop = 0  
             # update filename
             try:
                 os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
@@ -349,11 +386,18 @@ def retrieve_images(inputs):
             os.makedirs(filepath_meta)
             
         # landsat 8 collection
-        input_col = ee.ImageCollection('LANDSAT/LC08/C01/T1_RT_TOA')
-        # filter by location and dates
-        flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
-        # get all images in the filtered collection
-        im_all = flt_col.getInfo().get('features')
+        count_loop = 0
+        while count_loop < 1:
+            try:
+                input_col = ee.ImageCollection('LANDSAT/LC08/C01/T1_RT_TOA')
+                # filter by location and dates
+                flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
+                # get all images in the filtered collection
+                im_all = flt_col.getInfo().get('features')
+                count_loop = 1
+            except: 
+                count_loop = 0 
+                
         # remove very cloudy images (>95% cloud)
         cloud_cover = [_['properties']['CLOUD_COVER'] for _ in im_all]
         if np.any([_ > 95 for _ in cloud_cover]):
@@ -373,8 +417,14 @@ def retrieve_images(inputs):
         im_epsg = []
         for i in range(n_img):
             
-            # find each image in ee database
-            im = ee.Image(im_col[i]['id'])
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    # find each image in ee database
+                    im = ee.Image(im_col[i]['id'])
+                    count_loop = 1
+                except: 
+                    count_loop = 0             
             # read metadata
             im_dic = im_col[i]
             # get bands
@@ -407,8 +457,15 @@ def retrieve_images(inputs):
             all_names.append(filename_pan)  
             filenames.append(filename_pan)
             # download .TIF image
-            local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
-            local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data_pan = download_tif(im, polygon, pan_band, filepath_pan)
+                    local_data_ms = download_tif(im, polygon, ms_bands, filepath_ms)
+                    count_loop = 1
+                except: 
+                    count_loop = 0 
+
             # update filename
             try:
                 os.rename(local_data_pan, os.path.join(filepath_pan, filename_pan))
@@ -461,11 +518,18 @@ def retrieve_images(inputs):
             os.makedirs(filepath_meta)
             
         # Sentinel2 collection
-        input_col = ee.ImageCollection('COPERNICUS/S2')
-        # filter by location and dates
-        flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
-        # get all images in the filtered collection
-        im_all = flt_col.getInfo().get('features')  
+        count_loop = 0
+        while count_loop < 1:
+            try:
+                input_col = ee.ImageCollection('COPERNICUS/S2')
+                # filter by location and dates
+                flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
+                # get all images in the filtered collection
+                im_all = flt_col.getInfo().get('features') 
+                count_loop = 1
+            except: 
+                count_loop = 0 
+ 
         # remove duplicates in the collection (there are many in S2 collection)
         timestamps = [datetime.fromtimestamp(_['properties']['system:time_start']/1000,
                                              tz=pytz.utc) for _ in im_all]
@@ -516,9 +580,14 @@ def retrieve_images(inputs):
         all_names = []
         im_epsg = []
         for i in range(n_img):
-            
-            # find each image in ee database
-            im = ee.Image(im_col[i]['id'])
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    # find each image in ee database
+                    im = ee.Image(im_col[i]['id'])
+                    count_loop = 1
+                except: 
+                    count_loop = 0             
             # read metadata
             im_dic = im_col[i]
             # get bands
@@ -547,21 +616,42 @@ def retrieve_images(inputs):
             filenames.append(filename10)
             
             # download .TIF image and update filename
-            local_data = download_tif(im, polygon, bands10, os.path.join(filepath, '10m'))
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data = download_tif(im, polygon, bands10, os.path.join(filepath, '10m'))
+                    count_loop = 1
+                except: 
+                    count_loop = 0  
+                    
             try:
                 os.rename(local_data, os.path.join(filepath, '10m', filename10))
             except:
                 os.remove(os.path.join(filepath, '10m', filename10))
                 os.rename(local_data, os.path.join(filepath, '10m', filename10))
                 
-            local_data = download_tif(im, polygon, bands20, os.path.join(filepath, '20m'))
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data = download_tif(im, polygon, bands20, os.path.join(filepath, '20m'))
+                    count_loop = 1
+                except: 
+                    count_loop = 0  
+                    
             try:
                 os.rename(local_data, os.path.join(filepath, '20m', filename20))
             except:
                 os.remove(os.path.join(filepath, '20m', filename20))
                 os.rename(local_data, os.path.join(filepath, '20m', filename20))
                 
-            local_data = download_tif(im, polygon, bands60, os.path.join(filepath, '60m'))
+            count_loop = 0
+            while count_loop < 1:
+                try:
+                    local_data = download_tif(im, polygon, bands60, os.path.join(filepath, '60m'))
+                    count_loop = 1
+                except: 
+                    count_loop = 0 
+                    
             try:
                 os.rename(local_data, os.path.join(filepath, '60m', filename60))
             except:

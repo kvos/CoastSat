@@ -1,26 +1,27 @@
 # CoastSat
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779294.svg)](https://doi.org/10.5281/zenodo.2779294)
-
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
 
-The underlying approach and application of the CoastSat toolkit are described in detail in:
+The underlying approach of the CoastSat toolkit are described in detail in:
 
-*Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (submitted). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery, Environmental Modelling and Software*.
+* Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
 
-There are three main steps:
+Example applications and accuracy of the resulting satellite-derived shorelines are discussed in:
+* Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+
+### Description
+
+Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
+The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.   It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+
+The toolbox has three main functionalities:
 - assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
 - automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
 - intersection of the 2D shorelines with user-defined shore-normal transects
 
-
-### Description
-
-Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. Satellite imagery spanning the last 30 years with constant revisit periods is publicly available and suitable to extract repeated measurements of the shoreline position.
-CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
-The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.  It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+**If you like the repo put a star on it!**
 
 ## 1. Installation
 
@@ -107,11 +108,11 @@ To map the shorelines, the following user-defined settings are needed:
 - `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time).
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved (under *filepath/sitename/jpg_files/detection*). Note that this may slow down the process.
 
-There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `dark_sand`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
+There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `sand_color`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![doc2](https://user-images.githubusercontent.com/7217258/56278918-7a5e8600-614a-11e9-9184-77b69427b834.PNG)
+![settings](https://user-images.githubusercontent.com/7217258/65950715-f68f2080-e481-11e9-80b6-19e13f2ec179.PNG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -151,7 +152,7 @@ As mentioned above, there are some additional parameters that can be modified to
 - `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered to calculate the sand/water threshold. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds and appear as masked pixels on your images. If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features, as often these are beaches and not clouds. Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
-- `dark_sand`: if your beach has dark sand (grey/black sand beaches), you can set this parameter to `True` and the classifier will be able to pick up the dark sand. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
+- `sand_color`: this parameter can take 3 values: `default`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
 
 ### 2.3 Shoreline change analysis
 
@@ -196,12 +197,10 @@ A fork is a copy on which you can make your changes.
 3. Commit your changes and push them to your branch
 4. When the branch is ready to be merged, create a Pull Request (how to make a clean pull request explained [here](https://gist.github.com/MarcDiethelm/7303312))
 
-If you like the repo put a star on it!
-
 ## References
 
-1. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L., 2019. Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. Coast. Eng. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+1. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
 
-2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L., submitted. CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery.
+2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
 
-3. Training dataset used for pixel classification in CoastSat: https://doi.org/10.5281/zenodo.3334147 
+3. Training dataset used for pixel classification in CoastSat: https://doi.org/10.5281/zenodo.3334147

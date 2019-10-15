@@ -49,17 +49,13 @@ To confirm that you have successfully activated CoastSat, your terminal command 
 
 ### 1.2 Activate Google Earth Engine Python API
 
-Go to https://earthengine.google.com and sign up to Google Earth Engine (GEE).
-
-![gee_capture](https://user-images.githubusercontent.com/7217258/49348457-a9271300-f6f9-11e8-8c0b-407383940e94.jpg)
-
-Once you have created a Google Earth Engine account, go back to the Anaconda prompt and link your GEE credentials to the Python API:
+With the `coastsat` environment activated, run the following command on the Anaconda Prompt to link your environment to the GEE server:
 
 ```
 earthengine authenticate
 ```
 
-A web browser will open, login with your GEE credential and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.
+A web browser will open, login with a gmail account and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.
 
 Now you are ready to start using the CoastSat toolbox!
 

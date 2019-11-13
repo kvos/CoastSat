@@ -49,7 +49,9 @@ To confirm that you have successfully activated CoastSat, your terminal command 
 
 ### 1.2 Activate Google Earth Engine Python API
 
-With the `coastsat` environment activated, run the following command on the Anaconda Prompt to link your environment to the GEE server:
+First, you need to request access to Google Earth Engine at https://signup.earthengine.google.com/. It takes about 1 day for Google to approve your request.
+
+Once your request has been approved, with the `coastsat` environment activated, run the following command on the Anaconda Prompt to link your environment to the GEE server:
 
 ```
 earthengine authenticate

@@ -43,6 +43,8 @@ def label_images(metadata,settings):
             True if there is an issue with the cloud mask and sand pixels are being masked on the images
         labels: dict
             the label name (key) and label number (value) for each class
+        flood_fill: boolean
+            True to use the flood_fill functionality when labelling sand pixels
         tolerance: float
             tolerance used for flood fill when labelling the sand pixels
         filepath_train: str
@@ -122,32 +124,71 @@ def label_images(metadata,settings):
                     raise StopIteration('User cancelled labelling images')
                 else:
                     plt.waitforbuttonpress()
-                
+            # show next image if user decided to skip
             if skip_image:
                 plt.close()
                 continue
+            # otherwise label this image
             else:
-                # digitize sandy pixels (using flood_fill)
-                ax.set_title('Click on SAND pixels (flood fill activated)\nwhen finished click on <Enter>',
-                             fontweight='bold', fontsize=15)
+                # let user know if flood_fill is activated or not
+                if settings['flood_fill']:
+                    ax.set_title('Left-click on SAND pixels (flood fill activated)\nwhen finished click on <Enter>')
+                else:
+                    ax.set_title('Left-click on SAND pixels (flood fill deactivated)\nwhen finished click on <Enter>')
+                # create erase button, if you click there it delets the last selection
+                btn_erase = ax.text(im_ms.shape[0], 0, 'Erase', size=20, ha="right", va="top",
+                                    bbox=dict(boxstyle="square", ec='k',fc='w'))                
                 plt.draw()
+                # digitize sandy pixels
+                pt_sand= []
                 while 1:
                     seed = ginput(n=1, timeout=0, show_clicks=True)
+                    # if empty break the loop and go to next label
                     if len(seed) == 0:
                         break
                     else:
-                        seed = tuple(np.round(seed).astype(int)[0])
-                        filled = flood(im_SWIR, (seed[1],seed[0]), tolerance=settings['tolerance']) 
-                        im_labels[filled] = settings['labels']['sand']
-                        im_viz[im_labels==1,0] = 1
-                        im_viz[im_labels==1,1] = 0.65
-                        im_viz[im_labels==1,2] = 0
+                        # round to pixel location
+                        seed = np.round(seed[0]).astype(int)    
+#                    print(0.9*im_ms.shape[0])
+#                    print(0.05*im_ms.shape[1])
+                    print(seed) 
+                    # if user clicks on erase
+                    if seed[0] > 0.95*im_ms.shape[0] and seed[1] < 0.05*im_ms.shape[1]:
+                        # if flood_fill activated, reset the labels (clean restart) 
+                        if settings['flood_fill']:
+                            im_labels = np.zeros([im_ms.shape[0],im_ms.shape[1]])
+                            im_viz = im_RGB.copy()
+                            ax.imshow(im_viz, alpha=1)
+                            plt.draw()
+                        # otherwise just remove the last point
+                        else:
+                            if len(pt_sand) > 0:
+                                im_labels[pt_sand[1],pt_sand[0]] = 0
+                                im_viz[pt_sand[1],pt_sand[0],0] = im_RGB[pt_sand[1],pt_sand[0],0]
+                                im_viz[pt_sand[1],pt_sand[0],1] = im_RGB[pt_sand[1],pt_sand[0],1]
+                                im_viz[pt_sand[1],pt_sand[0],2] = im_RGB[pt_sand[1],pt_sand[0],2]
+                                ax.imshow(im_viz, alpha=1)
+                                plt.draw() 
+                    # if user clicks on other point
+                    else:
+                        # if flood_fill activated 
+                        if settings['flood_fill']:
+                            fill_sand = flood(im_SWIR, (seed[1],seed[0]), tolerance=settings['tolerance']) 
+                            im_labels[fill_sand] = settings['labels']['sand'] 
+                        # otherwise digitize the individual pixel
+                        else:
+                            pt_sand = seed
+                            im_labels[pt_sand[1],pt_sand[0]] = settings['labels']['sand']
+                            
+                        # show the labelled pixels
+                        im_viz[im_labels==settings['labels']['sand'],0] = 1
+                        im_viz[im_labels==settings['labels']['sand'],1] = 0.65
+                        im_viz[im_labels==settings['labels']['sand'],2] = 0
                         ax.imshow(im_viz, alpha=1)
-                        plt.draw()  
+                        plt.draw()                            
                         
                 # digitize white-water pixels (individually)
-                ax.set_title('Click on individual WHITE-WATER pixels (no flood fill)\nwhen finished click on <Enter>',
-                             fontweight='bold', fontsize=15)
+                ax.set_title('Left-click on individual WHITE-WATER pixels (no flood fill)\nwhen finished click on <Enter>')
                 plt.draw()
                 pt_ww = ginput(n=-1, timeout=0, show_clicks=True)
                 if len(pt_ww) > 0:
@@ -161,8 +202,7 @@ def label_images(metadata,settings):
                     plt.draw()
                          
                 # digitize water pixels (with a rectangle)
-                ax.set_title('Click on two points to create a rectangle containing WATER pixels\nwhen finished click on <Enter>',
-                             fontweight='bold', fontsize=15)
+                ax.set_title('Click on two points to create a rectangle containing WATER pixels\nwhen finished click on <Enter>')
                 plt.draw()
                 vtc_water = ginput(n=2, timeout=0, show_clicks=True)
                 if len(vtc_water) > 0:
@@ -181,7 +221,7 @@ def label_images(metadata,settings):
                     plt.draw() 
                 
                 # digitize land pixels (with a rectangle)
-                ax.set_title('Click on two points to create a rectangle containing LAND pixels (not sand though)\nwhen finished click on <Enter>', fontweight='bold', fontsize=15)
+                ax.set_title('Click on two points to create a rectangle containing LAND pixels (not sand though)\nwhen finished click on <Enter>')
                 plt.draw()
                 vtc_land = ginput(n=2, timeout=0, show_clicks=True)
                 if len(vtc_land) > 0:
@@ -239,8 +279,6 @@ def plot_confusion_matrix(y_true, y_pred, classes,
         print("Normalized confusion matrix")
     else:
         print('Confusion matrix, without normalization')
-
-#    print(cm)
 
     fig, ax = plt.subplots(figsize=(8,8), tight_layout=True)
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)

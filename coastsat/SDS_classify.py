@@ -55,6 +55,12 @@ def label_images(metadata,settings):
 
     """
     filepath_train = settings['filepath_train']
+    # initialize figure
+    fig,ax = plt.subplots(1,1,figsize=[17,10], tight_layout=True,sharex=True,
+                          sharey=True)
+    mng = plt.get_current_fig_manager()                                         
+    mng.window.showMaximized()
+
     # loop through satellites
     for satname in metadata.keys():
         filepath = SDS_tools.get_filepath(settings['inputs'],satname)
@@ -73,18 +79,14 @@ def label_images(metadata,settings):
                 continue
             # get individual RGB image
             im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-#            im_NIR = im_ms[:,:,3]
-            im_SWIR = im_ms[:,:,4]
+            im_NDVI = SDS_tools.nd_index(im_ms[:,:,3], im_ms[:,:,2], cloud_mask)
+            im_NDWI = SDS_tools.nd_index(im_ms[:,:,3], im_ms[:,:,1], cloud_mask)
             # initialise labels
             im_viz = im_RGB.copy()
             im_labels = np.zeros([im_RGB.shape[0],im_RGB.shape[1]])
-            # show image
-            fig,ax = plt.subplots(1,1,figsize=[17,10], tight_layout=True,sharex=True,
-                                  sharey=True)
-            mng = plt.get_current_fig_manager()                                         
-            mng.window.showMaximized()
+            # show RGB image
             ax.axis('off')  
-            ax.imshow(im_RGB)
+            ax.imshow(im_RGB)            
             
             # set a key event to accept/reject the detections (see https://stackoverflow.com/a/15033071)
             # this variable needs to be immuatable so we can access it after the keypress event
@@ -126,7 +128,7 @@ def label_images(metadata,settings):
                     plt.waitforbuttonpress()
             # show next image if user decided to skip
             if skip_image:
-                plt.close()
+                ax.clear()
                 continue
             # otherwise label this image
             else:
@@ -136,7 +138,7 @@ def label_images(metadata,settings):
                 else:
                     ax.set_title('Left-click on SAND pixels (flood fill deactivated)\nwhen finished click on <Enter>')
                 # create erase button, if you click there it delets the last selection
-                btn_erase = ax.text(im_ms.shape[0], 0, 'Erase', size=20, ha="right", va="top",
+                btn_erase = ax.text(0.9*im_ms.shape[0], 0, 'Erase', size=20, ha="left", va="top",
                                     bbox=dict(boxstyle="square", ec='k',fc='w'))                
                 plt.draw()
                 # digitize sandy pixels
@@ -148,12 +150,9 @@ def label_images(metadata,settings):
                         break
                     else:
                         # round to pixel location
-                        seed = np.round(seed[0]).astype(int)    
-#                    print(0.9*im_ms.shape[0])
-#                    print(0.05*im_ms.shape[1])
-                    print(seed) 
+                        seed = np.round(seed[0]).astype(int)     
                     # if user clicks on erase
-                    if seed[0] > 0.95*im_ms.shape[0] and seed[1] < 0.05*im_ms.shape[1]:
+                    if seed[0] > 0.9*im_ms.shape[0] and seed[1] < 0.05*im_ms.shape[1]:
                         # if flood_fill activated, reset the labels (clean restart) 
                         if settings['flood_fill']:
                             im_labels = np.zeros([im_ms.shape[0],im_ms.shape[1]])
@@ -173,7 +172,11 @@ def label_images(metadata,settings):
                     else:
                         # if flood_fill activated 
                         if settings['flood_fill']:
-                            fill_sand = flood(im_SWIR, (seed[1],seed[0]), tolerance=settings['tolerance']) 
+                            # flood fill the NDVI and the NDWI
+                            fill_NDVI = flood(im_NDVI, (seed[1],seed[0]), tolerance=settings['tolerance'])
+                            fill_NDWI = flood(im_NDWI, (seed[1],seed[0]), tolerance=settings['tolerance'])
+                            # compute the intersection of the two masks
+                            fill_sand = np.logical_and(fill_NDVI, fill_NDWI)
                             im_labels[fill_sand] = settings['labels']['sand'] 
                         # otherwise digitize the individual pixel
                         else:
@@ -187,7 +190,8 @@ def label_images(metadata,settings):
                         ax.imshow(im_viz, alpha=1)
                         plt.draw()                            
                         
-                # digitize white-water pixels (individually)
+                # digitize white-water pixels
+                btn_erase.remove()
                 ax.set_title('Left-click on individual WHITE-WATER pixels (no flood fill)\nwhen finished click on <Enter>')
                 plt.draw()
                 pt_ww = ginput(n=-1, timeout=0, show_clicks=True)
@@ -241,13 +245,13 @@ def label_images(metadata,settings):
                     
                 # save image
                 filename = filenames[i][:filenames[i].find('.')][:-4] 
-                ax.set_title(filename, fontweight='bold', fontsize=15)
+                ax.set_title(filename)
                 plt.draw()
                 fp = os.path.join(filepath_train,settings['inputs']['sitename'])
                 if not os.path.exists(fp):
                     os.makedirs(fp)
                 fig.savefig(os.path.join(fp,filename+'.jpg'), dpi=200)
-                plt.close(fig)
+                ax.clear()
                 # save labels and features
                 features = dict([])
                 for key in settings['labels'].keys():
@@ -256,6 +260,10 @@ def label_images(metadata,settings):
                 training_data = {'labels':im_labels, 'features':features, 'label_ids':settings['labels']}
                 with open(os.path.join(fp, filename + '.pkl'), 'wb') as f:
                     pickle.dump(training_data,f)
+                    
+    # close figure when finished
+    plt.close(fig)
+                    
 
 def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,

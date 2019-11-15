@@ -14,7 +14,9 @@ from osgeo import gdal, osr
 import geopandas as gpd
 from shapely import geometry
 import skimage.transform as transform
-from scipy.ndimage.filters import uniform_filter
+from astropy import convolution
+from astropy.convolution.kernels import Box2DKernel
+
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -210,10 +212,13 @@ def image_std(image, radius):
     # first pad the image
     image_padded = np.pad(image, radius, 'reflect')
     # window size
-    win_rows, win_cols = radius*2 + 1, radius*2 + 1
+    win_width = radius*2 + 1
     # calculate std
-    win_mean = uniform_filter(image_padded, (win_rows, win_cols))
-    win_sqr_mean = uniform_filter(image_padded**2, (win_rows, win_cols))
+    kernel = Box2DKernel(width=win_width)
+    win_mean = convolution.convolve(image_padded, kernel, normalization_zero_tol=0)
+    win_sqr_mean = convolution.convolve(image_padded ** 2, kernel, normalization_zero_tol=0)
+
+
     win_var = win_sqr_mean - win_mean**2
     win_std = np.sqrt(win_var)
     # remove padding

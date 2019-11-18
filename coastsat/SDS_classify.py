@@ -183,11 +183,10 @@ def label_images(metadata,settings):
                 else:
                     ax.set_title('Left-click on SAND pixels (flood fill deactivated)\nwhen finished click on <Enter>')
                 # create erase button, if you click there it delets the last selection
-                btn_erase = ax.text(0.9*im_ms.shape[0], 0, 'Erase', size=20, ha="left", va="top",
+                btn_erase = ax.text(im_ms.shape[1], 0, 'Erase', size=20, ha='right', va='top',
                                     bbox=dict(boxstyle="square", ec='k',fc='w'))                
                 fig.canvas.draw_idle()
                 color_sand = settings['colors']['sand']
-                pt_sand= []
                 while 1:
                     seed = ginput(n=1, timeout=0, show_clicks=True)
                     # if empty break the loop and go to next label
@@ -196,23 +195,13 @@ def label_images(metadata,settings):
                     else:
                         # round to pixel location
                         seed = np.round(seed[0]).astype(int)     
-                    # if user clicks on erase
-                    if seed[0] > 0.9*im_ms.shape[0] and seed[1] < 0.05*im_ms.shape[1]:
-                        # if flood_fill activated, reset the labels (clean restart) 
-                        if settings['flood_fill']:
+                    # if user clicks on erase and reset labels (clean start)
+                    if seed[0] > 0.95*im_ms.shape[1] and seed[1] < 0.05*im_ms.shape[0]:
                             im_labels = np.zeros([im_ms.shape[0],im_ms.shape[1]])
                             im_viz = im_RGB.copy()
                             implot.set_data(im_viz)
-                            fig.canvas.draw_idle()
-                        # otherwise just remove the last point
-                        else:
-                            if len(pt_sand) > 0:
-                                im_labels[pt_sand[1],pt_sand[0]] = 0
-                                for k in range(im_viz.shape[2]):
-                                    im_viz[pt_sand[1],pt_sand[0],k] = im_RGB[pt_sand[1],pt_sand[0],k]
-                                implot.set_data(im_viz)
-                                fig.canvas.draw_idle() 
-                    # if user clicks on other point
+                            fig.canvas.draw_idle() 
+                    # otherwise label the selected sand pixels
                     else:
                         # if flood_fill activated 
                         if settings['flood_fill']:
@@ -222,7 +211,7 @@ def label_images(metadata,settings):
                             # compute the intersection of the two masks
                             fill_sand = np.logical_and(fill_NDVI, fill_NDWI)
                             im_labels[fill_sand] = settings['labels']['sand'] 
-                        # otherwise digitize the individual pixel
+                        # otherwise digitize the individual clicked pixel
                         else:
                             pt_sand = seed
                             im_labels[pt_sand[1],pt_sand[0]] = settings['labels']['sand']
@@ -231,15 +220,16 @@ def label_images(metadata,settings):
                         for k in range(im_viz.shape[2]):                              
                             im_viz[im_labels==settings['labels']['sand'],k] = color_sand[k]
                         implot.set_data(im_viz)
-                        fig.canvas.draw_idle()                         
-                        
+                        fig.canvas.draw_idle() 
+                # new variable with labelled image                        
+                im_sand = im_viz.copy()
+                
                 ##############################################################
                 # digitize white-water pixels
                 ##############################################################
                 color_ww = settings['colors']['white-water']
                 ax.set_title('Left-click on individual WHITE-WATER pixels (no flood fill)\nwhen finished click on <Enter>')
                 fig.canvas.draw_idle()                         
-                pt_ww= []
                 while 1:
                     seed = ginput(n=1, timeout=0, show_clicks=True)
                     # if empty break the loop and go to next label
@@ -248,12 +238,10 @@ def label_images(metadata,settings):
                     else:
                         # round to pixel location
                         seed = np.round(seed[0]).astype(int)     
-                    # if user clicks on erase remove the last point
-                    if seed[0] > 0.9*im_ms.shape[0] and seed[1] < 0.05*im_ms.shape[1]:
-                            if len(pt_ww) > 0:
-                                im_labels[pt_ww[1],pt_ww[0]] = 0
-                                for k in range(im_viz.shape[2]):
-                                    im_viz[pt_ww[1],pt_ww[0],k] = im_RGB[pt_ww[1],pt_ww[0],k]
+                    # if user clicks on erase, clean restart for white-water class
+                    if seed[0] > 0.95*im_ms.shape[1] and seed[1] < 0.05*im_ms.shape[0]:
+                                im_labels[im_labels == settings['labels']['white-water']] = 0
+                                im_viz = im_sand.copy()
                                 implot.set_data(im_viz)
                                 fig.canvas.draw_idle()  
                     else:
@@ -263,10 +251,9 @@ def label_images(metadata,settings):
                             im_viz[pt_ww[1],pt_ww[0],k] = color_ww[k]
                         implot.set_data(im_viz)
                         fig.canvas.draw_idle()
-                        
                 # can't erase any more
                 btn_erase.remove()
-
+                
                 ##############################################################
                 # digitize water pixels (with lassos)
                 ##############################################################

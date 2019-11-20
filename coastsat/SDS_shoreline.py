@@ -360,6 +360,12 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
         ref_sl_pix = SDS_tools.convert_world2pix(ref_sl_conv, georef)
         ref_sl_pix_rounded = np.round(ref_sl_pix).astype(int)
 
+        # make sure that the pixel coordinates of the reference shoreline are inside the image
+        idx_row = np.logical_and(ref_sl_pix_rounded[:,0] > 0, ref_sl_pix_rounded[:,0] < im_shape[1])
+        idx_col = np.logical_and(ref_sl_pix_rounded[:,1] > 0, ref_sl_pix_rounded[:,1] < im_shape[0])
+        idx_inside = np.logical_and(idx_row, idx_col)
+        ref_sl_pix_rounded = ref_sl_pix_rounded[idx_inside,:]
+
         # create binary image of the reference shoreline (1 where the shoreline is 0 otherwise)
         im_binary = np.zeros(im_shape)
         for j in range(len(ref_sl_pix_rounded)):
@@ -758,7 +764,7 @@ def extract_shorelines(metadata, settings):
             # if there are pixels in the 'sand' class --> use find_wl_contours2 (enhanced)
             # otherwise use find_wl_contours2 (traditional)
             try: # use try/except structure for long runs
-                if sum(sum(im_labels[:,:,0])) == 0 :
+                if sum(sum(im_labels[:,:,0])) < 10 :
                     # compute MNDWI image (SWIR-G)
                     im_mndwi = SDS_tools.nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
                     # find water contours on MNDWI grayscale image

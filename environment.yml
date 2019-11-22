@@ -16,4 +16,4 @@ dependencies:
   - scipy=1.2.1
   - spyder=3.3.4
   - notebook=5.7.8
-  - joblib
+  - astropy

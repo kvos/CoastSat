@@ -678,6 +678,7 @@ def extract_shorelines(metadata, settings):
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
+    filepath_models = os.path.join(os.getcwd(), 'classification', 'models')
     # initialise output structure
     output = dict([])
     # create a subfolder to store the .jpg images showing the detection
@@ -708,15 +709,15 @@ def extract_shorelines(metadata, settings):
         if satname in ['L5','L7','L8']:
             pixel_size = 15
             if settings['sand_color'] == 'dark':
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_dark.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_dark.pkl'))
             elif settings['sand_color'] == 'bright':
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_bright.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_bright.pkl'))
             else:
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat.pkl'))
 
         elif satname == 'S2':
             pixel_size = 10
-            clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_S2.pkl'))
+            clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_S2.pkl'))
 
         # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels
         buffer_size_pixels = np.ceil(settings['buffer_size']/pixel_size)
@@ -750,11 +751,6 @@ def extract_shorelines(metadata, settings):
             # calculate a buffer around the reference shoreline (if any has been digitised)
             im_ref_buffer = create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
                                                     pixel_size, settings)
-
-            # when running the automated mode, skip image if cloudy pixels are found in the shoreline buffer
-            if not settings['check_detection'] and 'reference_shoreline' in settings.keys():
-                if sum(sum(np.logical_and(im_ref_buffer, cloud_mask_adv))) > 0:
-                    continue
 
             # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
             im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,

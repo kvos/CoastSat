@@ -56,9 +56,7 @@ def calculate_features(im_ms, cloud_mask, im_bool):
             matrix containing each feature (columns) calculated for all
             the pixels (rows) indicated in im_bool
     """
-    # set NaNs where cloud mask is
-    for k in range(im_ms.shape[2]):
-        im_ms[cloud_mask,k] = np.nan
+
     # add all the multispectral bands
     features = np.expand_dims(im_ms[im_bool,0],axis=1)
     for k in range(1,im_ms.shape[2]):

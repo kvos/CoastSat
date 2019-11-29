@@ -132,14 +132,14 @@ The figure below shows how the satellite-derived shorelines can be opened in a G
 
 Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline.
 
- The user can manually digitize a reference shoreline on one of the images by calling:
+ The user can manually digitize one or several reference shorelines on one of the images by calling:
 ```
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
 settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the reference shoreline
 ```
-This function allows the user to click points along the shoreline on one of the satellite images, as shown in the animation below.
+This function allows the user to click points along the shoreline on cloud-free satellite images, as shown in the animation below.
 
-![reference_shoreline](https://user-images.githubusercontent.com/7217258/60766913-6c8a2280-a0f3-11e9-89e5-865e11aa26cd.gif)
+![reference_shoreline](https://user-images.githubusercontent.com/7217258/69846283-aab4f800-12c7-11ea-9e52-ba4689fdeabc.gif)
 
 The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
 
@@ -151,6 +151,9 @@ As mentioned above, there are some additional parameters that can be modified to
 - `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds and appear as masked pixels on your images. If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features, as often these are beaches and not clouds. Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
 - `sand_color`: this parameter can take 3 values: `default`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
+
+#### Re-training the classifier
+CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the example in [Train new CoastSat classifier](https://github.com/kvos/CoastSat/blob/CoastSat-classifier/classification/train_new_classifier.md).
 
 ### 2.3 Shoreline change analysis
 

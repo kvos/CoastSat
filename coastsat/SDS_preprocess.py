@@ -596,6 +596,7 @@ def save_jpg(metadata, settings, **kwargs):
     -----------
 
     """
+    
     sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
     filepath_data = settings['inputs']['filepath']
@@ -666,12 +667,14 @@ def get_reference_sl(metadata, settings):
     # check if reference shoreline already exists in the corresponding folder
     filepath = os.path.join(filepath_data, sitename)
     filename = sitename + '_reference_shoreline.pkl'
+    # if it exist, load it and return it
     if filename in os.listdir(filepath):
         print('Reference shoreline already exists and was loaded')
         with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'rb') as f:
             refsl = pickle.load(f)
         return refsl
-
+    
+    # otherwise get the user to manually digitise a shoreline on S2, L8 or L5 images (no L7 because of scan line error)
     else:
         # first try to use S2 images (10m res for manually digitizing the reference shoreline)
         if 'S2' in metadata.keys():
@@ -690,8 +693,12 @@ def get_reference_sl(metadata, settings):
             filepath = SDS_tools.get_filepath(settings['inputs'],satname)
             filenames = metadata[satname]['filenames']
         else:
-            raise Exception('You cannot digitize the shoreline on L7 images, add another L8, S2 or L5 to your dataset.')
-
+            raise Exception('You cannot digitize the shoreline on L7 images (because of gaps in the images), add another L8, S2 or L5 to your dataset.')
+            
+        # create figure
+        fig, ax = plt.subplots(1,1, figsize=[18,9], tight_layout=True)
+        mng = plt.get_current_fig_manager()
+        mng.window.showMaximized()
         # loop trhough the images
         for i in range(len(filenames)):
 
@@ -711,37 +718,55 @@ def get_reference_sl(metadata, settings):
             im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
 
             # plot the image RGB on a figure
-            fig = plt.figure()
-            fig.set_size_inches([18,9])
-            fig.set_tight_layout(True)
-            plt.axis('off')
-            plt.imshow(im_RGB)
+            ax.axis('off')
+            ax.imshow(im_RGB)
 
             # decide if the image if good enough for digitizing the shoreline
-            plt.title('click <keep> if image is clear enough to digitize the shoreline.\n' +
-                      'If not (too cloudy) click on <skip> to get another image', fontsize=14)
-            keep_button = plt.text(0, 0.9, 'keep', size=16, ha="left", va="top",
-                                   transform=plt.gca().transAxes,
-                                   bbox=dict(boxstyle="square", ec='k',fc='w'))
-            skip_button = plt.text(1, 0.9, 'skip', size=16, ha="right", va="top",
-                                   transform=plt.gca().transAxes,
-                                   bbox=dict(boxstyle="square", ec='k',fc='w'))
-            mng = plt.get_current_fig_manager()
-            mng.window.showMaximized()
-
-            # let user click on the image once
-            pt_input = ginput(n=1, timeout=1e9, show_clicks=False)
-            pt_input = np.array(pt_input)
-
-            # if clicks next to <skip>, show another image
-            if pt_input[0][0] > im_ms.shape[1]/2:
-                plt.close()
+            ax.set_title('Press <right arrow> if image is clear enough to digitize the shoreline.\n' +
+                      'If the image is cloudy press <left arrow> to get another image', fontsize=14)
+            # set a key event to accept/reject the detections (see https://stackoverflow.com/a/15033071)
+            # this variable needs to be immuatable so we can access it after the keypress event
+            skip_image = False
+            key_event = {}
+            def press(event):
+                # store what key was pressed in the dictionary
+                key_event['pressed'] = event.key
+            # let the user press a key, right arrow to keep the image, left arrow to skip it
+            # to break the loop the user can press 'escape'
+            while True:
+                btn_keep = plt.text(1.1, 0.9, 'keep ⇨', size=12, ha="right", va="top",
+                                    transform=ax.transAxes,
+                                    bbox=dict(boxstyle="square", ec='k',fc='w'))
+                btn_skip = plt.text(-0.1, 0.9, '⇦ skip', size=12, ha="left", va="top",
+                                    transform=ax.transAxes,
+                                    bbox=dict(boxstyle="square", ec='k',fc='w'))
+                btn_esc = plt.text(0.5, 0, '<esc> to quit', size=12, ha="center", va="top",
+                                    transform=ax.transAxes,
+                                    bbox=dict(boxstyle="square", ec='k',fc='w'))
+                plt.draw()
+                fig.canvas.mpl_connect('key_press_event', press)
+                plt.waitforbuttonpress()
+                # after button is pressed, remove the buttons
+                btn_skip.remove()
+                btn_keep.remove()
+                btn_esc.remove()
+                # keep/skip image according to the pressed key, 'escape' to break the loop
+                if key_event.get('pressed') == 'right':
+                    skip_image = False
+                    break
+                elif key_event.get('pressed') == 'left':
+                    skip_image = True
+                    break
+                elif key_event.get('pressed') == 'escape':
+                    plt.close()
+                    raise StopIteration('User cancelled checking shoreline detection')
+                else:
+                    plt.waitforbuttonpress()
+                    
+            if skip_image:
+                ax.clear()
                 continue
-
             else:
-                # remove keep and skip buttons
-                keep_button.set_visible(False)
-                skip_button.set_visible(False)
                 # create two new buttons
                 add_button = plt.text(0, 0.9, 'add', size=16, ha="left", va="top",
                                        transform=plt.gca().transAxes,
@@ -749,7 +774,6 @@ def get_reference_sl(metadata, settings):
                 end_button = plt.text(1, 0.9, 'end', size=16, ha="right", va="top",
                                        transform=plt.gca().transAxes,
                                        bbox=dict(boxstyle="square", ec='k',fc='w'))
-
                 # add multiple reference shorelines (until user clicks on <end> button)
                 pts_sl = np.expand_dims(np.array([np.nan, np.nan]),axis=0)
                 geoms = []
@@ -757,7 +781,7 @@ def get_reference_sl(metadata, settings):
                     add_button.set_visible(False)
                     end_button.set_visible(False)
                     # update title (instructions)
-                    plt.title('Click points along the shoreline (enough points to capture the beach curvature).\n' +
+                    ax.set_title('Click points along the shoreline (enough points to capture the beach curvature).\n' +
                               'Start at one end of the beach.\n' + 'When finished digitizing, click <ENTER>',
                               fontsize=14)
                     plt.draw()
@@ -791,14 +815,14 @@ def get_reference_sl(metadata, settings):
                     # convert to pixel coordinates and plot
                     pts_pix_interp = SDS_tools.convert_world2pix(pts_world_interp, georef)
                     pts_sl = np.append(pts_sl, pts_world_interp, axis=0)
-                    plt.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r--')
-                    plt.plot(pts_pix_interp[0,0], pts_pix_interp[0,1],'ko')
-                    plt.plot(pts_pix_interp[-1,0], pts_pix_interp[-1,1],'ko')
+                    ax.plot(pts_pix_interp[:,0], pts_pix_interp[:,1], 'r--')
+                    ax.plot(pts_pix_interp[0,0], pts_pix_interp[0,1],'ko')
+                    ax.plot(pts_pix_interp[-1,0], pts_pix_interp[-1,1],'ko')
 
                     # update title and buttons
                     add_button.set_visible(True)
                     end_button.set_visible(True)
-                    plt.title('click <add> to digitize another shoreline or <end> to finish and save the shoreline(s)',
+                    ax.set_title('click on <add> to digitize another shoreline or on <end> to finish and save the shoreline(s)',
                               fontsize=14)
                     plt.draw()
 

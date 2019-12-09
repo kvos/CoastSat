@@ -592,16 +592,10 @@ def save_jpg(metadata, settings, **kwargs):
         cloud_mask_issue: boolean
             True if there is an issue with the cloud mask and sand pixels are being masked on the images
 
-    Keyword Arguments:
-        'plotsOn': boolean
-            Turn interactive plotting on or off.  if off, plots will be made in background and not open
-            new windows (default = True)
-
     Returns:
     -----------
 
     """
-    plotsOn = kwargs.get('plotsOn', True)
     sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
     filepath_data = settings['inputs']['filepath']
@@ -631,11 +625,8 @@ def save_jpg(metadata, settings, **kwargs):
                 continue
             # save .jpg with date and satellite in the title
             date = filenames[i][:19]
-            if plotsOn is False:
-                plt.ioff()  # turning interactive plotting off
+            plt.ioff()  # turning interactive plotting off
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
-            if plotsOn is False:
-                plt.ion()   # turning interactive plotting back on
 
     # print the location where the images have been saved
     print('Satellite images saved as .jpg in ' + os.path.join(filepath_data, sitename,

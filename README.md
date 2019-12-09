@@ -126,7 +126,9 @@ Once all the shorelines have been mapped, the output is available in two differe
 
 The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.geojson` output. Note that the coordinates in the `.geojson` file are in the spatial reference system defined by the `output_epsg`.
 
-![gis_output](https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg)
+<p align="center">
+  <img width="500" height="300" src="https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg">
+</p>
 
 #### Reference shoreline
 
@@ -139,7 +141,7 @@ settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the refer
 ```
 This function allows the user to click points along the shoreline on cloud-free satellite images, as shown in the animation below.
 
-![reference_shoreline](https://user-images.githubusercontent.com/7217258/69846283-aab4f800-12c7-11ea-9e52-ba4689fdeabc.gif)
+![ref_shoreline](https://user-images.githubusercontent.com/7217258/70408922-063c6e00-1a9e-11ea-8775-fc62e9855774.gif)
 
 The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
 

@@ -126,7 +126,9 @@ Once all the shorelines have been mapped, the output is available in two differe
 
 The figure below shows how the satellite-derived shorelines can be opened in a GIS software (QGIS) using the `.geojson` output. Note that the coordinates in the `.geojson` file are in the spatial reference system defined by the `output_epsg`.
 
-<div style="text-align:center"><img src="https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg" width="550" /></div>
+<p align="center">
+  <img width="500" height="300" src="https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg">
+</p>
 
 #### Reference shoreline
 

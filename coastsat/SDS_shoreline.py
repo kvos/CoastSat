@@ -526,7 +526,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     else:
         # else create a new figure
         fig = plt.figure()
-        fig.set_size_inches([12.53, 9.3])
+        fig.set_size_inches([18, 9])
         mng = plt.get_current_fig_manager()
         mng.window.showMaximized()
 
@@ -779,6 +779,8 @@ def extract_shorelines(metadata, settings):
             # if settings['save_figure'] = True, saves a figure for each mapped shoreline
             if settings['check_detection'] or settings['save_figure']:
                 date = filenames[i][:19]
+                if not settings['check_detection']:
+                    plt.ioff() # turning interactive plotting off
                 skip_image = show_detection(im_ms, cloud_mask, im_labels, shoreline,
                                             image_epsg, georef, settings, date, satname)
                 # if the user decides to skip the image, continue and do not save the mapped shoreline

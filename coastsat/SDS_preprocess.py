@@ -573,7 +573,7 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     plt.close()
 
 
-def save_jpg(metadata, settings):
+def save_jpg(metadata, settings, **kwargs):
     """
     Saves a .jpg image for all the images contained in metadata.
 
@@ -596,7 +596,6 @@ def save_jpg(metadata, settings):
     -----------
 
     """
-
     sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
     filepath_data = settings['inputs']['filepath']
@@ -626,6 +625,7 @@ def save_jpg(metadata, settings):
                 continue
             # save .jpg with date and satellite in the title
             date = filenames[i][:19]
+            plt.ioff()  # turning interactive plotting off
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
 
     # print the location where the images have been saved

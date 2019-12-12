@@ -45,6 +45,12 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
+Once the package has been activated, you can install the `coastsat` package:
+```
+pip install coastsat
+```
+
+
 **In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the *environment.yml* file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API

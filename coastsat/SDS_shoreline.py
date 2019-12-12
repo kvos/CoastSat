@@ -358,6 +358,12 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
         ref_sl_pix = SDS_tools.convert_world2pix(ref_sl_conv, georef)
         ref_sl_pix_rounded = np.round(ref_sl_pix).astype(int)
 
+        # make sure that the pixel coordinates of the reference shoreline are inside the image
+        idx_row = np.logical_and(ref_sl_pix_rounded[:,0] > 0, ref_sl_pix_rounded[:,0] < im_shape[1])
+        idx_col = np.logical_and(ref_sl_pix_rounded[:,1] > 0, ref_sl_pix_rounded[:,1] < im_shape[0])
+        idx_inside = np.logical_and(idx_row, idx_col)
+        ref_sl_pix_rounded = ref_sl_pix_rounded[idx_inside,:]
+
         # create binary image of the reference shoreline (1 where the shoreline is 0 otherwise)
         im_binary = np.zeros(im_shape)
         for j in range(len(ref_sl_pix_rounded)):
@@ -520,7 +526,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     else:
         # else create a new figure
         fig = plt.figure()
-        fig.set_size_inches([12.53, 9.3])
+        fig.set_size_inches([18, 9])
         mng = plt.get_current_fig_manager()
         mng.window.showMaximized()
 
@@ -670,6 +676,7 @@ def extract_shorelines(metadata, settings):
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
+    filepath_models = os.path.join(os.getcwd(), 'classification', 'models')
     # initialise output structure
     output = dict([])
     # create a subfolder to store the .jpg images showing the detection
@@ -700,15 +707,15 @@ def extract_shorelines(metadata, settings):
         if satname in ['L5','L7','L8']:
             pixel_size = 15
             if settings['sand_color'] == 'dark':
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_dark.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_dark.pkl'))
             elif settings['sand_color'] == 'bright':
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat_bright.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_bright.pkl'))
             else:
-                clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_Landsat.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat.pkl'))
 
         elif satname == 'S2':
             pixel_size = 10
-            clf = joblib.load(os.path.join(os.getcwd(), 'classifiers', 'NN_4classes_S2.pkl'))
+            clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_S2.pkl'))
 
         # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels
         buffer_size_pixels = np.ceil(settings['buffer_size']/pixel_size)
@@ -743,11 +750,6 @@ def extract_shorelines(metadata, settings):
             im_ref_buffer = create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
                                                     pixel_size, settings)
 
-            # when running the automated mode, skip image if cloudy pixels are found in the shoreline buffer
-            if not settings['check_detection'] and 'reference_shoreline' in settings.keys():
-                if sum(sum(np.logical_and(im_ref_buffer, cloud_mask_adv))) > 0:
-                    continue
-
             # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
             im_classif, im_labels = classify_image_NN(im_ms, im_extra, cloud_mask,
                                     min_beach_area_pixels, clf)
@@ -756,7 +758,7 @@ def extract_shorelines(metadata, settings):
             # if there are pixels in the 'sand' class --> use find_wl_contours2 (enhanced)
             # otherwise use find_wl_contours2 (traditional)
             try: # use try/except structure for long runs
-                if sum(sum(im_labels[:,:,0])) == 0 :
+                if sum(sum(im_labels[:,:,0])) < 10 :
                     # compute MNDWI image (SWIR-G)
                     im_mndwi = SDS_tools.nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
                     # find water contours on MNDWI grayscale image
@@ -777,6 +779,8 @@ def extract_shorelines(metadata, settings):
             # if settings['save_figure'] = True, saves a figure for each mapped shoreline
             if settings['check_detection'] or settings['save_figure']:
                 date = filenames[i][:19]
+                if not settings['check_detection']:
+                    plt.ioff() # turning interactive plotting off
                 skip_image = show_detection(im_ms, cloud_mask, im_labels, shoreline,
                                             image_epsg, georef, settings, date, satname)
                 # if the user decides to skip the image, continue and do not save the mapped shoreline

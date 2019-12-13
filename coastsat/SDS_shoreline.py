@@ -532,20 +532,20 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
         # according to the image shape, decide whether it is better to have the images
         # in vertical subplots or horizontal subplots
-        if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+        if im_RGB.shape[1] > 1.5*im_RGB.shape[0]:
             # vertical subplots
             gs = gridspec.GridSpec(3, 1)
             gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
             ax1 = fig.add_subplot(gs[0,0])
-            ax2 = fig.add_subplot(gs[1,0])
-            ax3 = fig.add_subplot(gs[2,0])
+            ax2 = fig.add_subplot(gs[1,0], sharex=ax1, sharey=ax1)
+            ax3 = fig.add_subplot(gs[2,0], sharex=ax1, sharey=ax1)
         else:
             # horizontal subplots
             gs = gridspec.GridSpec(1, 3)
             gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
             ax1 = fig.add_subplot(gs[0,0])
-            ax2 = fig.add_subplot(gs[0,1])
-            ax3 = fig.add_subplot(gs[0,2])
+            ax2 = fig.add_subplot(gs[0,1], sharex=ax1, sharey=ax1)
+            ax3 = fig.add_subplot(gs[0,2], sharex=ax1, sharey=ax1)
 
     # change the color of nans to either black (0.0) or white (1.0) or somewhere in between
     nan_color = 1.0

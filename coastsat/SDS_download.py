@@ -15,16 +15,16 @@ import ee
 from urllib.request import urlretrieve
 import zipfile
 import copy
-from coastsat import gdal_merge
 
 # additional modules
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import pickle
-import skimage.morphology as morphology
+from skimage import morphology, transform
+from scipy import ndimage
 
 # own modules
-from coastsat import SDS_preprocess, SDS_tools
+from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
@@ -745,122 +745,135 @@ def merge_overlapping_images(metadata,inputs):
             updated metadata with the information of the merged images
             
     """
-
-    # only for Sentinel-2 at this stage (not sure if this is needed for Landsat images)
+    
+    # only for Sentinel-2 at this stage (not sure if this is needed for Landsat images)    
     sat = 'S2'
     filepath = os.path.join(inputs['filepath'], inputs['sitename'])
-    
-    # find the images that are overlapping (same date in S2 filenames)
     filenames = metadata[sat]['filenames']
-    filenames_copy = filenames.copy()
-    # loop through all the filenames and find the pairs of overlapping images (same date and time of acquisition)
+    # find the pairs of images that are within 5 minutes of each other
+    time_delta = 5*60 # 5 minutes in seconds
+    dates = metadata[sat]['dates'].copy()
     pairs = []
-    for i,fn in enumerate(filenames):
-        filenames_copy[i] = []
-        # find duplicate
-        boolvec = [fn[:22] == _[:22] for _ in filenames_copy]
-        if np.any(boolvec):
+    for i,date in enumerate(metadata[sat]['dates']):
+        # dummy value so it does not match it again
+        dates[i] = pytz.utc.localize(datetime(1,1,1) + timedelta(days=i+1))
+        # calculate time difference
+        time_diff = np.array([np.abs((date - _).total_seconds()) for _ in dates])
+        # find the matching times and add to pairs list
+        boolvec = time_diff <= time_delta
+        if np.sum(boolvec) == 0:
+            continue
+        else:
             idx_dup = np.where(boolvec)[0][0]
-            if len(filenames[i]) > len(filenames[idx_dup]): 
-                pairs.append([idx_dup,i])
-            else:
-                pairs.append([i,idx_dup])
+            pairs.append([i,idx_dup])
                 
-    # for each pair of images, merge them into one complete image
+    # for each pair of image, create a mask and add no_data into the .tif file (this is needed before merging .tif files)
     for i,pair in enumerate(pairs):
-        
         fn_im = []
-        for index in range(len(pair)):            
-            # read image
+        for index in range(len(pair)): 
+            # get filenames of all the files corresponding to the each image in the pair
             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m')),
                   os.path.join(filepath, 'S2', 'meta', filenames[pair[index]].replace('_10m','').replace('.tif','.txt'))])
+            # read that image
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False) 
-        
+            # im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9) 
+            
             # in Sentinel2 images close to the edge of the image there are some artefacts, 
             # that are squares with constant pixel intensities. They need to be masked in the 
             # raster (GEOTIFF). It can be done using the image standard deviation, which 
-            # indicates values close to 0 for the artefacts.
-            
-            # First mask the 10m bands
+            # indicates values close to 0 for the artefacts.      
             if len(im_ms) > 0:
+                # calculate image std for the first 10m band
                 im_std = SDS_tools.image_std(im_ms[:,:,0],1)
+                # convert to binary
                 im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                mask = morphology.dilation(im_binary, morphology.square(3))
+                # dilate to fill the edges (which have high std)
+                mask10 = morphology.dilation(im_binary, morphology.square(3))
+                # mask all 10m bands
                 for k in range(im_ms.shape[2]):
-                    im_ms[mask,k] = np.nan
+                    im_ms[mask10,k] = np.nan
+                # mask the 10m .tif file (add no_data where mask is True)
+                SDS_tools.mask_raster(fn_im[index][0], mask10)
                 
-                SDS_tools.mask_raster(fn_im[index][0], mask)
-                
-                # Then mask the 20m band
+                # create another mask for the 20m band (SWIR1)
                 im_std = SDS_tools.image_std(im_extra,1)
                 im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                mask = morphology.dilation(im_binary, morphology.square(3))     
-                im_extra[mask] = np.nan
+                mask20 = morphology.dilation(im_binary, morphology.square(3))     
+                im_extra[mask20] = np.nan
+                # mask the 20m .tif file (im_extra)
+                SDS_tools.mask_raster(fn_im[index][1], mask20) 
                 
-                SDS_tools.mask_raster(fn_im[index][1], mask) 
+                # use the 20m mask to create a mask for the 60m QA band (by resampling)
+                mask60 = ndimage.zoom(mask20,zoom=1/3,order=0)
+                mask60 = transform.resize(mask60, im_QA.shape, mode='constant', order=0,
+                                          preserve_range=True)
+                mask60 = mask60.astype(bool)
+                # mask the 60m .tif file (im_QA)
+                SDS_tools.mask_raster(fn_im[index][2], mask60)    
+                            
             else:
                 continue
             
             # make a figure for quality control
-#            plt.figure()
-#            plt.subplot(221)
-#            plt.imshow(im_ms[:,:,[2,1,0]])
-#            plt.title('imRGB')
-#            plt.subplot(222)
-#            plt.imshow(im20, cmap='gray')
-#            plt.title('im20')
-#            plt.subplot(223)
-#            plt.imshow(imQA, cmap='gray')
-#            plt.title('imQA')
-#            plt.subplot(224)
-#            plt.title(fn_im[index][0][-30:])
-                        
-        # merge masked 10m bands
-        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
+            # fig,ax= plt.subplots(2,2,tight_layout=True)
+            # ax[0,0].imshow(im_RGB)
+            # ax[0,0].set_title('RGB original')
+            # ax[1,0].imshow(mask10)
+            # ax[1,0].set_title('Mask 10m')
+            # ax[0,1].imshow(mask20)  
+            # ax[0,1].set_title('Mask 20m')
+            # ax[1,1].imshow(mask60)
+            # ax[1,1].set_title('Mask 60 m')
+        
+        # once all the pairs of .tif files have been masked with no_data, merge the using gdal_merge
+        fn_merged = os.path.join(filepath, 'merged.tif')
+        
+        # merge masked 10m bands and remove duplicate file
         gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][0], fn_im[1][0]])
         os.chmod(fn_im[0][0], 0o777)
         os.remove(fn_im[0][0])
         os.chmod(fn_im[1][0], 0o777)
         os.remove(fn_im[1][0])
+        os.chmod(fn_merged, 0o777)
         os.rename(fn_merged, fn_im[0][0])
         
         # merge masked 20m band (SWIR band)
-        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
         gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][1], fn_im[1][1]])
         os.chmod(fn_im[0][1], 0o777)
         os.remove(fn_im[0][1])
         os.chmod(fn_im[1][1], 0o777)
         os.remove(fn_im[1][1])
+        os.chmod(fn_merged, 0o777)
         os.rename(fn_merged, fn_im[0][1])
     
         # merge QA band (60m band)
-        fn_merged = os.path.join(os.getcwd(), 'merged.tif')
-        gdal_merge.main(['', '-o', fn_merged, '-n', 'nan', fn_im[0][2], fn_im[1][2]])
+        gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][2], fn_im[1][2]])
         os.chmod(fn_im[0][2], 0o777)
         os.remove(fn_im[0][2])
         os.chmod(fn_im[1][2], 0o777)
         os.remove(fn_im[1][2])
+        os.chmod(fn_merged, 0o777)
         os.rename(fn_merged, fn_im[0][2])
         
         # remove the metadata .txt file of the duplicate image
         os.chmod(fn_im[1][3], 0o777)
         os.remove(fn_im[1][3])
-          
+        
     print('%d pairs of overlapping Sentinel-2 images were merged' % len(pairs))
     
-    # update the metadata dict (delete all the duplicates)
+    # update the metadata dict
     metadata_updated = copy.deepcopy(metadata)
-    filenames_copy = metadata_updated[sat]['filenames']
-    index_list = []
-    for i in range(len(filenames_copy)):
-            if filenames_copy[i].find('dup') == -1:
-                index_list.append(i)
+    idx_removed = []
+    idx_kept = []
+    for pair in pairs: idx_removed.append(pair[1])
+    for idx in np.arange(0,len(metadata[sat]['dates'])):
+        if not idx in idx_removed: idx_kept.append(idx)
     for key in metadata_updated[sat].keys():
-        metadata_updated[sat][key] = [metadata_updated[sat][key][_] for _ in index_list]
+        metadata_updated[sat][key] = [metadata_updated[sat][key][_] for _ in idx_kept]
         
-    return metadata_updated 
+    return metadata_updated  
 
 def get_metadata(inputs):
     """

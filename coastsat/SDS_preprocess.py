@@ -663,7 +663,7 @@ def get_reference_sl(metadata, settings):
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
-
+    pts_coords = []
     # check if reference shoreline already exists in the corresponding folder
     filepath = os.path.join(filepath_data, sitename)
     filename = sitename + '_reference_shoreline.pkl'
@@ -869,5 +869,10 @@ def get_reference_sl(metadata, settings):
 
                 print('Reference shoreline has been saved in ' + filepath)
                 break
+            
+    # check if a shoreline was digitised
+    if len(pts_coords) == 0:
+        raise Exception('No cloud free images are available to digitise the reference shoreline,'+
+                        'download more images and try again') 
 
     return pts_coords

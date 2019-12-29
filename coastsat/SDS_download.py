@@ -1,7 +1,8 @@
-"""This module contains all the functions needed to download the satellite images from the Google
-Earth Engine Server
+"""
+This module contains all the functions needed to download the satellite images 
+from the Google Earth Engine server
     
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -23,7 +24,7 @@ import pickle
 from skimage import morphology, transform
 from scipy import ndimage
 
-# own modules
+# CoastSat modules
 from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
@@ -35,15 +36,19 @@ def download_tif(image, polygon, bandsId, filepath):
         
     Arguments:
     -----------
-        image: ee.Image
-            Image object to be downloaded
-        polygon: list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
-        bandsId: list of dict
-            list of bands to be downloaded
-        filepath: location where the temporary file should be saved
-            
+    image: ee.Image
+        Image object to be downloaded
+    polygon: list
+        polygon containing the lon/lat coordinates to be extracted
+        longitudes in the first column and latitudes in the second column
+    bandsId: list of dict
+        list of bands to be downloaded
+    filepath: location where the temporary file should be saved
+    
+    Returns:
+    -----------
+    Downloads an image in a file named data.tif     
+      
     """
     
     url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
@@ -60,39 +65,45 @@ def download_tif(image, polygon, bandsId, filepath):
 
 def retrieve_images(inputs):
     """
-    Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 covering the area of 
-    interest and acquired between the specified dates. 
-    The downloaded images are in .TIF format and organised in subfolders, divided by satellite 
-    mission and pixel resolution.
+    Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 
+    covering the area of interest and acquired between the specified dates. 
+    The downloaded images are in .TIF format and organised in subfolders, divided 
+    by satellite mission. The bands are also subdivided by pixel resolution.
     
     KV WRL 2018
         
     Arguments:
     -----------
-        inputs: dict 
-            dictionnary that contains the following fields:
+    inputs: dict with the following keys
         'sitename': str
-            String containig the name of the site
+            name of the site
         'polygon': list
             polygon containing the lon/lat coordinates to be extracted,
             longitudes in the first column and latitudes in the second column,
-            there are 5 pairs of lat/lon with the fifth point equal to the first point.
-            e.g. [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+            there are 5 pairs of lat/lon with the fifth point equal to the first point:
+            ```
+            polygon = [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
             [151.3, -33.7]]]
+            ```
         'dates': list of str
-            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
-            e.g. ['1987-01-01', '2018-01-01']
+            list that contains 2 strings with the initial and final dates in 
+            format 'yyyy-mm-dd':
+            ```
+            dates = ['1987-01-01', '2018-01-01']
+            ```
         'sat_list': list of str
-            list that contains the names of the satellite missions to include 
-            e.g. ['L5', 'L7', 'L8', 'S2']
+            list that contains the names of the satellite missions to include: 
+            ```
+            sat_list = ['L5', 'L7', 'L8', 'S2']
+            ```
         'filepath_data': str
-            Filepath to the directory where the images are downloaded
+            filepath to the directory where the images are downloaded
     
     Returns:
     -----------
-        metadata: dict
-            contains the information about the satellite images that were downloaded: filename, 
-            georeferencing accuracy and image coordinate reference system 
+    metadata: dict
+        contains the information about the satellite images that were downloaded:
+        date, filename, georeferencing accuracy and image coordinate reference system 
            
     """
     
@@ -710,39 +721,47 @@ def retrieve_images(inputs):
             
 def merge_overlapping_images(metadata,inputs):
     """
-    When the area of interest is located at the boundary between 2 images, there will be overlap 
-    between the 2 images and both will be downloaded from Google Earth Engine. This function 
-    merges the 2 images, so that the area of interest is covered by only 1 image.
+    Merge simultaneous overlapping images that cover the area of interest.
+    When the area of interest is located at the boundary between 2 images, there 
+    will be overlap between the 2 images and both will be downloaded from Google
+    Earth Engine. This function merges the 2 images, so that the area of interest 
+    is covered by only 1 image.
     
     KV WRL 2018
         
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-        inputs: dict 
-            dictionnary that contains the following fields:
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    inputs: dict with the following keys
         'sitename': str
-            String containig the name of the site
+            name of the site
         'polygon': list
             polygon containing the lon/lat coordinates to be extracted,
             longitudes in the first column and latitudes in the second column,
-            there are 5 pairs of lat/lon with the fifth point equal to the first point.
-            e.g. [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+            there are 5 pairs of lat/lon with the fifth point equal to the first point:
+            ```
+            polygon = [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
             [151.3, -33.7]]]
+            ```
         'dates': list of str
-            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
-            e.g. ['1987-01-01', '2018-01-01']
+            list that contains 2 strings with the initial and final dates in 
+            format 'yyyy-mm-dd':
+            ```
+            dates = ['1987-01-01', '2018-01-01']
+            ```
         'sat_list': list of str
-            list that contains the names of the satellite missions to include 
-            e.g. ['L5', 'L7', 'L8', 'S2']
+            list that contains the names of the satellite missions to include: 
+            ```
+            sat_list = ['L5', 'L7', 'L8', 'S2']
+            ```
         'filepath_data': str
-            Filepath to the directory where the images are downloaded
+            filepath to the directory where the images are downloaded
         
     Returns:
     -----------
-        metadata_updated: dict
-            updated metadata with the information of the merged images
+    metadata_updated: dict
+        updated metadata
             
     """
     
@@ -877,24 +896,24 @@ def merge_overlapping_images(metadata,inputs):
 
 def get_metadata(inputs):
     """
-    Gets the metadata from the downloaded .txt files in the \meta folders. 
+    Gets the metadata from the downloaded images by parsing .txt files located 
+    in the \meta subfolder. 
     
     KV WRL 2018
         
     Arguments:
     -----------
-        inputs: dict 
-            dictionnary that contains the following fields:
+    inputs: dict with the following fields
         'sitename': str
-            String containig the name of the site
+            name of the site
         'filepath_data': str
-            Filepath to the directory where the images are downloaded
+            filepath to the directory where the images are downloaded
     
     Returns:
     -----------
-        metadata: dict
-            contains the information about the satellite images that were downloaded: filename, 
-            georeferencing accuracy and image coordinate reference system 
+    metadata: dict
+        contains the information about the satellite images that were downloaded:
+        date, filename, georeferencing accuracy and image coordinate reference system 
            
     """
     # directory containing the images

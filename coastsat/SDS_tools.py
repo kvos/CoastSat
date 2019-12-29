@@ -1,6 +1,7 @@
-"""This module contains utilities to work with satellite images' 
+"""
+This module contains utilities to work with satellite images
     
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -22,21 +23,22 @@ from astropy.convolution import convolve
 
 def convert_pix2world(points, georef):
     """
-    Converts pixel coordinates (row,columns) to world projected coordinates
-    performing an affine transformation.
+    Converts pixel coordinates (pixel row and column) to world projected 
+    coordinates performing an affine transformation.
     
     KV WRL 2018
 
     Arguments:
     -----------
-        points: np.array or list of np.array
-            array with 2 columns (rows first and columns second)
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
+    points: np.array or list of np.array
+        array with 2 columns (row first and column second)
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
                 
-    Returns:    -----------
-        points_converted: np.array or list of np.array 
-            converted coordinates, first columns with X and second column with Y
+    Returns:    
+    -----------
+    points_converted: np.array or list of np.array 
+        converted coordinates, first columns with X and second column with Y
         
     """
     
@@ -47,13 +49,15 @@ def convert_pix2world(points, georef):
     # create affine transformation
     tform = transform.AffineTransform(aff_mat)
 
+    # if list of arrays
     if type(points) is list:
         points_converted = []
         # iterate over the list
         for i, arr in enumerate(points): 
             tmp = arr[:,[1,0]]
             points_converted.append(tform(tmp))
-            
+          
+    # if single array
     elif type(points) is np.ndarray:
         tmp = points[:,[1,0]]
         points_converted = tform(tmp)
@@ -65,22 +69,23 @@ def convert_pix2world(points, georef):
 
 def convert_world2pix(points, georef):
     """
-    Converts world projected coordinates (X,Y) to image coordinates (row,column)
-    performing an affine transformation.
+    Converts world projected coordinates (X,Y) to image coordinates 
+    (pixel row and column) performing an affine transformation.
     
     KV WRL 2018
 
     Arguments:
     -----------
-        points: np.array or list of np.array
-            array with 2 columns (rows first and columns second)
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
+    points: np.array or list of np.array
+        array with 2 columns (X,Y)
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
                 
-    Returns:    -----------
-        points_converted: np.array or list of np.array 
-            converted coordinates, first columns with row and second column with column
-        
+    Returns:    
+    -----------
+    points_converted: np.array or list of np.array 
+        converted coordinates (pixel row and column)
+    
     """
     
     # make affine transformation matrix
@@ -90,12 +95,14 @@ def convert_world2pix(points, georef):
     # create affine transformation
     tform = transform.AffineTransform(aff_mat)
     
+    # if list of arrays
     if type(points) is list:
         points_converted = []
         # iterate over the list
         for i, arr in enumerate(points): 
             points_converted.append(tform.inverse(points))
             
+    # if single array    
     elif type(points) is np.ndarray:
         points_converted = tform.inverse(points)
         
@@ -108,22 +115,23 @@ def convert_world2pix(points, georef):
 
 def convert_epsg(points, epsg_in, epsg_out):
     """
-    Converts from one spatial reference to another using the epsg codes.
+    Converts from one spatial reference to another using the epsg codes
     
     KV WRL 2018
 
     Arguments:
     -----------
-        points: np.array or list of np.ndarray
-            array with 2 columns (rows first and columns second)
-        epsg_in: int
-            epsg code of the spatial reference in which the input is
-        epsg_out: int
-            epsg code of the spatial reference in which the output will be            
+    points: np.array or list of np.ndarray
+        array with 2 columns (rows first and columns second)
+    epsg_in: int
+        epsg code of the spatial reference in which the input is
+    epsg_out: int
+        epsg code of the spatial reference in which the output will be            
                 
-    Returns:    -----------
-        points_converted: np.array or list of np.array 
-            converted coordinates
+    Returns:    
+    -----------
+    points_converted: np.array or list of np.array 
+        converted coordinates from epsg_in to epsg_out
         
     """
     
@@ -134,18 +142,18 @@ def convert_epsg(points, epsg_in, epsg_out):
     outSpatialRef.ImportFromEPSG(epsg_out)
     # create a coordinates transform
     coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
-    # transform points
+    # if list of arrays
     if type(points) is list:
         points_converted = []
         # iterate over the list
         for i, arr in enumerate(points): 
             points_converted.append(np.array(coordTransform.TransformPoints(arr)))
+    # if single array
     elif type(points) is np.ndarray:
         points_converted = np.array(coordTransform.TransformPoints(points))  
     else:
         raise Exception('invalid input type')
 
-        
     return points_converted
 
 ###################################################################################################
@@ -160,14 +168,18 @@ def nd_index(im1, im2, cloud_mask):
 
     Arguments:
     -----------
-        im1, im2: np.array
-            Images (2D) with which to calculate the ND index
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
+    im1: np.array
+        first image (2D) with which to calculate the ND index
+    im2: np.array
+        second image (2D) with which to calculate the ND index
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
 
-    Returns:    -----------
-        im_nd: np.array
-            Image (2D) containing the ND index
+    Returns:    
+    -----------
+    im_nd: np.array
+        Image (2D) containing the ND index
+        
     """
 
     # reshape the cloud mask
@@ -188,20 +200,21 @@ def nd_index(im1, im2, cloud_mask):
     
 def image_std(image, radius):
     """
-    Calculates the standard deviation of an image, using a moving window of specified radius.
+    Calculates the standard deviation of an image, using a moving window of 
+    specified radius. Uses astropy's convolution library'
     
     Arguments:
     -----------
-        image: np.array
-            2D array containing the pixel intensities of a single-band image
-        radius: int
-            radius defining the moving window used to calculate the standard deviation. For example,
-            radius = 1 will produce a 3x3 moving window.
+    image: np.array
+        2D array containing the pixel intensities of a single-band image
+    radius: int
+        radius defining the moving window used to calculate the standard deviation. 
+        For example, radius = 1 will produce a 3x3 moving window.
         
     Returns:    
     -----------
-        win_std: np.array
-            2D array containing the standard deviation of the image
+    win_std: np.array
+        2D array containing the standard deviation of the image
         
     """  
     
@@ -229,14 +242,14 @@ def mask_raster(fn, mask):
     
     Arguments:
     -----------
-        fn: str
-            filepath + filename of the .tif raster
-        mask: np.array
-            array of boolean where True indicates the pixels that are to be masked
+    fn: str
+        filepath + filename of the .tif raster
+    mask: np.array
+        array of boolean where True indicates the pixels that are to be masked
         
     Returns:    
     -----------
-    overwrites the .tif file directly
+    Overwrites the .tif file directly
         
     """ 
     
@@ -266,27 +279,38 @@ def get_filepath(inputs,satname):
 
     Arguments:
     -----------
-        inputs: dict 
-            dictionnary that contains the following fields:
+    inputs: dict with the following keys
         'sitename': str
-            String containig the name of the site
+            name of the site
         'polygon': list
-            polygon containing the lon/lat coordinates to be extracted
-            longitudes in the first column and latitudes in the second column
+            polygon containing the lon/lat coordinates to be extracted,
+            longitudes in the first column and latitudes in the second column,
+            there are 5 pairs of lat/lon with the fifth point equal to the first point:
+            ```
+            polygon = [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+            [151.3, -33.7]]]
+            ```
         'dates': list of str
-            list that contains 2 strings with the initial and final dates in format 'yyyy-mm-dd'
-            e.g. ['1987-01-01', '2018-01-01']
+            list that contains 2 strings with the initial and final dates in 
+            format 'yyyy-mm-dd':
+            ```
+            dates = ['1987-01-01', '2018-01-01']
+            ```
         'sat_list': list of str
-            list that contains the names of the satellite missions to include 
-            e.g. ['L5', 'L7', 'L8', 'S2']
-        satname: str
-            short name of the satellite mission
+            list that contains the names of the satellite missions to include: 
+            ```
+            sat_list = ['L5', 'L7', 'L8', 'S2']
+            ```
+        'filepath_data': str
+            filepath to the directory where the images are downloaded
+    satname: str
+        short name of the satellite mission ('L5','L7','L8','S2')
                 
     Returns:    
     -----------
-        filepath: str or list of str
-            contains the filepath(s) to the folder(s) containing the satellite images
-        
+    filepath: str or list of str
+        contains the filepath(s) to the folder(s) containing the satellite images
+    
     """     
     
     sitename = inputs['sitename']
@@ -322,17 +346,17 @@ def get_filenames(filename, filepath, satname):
 
     Arguments:
     -----------
-        filename: str
-            name of the downloaded satellite image as found in the metadata
-        filepath: str or list of str
-            contains the filepath(s) to the folder(s) containing the satellite images
-        satname: str
-            short name of the satellite mission       
+    filename: str
+        name of the downloaded satellite image as found in the metadata
+    filepath: str or list of str
+        contains the filepath(s) to the folder(s) containing the satellite images
+    satname: str
+        short name of the satellite mission       
         
     Returns:    
     -----------
-        fn: str or list of str
-            contains the filepath + filenames to access the satellite image
+    fn: str or list of str
+        contains the filepath + filenames to access the satellite image
         
     """     
     
@@ -353,19 +377,20 @@ def get_filenames(filename, filepath, satname):
 
 def merge_output(output):
     """
-    Function to merge the output dictionnary, which has one key per satellite mission into a 
-    dictionnary containing all the shorelines and dates ordered chronologically.
+    Function to merge the output dictionnary, which has one key per satellite mission
+    into a dictionnary containing all the shorelines and dates ordered chronologically.
     
     Arguments:
     -----------
-        output: dict
-            contains the extracted shorelines and corresponding dates, organised by satellite mission
-        
+    output: dict
+        contains the extracted shorelines and corresponding dates, organised by 
+        satellite mission
+    
     Returns:    
     -----------
-        output_all: dict
-            contains the extracted shorelines in a single list sorted by date
-        
+    output_all: dict
+        contains the extracted shorelines in a single list sorted by date
+    
     """     
     
     # initialize output dict
@@ -403,9 +428,10 @@ def polygon_from_kml(fn):
     fn: str
         filepath + filename of the kml file to be read          
                 
-    Returns:    -----------
-        polygon: list
-            coordinates extracted from the .kml file
+    Returns:    
+    -----------
+    polygon: list
+        coordinates extracted from the .kml file
         
     """    
     
@@ -430,13 +456,13 @@ def transects_from_geojson(filename):
     
     Arguments:
     -----------
-        filename: str
-            contains the path and filename of the geojson file to be loaded
+    filename: str
+        contains the path and filename of the geojson file to be loaded
         
     Returns:    
     -----------
-        transects: dict
-            contains the X and Y coordinates of each transect.
+    transects: dict
+        contains the X and Y coordinates of each transect
         
     """  
     
@@ -460,11 +486,13 @@ def output_to_gdf(output):
     output: dict
         contains the coordinates of the mapped shorelines + attributes          
                 
-    Returns:    -----------
-        gdf_all: gpd.GeoDataFrame
-
-        
-    """         
+    Returns:    
+    -----------
+    gdf_all: gpd.GeoDataFrame
+        contains the shorelines + attirbutes
+  
+    """    
+     
     # loop through the mapped shorelines
     counter = 0
     for i in range(len(output['shorelines'])):
@@ -500,11 +528,13 @@ def transects_to_gdf(transects):
     transects: dict
         contains the coordinates of the transects          
                 
-    Returns:    -----------
-        gdf_all: gpd.GeoDataFrame
+    Returns:    
+    -----------
+    gdf_all: gpd.GeoDataFrame
 
         
-    """         
+    """  
+       
     # loop through the mapped shorelines
     for i,key in enumerate(list(transects.keys())):
         # save the geometry + attributes

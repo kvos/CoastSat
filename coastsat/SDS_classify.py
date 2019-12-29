@@ -1,6 +1,8 @@
-"""This module contains functions to label satellite images and train the CoastSat classifier
+"""
+This module contains functions to label satellite images, use the labels to 
+train a pixel-wise classifier and evaluate the classifier
 
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -8,12 +10,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import pdb
-import pickle
-import warnings
-warnings.filterwarnings("ignore")
 from matplotlib.widgets import LassoSelector
 from matplotlib import path
+import pickle
+import pdb
+import warnings
+warnings.filterwarnings("ignore")
 
 # image processing modules
 from skimage.segmentation import flood
@@ -22,10 +24,15 @@ from pylab import ginput
 from sklearn.metrics import confusion_matrix
 np.set_printoptions(precision=2)
 
-# CoastSat functions
-from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
+# CoastSat modules
+from coastsat import SDS_preprocess, SDS_shoreline, SDS_tools
 
 class SelectFromImage(object):
+    """
+    Class used to draw the lassos on the images with two methods:
+        - onselect: save the pixels inside the selection
+        - disconnect: stop drawing lassos on the image
+    """
     # initialize lasso selection class
     def __init__(self, ax, implot, color=[1,1,1]):
         self.canvas = ax.figure.canvas
@@ -63,35 +70,38 @@ class SelectFromImage(object):
 
 def label_images(metadata,settings):
     """
-    Interactively label satellite images and save the training data.
+    Load satellite images and interactively label different classes (hard-coded)
 
-    KV WRL 2018
+    KV WRL 2019
 
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-        settings: dict
-            contains the following fields:
-        cloud_thresh: float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        sitename: string
-            name of the site (also name of the folder where the images are stored)
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
-        labels: dict
-            the label name (key) and label number (value) for each class
-        flood_fill: boolean
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    settings: dict with the following keys
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in 
+            the cropped image that is accepted    
+        'cloud_mask_issue': boolean
+            True if there is an issue with the cloud mask and sand pixels
+            are erroneously being masked on the images
+        'labels': dict
+            list of label names (key) and label numbers (value) for each class
+        'flood_fill': boolean
             True to use the flood_fill functionality when labelling sand pixels
-        tolerance: float
-            tolerance used for flood fill when labelling the sand pixels
-        filepath_train: str
+        'tolerance': float
+            tolerance value for flood fill when labelling the sand pixels
+        'filepath_train': str
             directory in which to save the labelled data
-
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+                
     Returns:
     -----------
+    Stores the labelled data in the specified directory
 
     """
+    
     filepath_train = settings['filepath_train']
     # initialize figure
     fig,ax = plt.subplots(1,1,figsize=[17,10], tight_layout=True,sharex=True,
@@ -332,6 +342,27 @@ def label_images(metadata,settings):
     plt.close(fig)
 
 def load_labels(train_sites, settings):
+    """
+    Load the labelled data from the different training sites
+
+    KV WRL 2019
+
+    Arguments:
+    -----------
+    train_sites: list of str
+        sites to be loaded
+    settings: dict with the following keys
+        'labels': dict
+            list of label names (key) and label numbers (value) for each class
+        'filepath_train': str
+            directory in which to save the labelled data
+                
+    Returns:
+    -----------
+    features: dict
+        contains the features for each labelled pixel
+    
+    """    
     
     filepath_train = settings['filepath_train']
     # initialize the features dict
@@ -363,7 +394,7 @@ def load_labels(train_sites, settings):
                     # append rows
                     features[key] = np.append(features[key],
                                 labelled_data['features'][key], axis=0)  
-    # remove the first row (initialized with nans)
+    # remove the first row (initialized with nans) and print how many pixels
     print('Number of pixels per class in training data:')
     for key in features.keys(): 
         features[key] = features[key][1:,:]
@@ -372,6 +403,30 @@ def load_labels(train_sites, settings):
     return features
 
 def format_training_data(features, classes, labels):
+    """
+    Format the labelled data in an X features matrix and a y labels vector, so
+    that it can be used for training an ML model.
+
+    KV WRL 2019
+
+    Arguments:
+    -----------
+    features: dict
+        contains the features for each labelled pixel
+    classes: list of str
+        names of the classes
+    labels: list of int
+        int value associated with each class (in the same order as classes)
+                
+    Returns:
+    -----------
+    X: np.array
+        matrix features along the columns and pixels along the rows
+    y: np.array
+        vector with the labels corresponding to each row of X
+    
+    """
+    
     # initialize X and y
     X = np.nan*np.ones((1,features[classes[0]].shape[1]))
     y = np.nan*np.ones((1,1))
@@ -390,8 +445,9 @@ def format_training_data(features, classes, labels):
 def plot_confusion_matrix(y_true,y_pred,classes,normalize=False,cmap=plt.cm.Blues):
     """
     Function copied from the scikit-learn examples (https://scikit-learn.org/stable/)
-    This function prints and plots the confusion matrix.
+    This function plots a confusion matrix.
     Normalization can be applied by setting `normalize=True`.
+    
     """
     # compute confusion matrix
     cm = confusion_matrix(y_true, y_pred)
@@ -429,34 +485,43 @@ def plot_confusion_matrix(y_true,y_pred,classes,normalize=False,cmap=plt.cm.Blue
 
 def evaluate_classifier(classifier, metadata, settings):
     """
-    Interactively visualise the new classifier.
+    Apply the image classifier to all the images and save the classified images.
 
-    KV WRL 2018
+    KV WRL 2019
 
     Arguments:
     -----------
-        classifier: joblib object
-            Multilayer Perceptron to be used for image classification
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-        settings: dict
-            contains the following fields:
-        cloud_thresh: float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        sitename: string
-            name of the site (also name of the folder where the images are stored)
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
-        labels: dict
-            the label name (key) and label number (value) for each class
-        filepath_train: str
-            directory in which to save the labelled data
+    classifier: joblib object
+        classifier model to be used for image classification
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in 
+            the cropped image that is accepted
+        'cloud_mask_issue': boolean
+            True if there is an issue with the cloud mask and sand pixels
+            are erroneously being masked on the images
+        'output_epsg': int
+            output spatial reference system as EPSG code
+        'buffer_size': int
+            size of the buffer (m) around the sandy pixels over which the pixels 
+            are considered in the thresholding algorithm
+        'min_beach_area': int
+            minimum allowable object area (in metres^2) for the class 'sand',
+            the area is converted to number of connected pixels
+        'min_length_sl': int
+            minimum length (in metres) of shoreline contour to be valid
 
     Returns:
     -----------
-
+    Saves .jpg images with the output of the classification in the folder ./detection
+    
     """  
-    # create folder
+    
+    # create folder called evaluation
     fp = os.path.join(os.getcwd(), 'evaluation')
     if not os.path.exists(fp):
         os.makedirs(fp)

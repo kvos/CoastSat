@@ -526,10 +526,10 @@ def evaluate_classifier(classifier, metadata, settings):
     if not os.path.exists(fp):
         os.makedirs(fp)
         
-    # initialize figure
-    fig,ax = plt.subplots(1,2,figsize=[17,10],sharex=True, sharey=True,constrained_layout=True)
-    mng = plt.get_current_fig_manager()                                         
-    mng.window.showMaximized()  
+    # initialize figure (not interactive)
+    plt.ioff()
+    fig,ax = plt.subplots(1,2,figsize=[17,10],sharex=True, sharey=True,
+                          constrained_layout=True)
 
     # create colormap for labels
     cmap = cm.get_cmap('tab20c')

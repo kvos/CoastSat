@@ -1,8 +1,9 @@
-"""This module contains all the functions needed to preprocess the satellite images before the
-shoreline can be extracted. This includes creating a cloud mask and
+"""
+This module contains all the functions needed to preprocess the satellite images
+ before the shorelines can be extracted. This includes creating a cloud mask and
 pansharpening/downsampling the multispectral bands.
 
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -24,7 +25,7 @@ import pickle
 import geopandas as gpd
 from shapely import geometry
 
-# own modules
+# CoastSat modules
 from coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
@@ -37,17 +38,19 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue):
 
     Arguments:
     -----------
-        im_QA: np.array
-            Image containing the QA band
-        satname: string
-            short name for the satellite (L5, L7, L8 or S2)
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
+    im_QA: np.array
+        Image containing the QA band
+    satname: string
+        short name for the satellite: ```'L5', 'L7', 'L8' or 'S2'```
+    cloud_mask_issue: boolean
+        True if there is an issue with the cloud mask and sand pixels are being
+        erroneously masked on the images
 
     Returns:
     -----------
-        cloud_mask : np.array
-            A boolean array with True if a pixel is cloudy and False otherwise
+    cloud_mask : np.array
+        boolean array with True if a pixel is cloudy and False otherwise
+        
     """
 
     # convert QA bits (the bits allocated to cloud cover vary depending on the satellite mission)
@@ -76,20 +79,22 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue):
 
 def hist_match(source, template):
     """
-    Adjust the pixel values of a grayscale image such that its histogram matches that of a
-    target image.
+    Adjust the pixel values of a grayscale image such that its histogram matches
+    that of a target image.
 
     Arguments:
     -----------
-        source: np.array
-            Image to transform; the histogram is computed over the flattened
-            array
-        template: np.array
-            Template image; can have different dimensions to source
+    source: np.array
+        Image to transform; the histogram is computed over the flattened
+        array
+    template: np.array
+        Template image; can have different dimensions to source
+        
     Returns:
     -----------
-        matched: np.array
-            The transformed output image
+    matched: np.array
+        The transformed output image
+        
     """
 
     oldshape = source.shape
@@ -119,25 +124,27 @@ def hist_match(source, template):
 def pansharpen(im_ms, im_pan, cloud_mask):
     """
     Pansharpens a multispectral image, using the panchromatic band and a cloud mask.
-    A PCA is applied to the image, then the 1st PC is replaced with the panchromatic band.
-    Note that it is essential to match the histrograms of the 1st PC and the panchromatic band
-    before replacing and inverting the PCA.
+    A PCA is applied to the image, then the 1st PC is replaced, after histogram 
+    matching with the panchromatic band. Note that it is essential to match the
+    histrograms of the 1st PC and the panchromatic band before replacing and 
+    inverting the PCA.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            Multispectral image to pansharpen (3D)
-        im_pan: np.array
-            Panchromatic band (2D)
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
+    im_ms: np.array
+        Multispectral image to pansharpen (3D)
+    im_pan: np.array
+        Panchromatic band (2D)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
 
     Returns:
     -----------
-        im_ms_ps: np.ndarray
-            Pansharpened multispectral image (3D)
+    im_ms_ps: np.ndarray
+        Pansharpened multispectral image (3D)
+        
     """
 
     # reshape image into vector and apply cloud mask
@@ -172,17 +179,17 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
     Arguments:
     -----------
-        im: np.array
-            Image to rescale, can be 3D (multispectral) or 2D (single band)
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        prob_high: float
-            probability of exceedence used to calculate the upper percentile
+    im: np.array
+        Image to rescale, can be 3D (multispectral) or 2D (single band)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    prob_high: float
+        probability of exceedence used to calculate the upper percentile
 
     Returns:
     -----------
-        im_adj: np.array
-            The rescaled image
+    im_adj: np.array
+        rescaled image
     """
 
     # lower percentile is set to 0
@@ -221,40 +228,41 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
 def preprocess_single(fn, satname, cloud_mask_issue):
     """
-    Reads the image and outputs the pansharpened/down-sampled multispectral bands, the
-    georeferencing vector of the image (coordinates of the upper left pixel), the cloud mask and
-    the QA band. For Landsat 7-8 it also outputs the panchromatic band and for Sentinel-2 it also
-    outputs the 20m SWIR band.
+    Reads the image and outputs the pansharpened/down-sampled multispectral bands,
+    the georeferencing vector of the image (coordinates of the upper left pixel),
+    the cloud mask, the QA band and a no_data image. 
+    For Landsat 7-8 it also outputs the panchromatic band and for Sentinel-2 it
+    also outputs the 20m SWIR band.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        fn: str or list of str
-            filename of the .TIF file containing the image
-            for L7, L8 and S2 this is a list of filenames, one filename for each band at different
-            resolution (30m and 15m for Landsat 7-8, 10m, 20m, 60m for Sentinel-2)
-        satname: str
-            name of the satellite mission (e.g., 'L5')
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
+    fn: str or list of str
+        filename of the .TIF file containing the image. For L7, L8 and S2 this 
+        is a list of filenames, one filename for each band at different
+        resolution (30m and 15m for Landsat 7-8, 10m, 20m, 60m for Sentinel-2)
+    satname: str
+        name of the satellite mission (e.g., 'L5')
+    cloud_mask_issue: boolean
+        True if there is an issue with the cloud mask and sand pixels are being masked on the images
 
     Returns:
     -----------
-        im_ms: np.array
-            3D array containing the pansharpened/down-sampled bands (B,G,R,NIR,SWIR1)
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale] defining the
-            coordinates of the top-left pixel of the image
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        im_extra : np.array
-            2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution
-            panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
-        im_QA: np.array
-            2D array containing the QA band, from which the cloud_mask can be computed.
-        im_nodata: np.array
-            2D array with True where no data values (-inf) are located
+    im_ms: np.array
+        3D array containing the pansharpened/down-sampled bands (B,G,R,NIR,SWIR1)
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale] defining the
+        coordinates of the top-left pixel of the image
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    im_extra : np.array
+        2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution
+        panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
+    im_QA: np.array
+        2D array containing the QA band, from which the cloud_mask can be computed.
+    im_nodata: np.array
+        2D array with True where no data values (-inf) are located
 
     """
 
@@ -510,20 +518,21 @@ def preprocess_single(fn, satname, cloud_mask_issue):
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     """
     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
-    This functions can be modified to obtain different visualisations of the multispectral images.
+    This functions can be modified to obtain different visualisations of the 
+    multispectral images.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            3D array containing the pansharpened/down-sampled bands (B,G,R,NIR,SWIR1)
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        date: str
-            String containing the date at which the image was acquired
-        satname: str
-            name of the satellite mission (e.g., 'L5')
+    im_ms: np.array
+        3D array containing the pansharpened/down-sampled bands (B,G,R,NIR,SWIR1)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    date: str
+        string containing the date at which the image was acquired
+    satname: str
+        name of the satellite mission (e.g., 'L5')
 
     Returns:
     -----------
@@ -581,20 +590,22 @@ def save_jpg(metadata, settings, **kwargs):
 
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-        settings: dict
-            contains the following fields:
-        cloud_thresh: float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        sitename: string
-            name of the site (also name of the folder where the images are stored)
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
-
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in 
+            the cropped image that is accepted
+        'cloud_mask_issue': boolean
+            True if there is an issue with the cloud mask and sand pixels
+            are erroneously being masked on the images
+            
     Returns:
     -----------
-
+    Stores the images as .jpg in a folder named /preprocessed
+    
     """
     
     sitename = settings['inputs']['sitename']
@@ -635,35 +646,39 @@ def save_jpg(metadata, settings, **kwargs):
 
 def get_reference_sl(metadata, settings):
     """
-    Allows the user to manually digitize a reference shoreline that is used seed the shoreline
-    detection algorithm. The reference shoreline helps to detect the outliers, making the shoreline
-    detection more robust.
+    Allows the user to manually digitize a reference shoreline that is used seed
+    the shoreline detection algorithm. The reference shoreline helps to detect 
+    the outliers, making the shoreline detection more robust.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-        settings: dict
-            contains the following fields:
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
         'cloud_thresh': float
-            value between 0 and 1 indicating the maximum cloud fraction in the image that is accepted
-        'sitename': string
-            name of the site (also name of the folder where the images are stored)
+            value between 0 and 1 indicating the maximum cloud fraction in 
+            the cropped image that is accepted
+        'cloud_mask_issue': boolean
+            True if there is an issue with the cloud mask and sand pixels
+            are erroneously being masked on the images
         'output_epsg': int
-            epsg code of the desired spatial reference system
+            output spatial reference system as EPSG code
 
     Returns:
     -----------
-        reference_shoreline: np.array
-            coordinates of the reference shoreline that was manually digitized
+    reference_shoreline: np.array
+        coordinates of the reference shoreline that was manually digitized. 
+        This is also saved as a .pkl and .geojson file.
 
     """
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
-
+    pts_coords = []
     # check if reference shoreline already exists in the corresponding folder
     filepath = os.path.join(filepath_data, sitename)
     filename = sitename + '_reference_shoreline.pkl'
@@ -869,5 +884,10 @@ def get_reference_sl(metadata, settings):
 
                 print('Reference shoreline has been saved in ' + filepath)
                 break
+            
+    # check if a shoreline was digitised
+    if len(pts_coords) == 0:
+        raise Exception('No cloud free images are available to digitise the reference shoreline,'+
+                        'download more images and try again') 
 
     return pts_coords

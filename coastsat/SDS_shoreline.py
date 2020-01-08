@@ -1,6 +1,8 @@
-"""This module contains all the functions needed for extracting satellite-derived shorelines (SDS)
+"""
+This module contains all the functions needed for extracting satellite-derived 
+shorelines (SDS)
 
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -26,7 +28,7 @@ from matplotlib import gridspec
 from pylab import ginput
 import pickle
 
-# own modules
+# CoastSat modules
 from coastsat import SDS_tools, SDS_preprocess
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
@@ -37,24 +39,27 @@ np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 def calculate_features(im_ms, cloud_mask, im_bool):
     """
-    Calculates a range of features on the image that are used for the supervised classification.
-    The features include spectral normalized-difference indices and standard deviation of the image.
+    Calculates features on the image that are used for the supervised classification. 
+    The features include spectral normalized-difference indices and standard 
+    deviation of the image for all the bands and indices.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            RGB + downsampled NIR and SWIR
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        im_bool: np.array
-            2D array of boolean indicating where on the image to calculate the features
+    im_ms: np.array
+        RGB + downsampled NIR and SWIR
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    im_bool: np.array
+        2D array of boolean indicating where on the image to calculate the features
 
-    Returns:    -----------
-        features: np.array
-            matrix containing each feature (columns) calculated for all
-            the pixels (rows) indicated in im_bool
+    Returns:    
+    -----------
+    features: np.array
+        matrix containing each feature (columns) calculated for all
+        the pixels (rows) indicated in im_bool
+        
     """
 
     # add all the multispectral bands
@@ -103,27 +108,29 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, clf):
         - water                                         --> label = 3
         - other (vegetation, buildings, rocks...)       --> label = 0
 
-    The classifier is a Neural Network previously trained.
+    The classifier is a Neural Network that is already trained.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            Pansharpened RGB + downsampled NIR and SWIR
-        im_extra:
-            only used for Landsat 7 and 8 where im_extra is the panchromatic band
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        min_beach_area: int
-            minimum number of pixels that have to be connected to belong to the SAND class
-        clf: classifier
+    im_ms: np.array
+        Pansharpened RGB + downsampled NIR and SWIR
+    im_extra:
+        only used for Landsat 7 and 8 where im_extra is the panchromatic band
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    min_beach_area: int
+        minimum number of pixels that have to be connected to belong to the SAND class
+    clf: joblib object
+        pre-trained classifier
 
-    Returns:    -----------
-        im_classif: np.array
-            2D image containing labels
-        im_labels: np.array of booleans
-            3D image containing a boolean image for each class (im_classif == label)
+    Returns:    
+    -----------
+    im_classif: np.array
+        2D image containing labels
+    im_labels: np.array of booleans
+        3D image containing a boolean image for each class (im_classif == label)
 
     """
 
@@ -163,24 +170,26 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, clf):
 
 def find_wl_contours1(im_ndwi, cloud_mask, im_ref_buffer):
     """
-    Traditional method for shorelien detection.
-    Finds the water line by thresholding the Normalized Difference Water Index and applying
-    the Marching Squares Algorithm to contour the iso-value corresponding to the threshold.
+    Traditional method for shoreline detection using a global threshold.
+    Finds the water line by thresholding the Normalized Difference Water Index 
+    and applying the Marching Squares Algorithm to contour the iso-value 
+    corresponding to the threshold.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ndwi: np.ndarray
-            Image (2D) with the NDWI (water index)
-        cloud_mask: np.ndarray
-            2D cloud mask with True where cloud pixels are
-        im_ref_buffer: np.array
-            Binary image containing a buffer around the reference shoreline
+    im_ndwi: np.ndarray
+        Image (2D) with the NDWI (water index)
+    cloud_mask: np.ndarray
+        2D cloud mask with True where cloud pixels are
+    im_ref_buffer: np.array
+        Binary image containing a buffer around the reference shoreline
 
-    Returns:    -----------
-        contours_wl: list of np.arrays
-            contains the (row,column) coordinates of the contour lines
+    Returns:    
+    -----------
+    contours_wl: list of np.arrays
+        contains the coordinates of the contour lines
 
     """
 
@@ -212,32 +221,33 @@ def find_wl_contours1(im_ndwi, cloud_mask, im_ref_buffer):
 
 def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size, im_ref_buffer):
     """
-    New robust method for extracting shorelines. Incorporates the classification component to
-    refine the treshold and make it specific to the sand/water interface.
+    New robust method for extracting shorelines. Incorporates the classification
+    component to refine the treshold and make it specific to the sand/water interface.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            RGB + downsampled NIR and SWIR
-        im_labels: np.array
-            3D image containing a boolean image for each class in the order (sand, swash, water)
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        buffer_size: int
-            size of the buffer around the sandy beach over which the pixels are considered in the
-            thresholding algorithm.
-        im_ref_buffer: np.array
-            Binary image containing a buffer around the reference shoreline
+    im_ms: np.array
+        RGB + downsampled NIR and SWIR
+    im_labels: np.array
+        3D image containing a boolean image for each class in the order (sand, swash, water)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    buffer_size: int
+        size of the buffer around the sandy beach over which the pixels are considered in the
+        thresholding algorithm.
+    im_ref_buffer: np.array
+        binary image containing a buffer around the reference shoreline
 
-    Returns:    -----------
-        contours_wi: list of np.arrays
-            contains the (row,column) coordinates of the contour lines extracted from the
-            NDWI (Normalized Difference Water Index) image
-        contours_mwi: list of np.arrays
-            contains the (row,column) coordinates of the contour lines extracted from the
-            MNDWI (Modified Normalized Difference Water Index) image
+    Returns:    
+    -----------
+    contours_wi: list of np.arrays
+        contains the coordinates of the contour lines extracted from the
+        NDWI (Normalized Difference Water Index) image
+    contours_mwi: list of np.arrays
+        contains the coordinates of the contour lines extracted from the
+        MNDWI (Modified Normalized Difference Water Index) image
 
     """
 
@@ -318,33 +328,33 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size, im_ref_buffer):
 
 def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
     """
-    Creates a buffer around the reference shoreline. The size of the buffer is given by
-    settings['max_dist_ref'].
+    Creates a buffer around the reference shoreline. The size of the buffer is 
+    given by settings['max_dist_ref'].
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_shape: np.array
-            size of the image (rows,columns)
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
-        image_epsg: int
-            spatial reference system of the image from which the contours were extracted
-        pixel_size: int
-            size of the pixel in metres (15 for Landsat, 10 for Sentinel-2)
-        settings: dict
-            contains the following fields:
-        output_epsg: int
+    im_shape: np.array
+        size of the image (rows,columns)
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
+    image_epsg: int
+        spatial reference system of the image from which the contours were extracted
+    pixel_size: int
+        size of the pixel in metres (15 for Landsat, 10 for Sentinel-2)
+    settings: dict with the following keys
+        'output_epsg': int
             output spatial reference system
-        reference_shoreline: np.array
+        'reference_shoreline': np.array
             coordinates of the reference shoreline
-        max_dist_ref: int
+        'max_dist_ref': int
             maximum distance from the reference shoreline in metres
 
-    Returns:    -----------
-        im_buffer: np.array
-            binary image, True where the buffer is, False otherwise
+    Returns:    
+    -----------
+    im_buffer: np.array
+        binary image, True where the buffer is, False otherwise
 
     """
     # initialise the image buffer
@@ -379,33 +389,32 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
 
 def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
     """
-    Converts the contours from image coordinates to world coordinates. This function also removes
-    the contours that are too small to be a shoreline (based on the parameter
-    settings['min_length_sl'])
+    Converts the contours from image coordinates to world coordinates. 
+    This function also removes the contours that are too small to be a shoreline 
+    (based on the parameter settings['min_length_sl'])
 
     KV WRL 2018
 
     Arguments:
     -----------
-        contours: np.array or list of np.array
-            image contours as detected by the function find_contours
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
-        image_epsg: int
-            spatial reference system of the image from which the contours were extracted
-        settings: dict
-            contains the following fields:
-        output_epsg: int
+    contours: np.array or list of np.array
+        image contours as detected by the function find_contours
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
+    image_epsg: int
+        spatial reference system of the image from which the contours were extracted
+    settings: dict with the following keys
+        'output_epsg': int
             output spatial reference system
-        min_length_sl: float
-            minimum length of shoreline perimeter to be kept (in meters)
+        'min_length_sl': float
+            minimum length of shoreline contour to be kept (in meters)
 
     Returns:
     -----------
-        shoreline: np.array
-            array of points with the X and Y coordinates of the shoreline
+    shoreline: np.array
+        array of points with the X and Y coordinates of the shoreline
 
     """
 
@@ -451,36 +460,44 @@ def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
 def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
                    settings, date, satname):
     """
-    Shows the detected shoreline to the user for visual quality control. The user can select "keep"
-    if the shoreline detection is correct or "skip" if it is incorrect.
+    Shows the detected shoreline to the user for visual quality control. 
+    The user can accept/reject the detected shorelines  by using keep/skip
+    buttons.
 
     KV WRL 2018
 
     Arguments:
     -----------
-        im_ms: np.array
-            RGB + downsampled NIR and SWIR
-        cloud_mask: np.array
-            2D cloud mask with True where cloud pixels are
-        im_labels: np.array
-            3D image containing a boolean image for each class in the order (sand, swash, water)
-        shoreline: np.array
-            array of points with the X and Y coordinates of the shoreline
-        image_epsg: int
-            spatial reference system of the image from which the contours were extracted
-        georef: np.array
-            vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
-        settings: dict
-            contains the following fields:
-        date: string
-            date at which the image was taken
-        satname: string
-            indicates the satname (L5,L7,L8 or S2)
+    im_ms: np.array
+        RGB + downsampled NIR and SWIR
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    im_labels: np.array
+        3D image containing a boolean image for each class in the order (sand, swash, water)
+    shoreline: np.array
+        array of points with the X and Y coordinates of the shoreline
+    image_epsg: int
+        spatial reference system of the image from which the contours were extracted
+    georef: np.array
+        vector of 6 elements [Xtr, Xscale, Xshear, Ytr, Yshear, Yscale]
+    date: string
+        date at which the image was taken
+    satname: string
+        indicates the satname (L5,L7,L8 or S2)
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+        'output_epsg': int
+            output spatial reference system as EPSG code
+        'check_detection': bool
+            if True, lets user manually accept/reject the mapped shorelines
+        'save_figure': bool
+            if True, saves a -jpg file for each mapped shoreline
 
     Returns:
     -----------
-        skip_image: boolean
-            True if the user wants to skip the image, False otherwise.
+    skip_image: boolean
+        True if the user wants to skip the image, False otherwise
 
     """
 
@@ -532,20 +549,20 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
         # according to the image shape, decide whether it is better to have the images
         # in vertical subplots or horizontal subplots
-        if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+        if im_RGB.shape[1] > 1.5*im_RGB.shape[0]:
             # vertical subplots
             gs = gridspec.GridSpec(3, 1)
             gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)
             ax1 = fig.add_subplot(gs[0,0])
-            ax2 = fig.add_subplot(gs[1,0])
-            ax3 = fig.add_subplot(gs[2,0])
+            ax2 = fig.add_subplot(gs[1,0], sharex=ax1, sharey=ax1)
+            ax3 = fig.add_subplot(gs[2,0], sharex=ax1, sharey=ax1)
         else:
             # horizontal subplots
             gs = gridspec.GridSpec(1, 3)
             gs.update(bottom=0.05, top=0.95, left=0.05, right=0.95)
             ax1 = fig.add_subplot(gs[0,0])
-            ax2 = fig.add_subplot(gs[0,1])
-            ax3 = fig.add_subplot(gs[0,2])
+            ax2 = fig.add_subplot(gs[0,1], sharex=ax1, sharey=ax1)
+            ax3 = fig.add_subplot(gs[0,2], sharex=ax1, sharey=ax1)
 
     # change the color of nans to either black (0.0) or white (1.0) or somewhere in between
     nan_color = 1.0
@@ -640,37 +657,44 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
 def extract_shorelines(metadata, settings):
     """
-    Extracts shorelines from satellite images.
+    Main function to extract shorelines from satellite images
 
     KV WRL 2018
 
     Arguments:
     -----------
-        metadata: dict
-            contains all the information about the satellite images that were downloaded
-
-        settings: dict
-            contains the following fields:
-        sitename: str
-            String containig the name of the site
-        cloud_mask_issue: boolean
-            True if there is an issue with the cloud mask and sand pixels are being masked on the images
-        buffer_size: int
-            size of the buffer (m) around the sandy beach over which the pixels are considered in the
-            thresholding algorithm
-        min_beach_area: int
-            minimum allowable object area (in metres^2) for the class 'sand'
-        cloud_thresh: float
-            value between 0 and 1 defining the maximum percentage of cloud cover allowed in the images
-        output_epsg: int
+    metadata: dict
+        contains all the information about the satellite images that were downloaded
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+        'cloud_thresh': float
+            value between 0 and 1 indicating the maximum cloud fraction in 
+            the cropped image that is accepted
+        'cloud_mask_issue': boolean
+            True if there is an issue with the cloud mask and sand pixels
+            are erroneously being masked on the images
+        'buffer_size': int
+            size of the buffer (m) around the sandy pixels over which the pixels 
+            are considered in the thresholding algorithm
+        'min_beach_area': int
+            minimum allowable object area (in metres^2) for the class 'sand',
+            the area is converted to number of connected pixels
+        'min_length_sl': int
+            minimum length (in metres) of shoreline contour to be valid
+        'sand_color': str
+            default', 'dark' (for grey/black sand beaches) or 'bright' (for white sand beaches)
+        'output_epsg': int
             output spatial reference system as EPSG code
-        check_detection: boolean
-            True to show each invidual detection and let the user validate the mapped shoreline
-
+        'check_detection': bool
+            if True, lets user manually accept/reject the mapped shorelines
+        'save_figure': bool
+            if True, saves a -jpg file for each mapped shoreline
+            
     Returns:
     -----------
-        output: dict
-            contains the extracted shorelines and corresponding dates.
+    output: dict
+        contains the extracted shorelines and corresponding dates + metadata
 
     """
 

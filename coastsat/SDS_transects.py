@@ -1,6 +1,8 @@
-"""This module contains functions to analyze the shoreline data along transects' 
+"""
+This module contains functions to analyze the 2D shorelines along shore-normal
+transects
     
-   Author: Kilian Vos, Water Research Laboratory, University of New South Wales
+Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
 # load modules
@@ -14,28 +16,33 @@ import skimage.transform as transform
 from pylab import ginput
 import geopandas as gpd
 
-# own modules
+# CoastSat modules
 from coastsat import SDS_tools
 
 def create_transect(origin, orientation, length):
     """
-    Create a 2D transect of points with 1m interval. 
+    Create a transect given an origin, orientation and length.
+    Points are spaced at 1m intervals.
+    
+    KV WRL 2018
     
     Arguments:
     -----------
-        origin: np.array
-            contains the X and Y coordinates of the origin of the transect
-        orientation: int
-            angle of the transect (anti-clockwise from North) in degrees
-        length: int
-            length of the transect in metres
+    origin: np.array
+        contains the X and Y coordinates of the origin of the transect
+    orientation: int
+        angle of the transect (anti-clockwise from North) in degrees
+    length: int
+        length of the transect in metres
         
     Returns:    
     -----------
-        transect: np.array
-            contains the X and Y coordinates of the transect
+    transect: np.array
+        contains the X and Y coordinates of the transect
         
-    """     
+    """   
+    
+    # origin of the transect
     x0 = origin[0]
     y0 = origin[1]
     # orientation of the transect
@@ -54,25 +61,29 @@ def create_transect(origin, orientation, length):
 
 def draw_transects(output, settings):
     """
-    Allows the user to draw shore-normal transects over the mapped shorelines.
+    Draw shore-normal transects interactively on top of the mapped shorelines
     
     Arguments:
     -----------
-        output: dict
-            contains the extracted shorelines and corresponding dates.
-        settings: dict
-            contains the inputs
+    output: dict
+        contains the extracted shorelines and corresponding metadata
+    settings: dict with the following keys
+        'inputs': dict
+            input parameters (sitename, filepath, polygon, dates, sat_list)
+            
     Returns:    
     -----------
-        transects: dict
-            contains the X and Y coordinates of all the transects drawn. These are also saved
-             as a .geojson (+ a .jpg figure showing the location of the transects)
+    transects: dict
+        contains the X and Y coordinates of all the transects drawn.
+        Also saves the coordinates as a .geojson as well as a .jpg figure 
+        showing the location of the transects.
         
-    """    
+    """   
+    
     sitename = settings['inputs']['sitename']
     filepath = os.path.join(settings['inputs']['filepath'], sitename)
 
-    # plot all shorelines
+    # plot the mapped shorelines
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
     ax1.axis('equal')
@@ -90,7 +101,7 @@ def draw_transects(output, settings):
     ax1.set_title('Click two points to define each transect (first point is the origin of the transect).\n'+
               'When all transects have been defined, click on <ENTER>', fontsize=16)
     
-    # initialise variable
+    # initialise transects dict
     transects = dict([])
     counter = 0
     # loop until user breaks it by click <enter>
@@ -99,14 +110,20 @@ def draw_transects(output, settings):
         pts = ginput(n=2, timeout=1e9)
         if len(pts) > 0:
             origin = pts[0]
+        # if user presses <enter>, no points are selected
         else:
+            # save figure as .jpg
             fig1.gca().set_title('Transect locations', fontsize=16)
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
             plt.title('Transect coordinates saved as ' + sitename + '_transects.geojson')
             plt.draw()
+            # wait 3 seconds for user to visualise the transects that are saved
             ginput(n=1, timeout=3, show_clicks=True)
             plt.close(fig1)
+            # break the loop
             break
+        
+        # add selectect points to the transect dict
         counter = counter + 1
         transect = np.array([pts[0], pts[1]])
         
@@ -126,40 +143,40 @@ def draw_transects(output, settings):
                  bbox=dict(boxstyle="square", ec='k',fc='w'))
         plt.draw()
         
-    # save as transects.geojson (for GIS)
+    # save transects.geojson
     gdf = SDS_tools.transects_to_gdf(transects)
     # set projection
     gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
     # save as geojson    
     gdf.to_file(os.path.join(filepath, sitename + '_transects.geojson'), driver='GeoJSON', encoding='utf-8')
+    # print the location of the files
     print('Transect locations saved in ' + filepath)
         
     return transects
 
 def compute_intersection(output, transects, settings):
     """
-    Computes the intersection between the 2D mapped shorelines and the transects, to generate
-    time-series of cross-shore distance along each transect.
+    Computes the intersection between the 2D shorelines and the shore-normal.
+    transects. It returns time-series of cross-shore distance along each transect.
     
     Arguments:
     -----------
-        output: dict
-            contains the extracted shorelines and corresponding dates.
-        transects: dict
-            contains the X and Y coordinates of the transects (first and last point needed for each
-            transect).
-        settings: dict
-            contains parameters defining :
-                along_dist: alongshore distance to caluclate the intersection (median of points 
-                within this distance).      
-        
+    output: dict
+        contains the extracted shorelines and corresponding metadata
+    transects: dict
+        contains the X and Y coordinates of each transect
+    settings: dict with the following keys
+        'along_dist': int
+            alongshore distance considered caluclate the intersection
+              
     Returns:    
     -----------
-        cross_dist: dict
-            time-series of cross-shore distance along each of the transects. These are not tidally 
-            corrected.
+    cross_dist: dict
+        time-series of cross-shore distance along each of the transects. 
+        Not tidally corrected.
         
-    """      
+    """    
+    
     shorelines = output['shorelines']
     along_dist = settings['along_dist']
     

@@ -1,5 +1,8 @@
 # CoastSat
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3560436.svg)](https://doi.org/10.5281/zenodo.3560436)
+[![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)<br>
+
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
@@ -155,7 +158,7 @@ As mentioned above, there are some additional parameters that can be modified to
 - `sand_color`: this parameter can take 3 values: `default`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
 
 #### Re-training the classifier
-CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the example in [Train new CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/classification/train_new_classifier.md).
+CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/classification/train_new_classifier.md).
 
 ### 2.3 Shoreline change analysis
 

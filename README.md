@@ -86,7 +86,7 @@ A Jupyter Notebook combines formatted text and code. To run the code, place your
 
 ### 2.1 Retrieval of the satellite images
 
-To retrieve from the GEE server the avaiable satellite images cropped around the user-defined region of coasltine for the particular time period of interest, the following variables are required:
+To retrieve from the GEE server the available satellite images cropped around the user-defined region of coastline for the particular time period of interest, the following variables are required:
 - `polygon`: the coordinates of the region of interest (longitude/latitude pairs in WGS84)
 - `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)
 - `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections)
@@ -95,7 +95,7 @@ To retrieve from the GEE server the avaiable satellite images cropped around the
 
 The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under *filepath\sitename*). The metadata contains the exact time of acquisition (in UTC time) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly by running `metadata = SDS_download.get_metadata(inputs)`.
 
-The screenshot below shows an example of inputs that will retrieve all the images of Collaroy-Narrrabeen (Australia) acquired by Sentinel-2 in December 2017.
+The screenshot below shows an example of inputs that will retrieve all the images of Collaroy-Narrabeen (Australia) acquired by Sentinel-2 in December 2017.
 
 ![doc1](https://user-images.githubusercontent.com/7217258/56278746-20f65700-614a-11e9-8715-ba5b8f938063.PNG)
 

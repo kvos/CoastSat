@@ -11,3 +11,4 @@
 *.txt
 *.geojson
 *checkpoint.ipynb
+*.csv

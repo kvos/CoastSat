@@ -159,7 +159,7 @@ CoastSat's shoreline mapping alogorithm uses an image classification scheme to l
 
 ### 2.3 Shoreline change analysis
 
-This section shows how to obtain time-series of shoreline change along shore-normal transects. Each transect is defined by two points, its origin and a second point that defines its length and orientation. There are 3 options to define the coordinates of the transects:
+This section shows how to obtain time-series of shoreline change along shore-normal transects. Each transect is defined by two points, its origin and a second point that defines its length and orientation. The origin is always defined first and located landwards, the second point is located seawards. There are 3 options to define the coordinates of the transects:
 1. Interactively draw shore-normal transects along the mapped shorelines:
 ```
 transects = SDS_transects.draw_transects(output, settings)

@@ -269,7 +269,7 @@ def retrieve_images(inputs):
         count_loop = 0
         while count_loop < 1:
             try:
-                input_col = ee.ImageCollection('LANDSAT/LE07/C01/T1_RT_TOA')
+                input_col = ee.ImageCollection('LANDSAT/LE07/C01/T1_TOA')
                 # filter by location and dates
                 flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
                 # get all images in the filtered collection
@@ -400,7 +400,7 @@ def retrieve_images(inputs):
         count_loop = 0
         while count_loop < 1:
             try:
-                input_col = ee.ImageCollection('LANDSAT/LC08/C01/T1_RT_TOA')
+                input_col = ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
                 # filter by location and dates
                 flt_col = input_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1])
                 # get all images in the filtered collection

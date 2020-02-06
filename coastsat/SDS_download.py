@@ -80,7 +80,7 @@ def retrieve_images(inputs):
     # check image availability    
     im_dict_T1, im_dict_T2 = check_images_available(inputs)
     # remove duplicates in S2 collections (they provide several projections for same images)
-    if 'S2' in inputs['sat_list']: im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
+    if len(im_dict_T1['S2'])>0: im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
     
     # initialize metadata dictionnary (stores information about each image)
     metadata = dict([])

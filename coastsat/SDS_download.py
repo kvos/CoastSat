@@ -302,6 +302,12 @@ def check_images_available(inputs):
         list of images in Tier 2 (Landsat only)   
     """
     
+    # check if EE was initialised or not
+    try:
+        ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
+    except:
+        ee.Initialize()
+    
     print('Images available between %s and %s'%(inputs['dates'][0],inputs['dates'][1]), end='\n')          
     # check how many images are available in Tier 1 and Sentinel Level-1C
     col_names_T1 = {'L5':'LANDSAT/LT05/C01/T1_TOA',

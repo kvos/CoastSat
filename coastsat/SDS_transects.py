@@ -180,13 +180,11 @@ def compute_intersection(output, transects, settings):
         Not tidally corrected.        
     """    
     
-    shorelines = output['shorelines']
-    along_dist = settings['along_dist']
-    
-    intersections = np.zeros((len(shorelines),len(transects)))
-    for i in range(len(shorelines)):
+    # loop through shorelines and compute the median intersection    
+    intersections = np.zeros((len(output['shorelines']),len(transects)))
+    for i in range(len(output['shorelines'])):
 
-        sl = shorelines[i]
+        sl = output['shorelines'][i]
         
         for j,key in enumerate(list(transects.keys())): 
             
@@ -205,7 +203,7 @@ def compute_intersection(output, transects, settings):
             d_origin = np.array([np.linalg.norm(sl[k,:] - p1) for k in range(len(sl))])
             # find the shoreline points that are close to the transects and to the origin
             # the distance to the origin is hard-coded here to 1 km 
-            idx_dist = np.logical_and(d_line <= along_dist, d_origin <= 1000)
+            idx_dist = np.logical_and(d_line <= settings['along_dist'], d_origin <= 1000)
             # find the shoreline points that are in the direction of the transect (within 90 degrees)
             temp_sl = sl - np.array(transects[key][0,:])
             phi_sl = np.array([np.arctan2(temp_sl[k,1], temp_sl[k,0]) for k in range(len(temp_sl))])
@@ -236,8 +234,9 @@ def compute_intersection(output, transects, settings):
     for key in transects.keys():
         out_dict['Transect '+ key] = cross_dist[key]
     df = pd.DataFrame(out_dict)
-    fn = os.path.join(os.getcwd(),'transect_time_series.csv')
+    fn = os.path.join(settings['inputs']['filepath'],settings['inputs']['sitename'],
+                      'transect_time_series.csv')
     df.to_csv(fn, sep=',')
     print('Time-series of the shoreline change along the transects saved as:\n%s'%fn)
     
-    return cross_dist, df
+    return cross_dist

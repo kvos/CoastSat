@@ -8,13 +8,13 @@ Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 # load modules
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import pdb
 
 # other modules
 import skimage.transform as transform
 from pylab import ginput
-import geopandas as gpd
 
 # CoastSat modules
 from coastsat import SDS_tools
@@ -62,7 +62,9 @@ def create_transect(origin, orientation, length):
 def draw_transects(output, settings):
     """
     Draw shore-normal transects interactively on top of the mapped shorelines
-    
+
+    KV WRL 2018       
+
     Arguments:
     -----------
     output: dict
@@ -76,8 +78,7 @@ def draw_transects(output, settings):
     transects: dict
         contains the X and Y coordinates of all the transects drawn.
         Also saves the coordinates as a .geojson as well as a .jpg figure 
-        showing the location of the transects.
-        
+        showing the location of the transects.       
     """   
     
     sitename = settings['inputs']['sitename']
@@ -98,8 +99,9 @@ def draw_transects(output, settings):
     fig1.set_tight_layout(True)
     mng = plt.get_current_fig_manager()                                         
     mng.window.showMaximized()
-    ax1.set_title('Click two points to define each transect (first point is the origin of the transect).\n'+
-              'When all transects have been defined, click on <ENTER>', fontsize=16)
+    ax1.set_title('Click two points to define each transect (first point is the ' +
+                  'origin of the transect and is landwards, second point seawards).\n'+
+                  'When all transects have been defined, click on <ENTER>', fontsize=16)
     
     # initialise transects dict
     transects = dict([])
@@ -117,8 +119,8 @@ def draw_transects(output, settings):
             fig1.savefig(os.path.join(filepath, 'jpg_files', sitename + '_transect_locations.jpg'), dpi=200)
             plt.title('Transect coordinates saved as ' + sitename + '_transects.geojson')
             plt.draw()
-            # wait 3 seconds for user to visualise the transects that are saved
-            ginput(n=1, timeout=3, show_clicks=True)
+            # wait 2 seconds for user to visualise the transects that are saved
+            ginput(n=1, timeout=2, show_clicks=True)
             plt.close(fig1)
             # break the loop
             break
@@ -159,6 +161,8 @@ def compute_intersection(output, transects, settings):
     Computes the intersection between the 2D shorelines and the shore-normal.
     transects. It returns time-series of cross-shore distance along each transect.
     
+    KV WRL 2018       
+
     Arguments:
     -----------
     output: dict
@@ -173,21 +177,14 @@ def compute_intersection(output, transects, settings):
     -----------
     cross_dist: dict
         time-series of cross-shore distance along each of the transects. 
-        Not tidally corrected.
-        
+        Not tidally corrected.        
     """    
     
-    shorelines = output['shorelines']
-    along_dist = settings['along_dist']
-    
-    # initialise variables
-    chainage_mtx = np.zeros((len(shorelines),len(transects),6))
-    idx_points = []
-    
-    for i in range(len(shorelines)):
+    # loop through shorelines and compute the median intersection    
+    intersections = np.zeros((len(output['shorelines']),len(transects)))
+    for i in range(len(output['shorelines'])):
 
-        sl = shorelines[i]
-        idx_points_all = []
+        sl = output['shorelines'][i]
         
         for j,key in enumerate(list(transects.keys())): 
             
@@ -206,52 +203,40 @@ def compute_intersection(output, transects, settings):
             d_origin = np.array([np.linalg.norm(sl[k,:] - p1) for k in range(len(sl))])
             # find the shoreline points that are close to the transects and to the origin
             # the distance to the origin is hard-coded here to 1 km 
-            idx_dist = np.logical_and(d_line <= along_dist, d_origin <= 1000)
+            idx_dist = np.logical_and(d_line <= settings['along_dist'], d_origin <= 1000)
             # find the shoreline points that are in the direction of the transect (within 90 degrees)
             temp_sl = sl - np.array(transects[key][0,:])
             phi_sl = np.array([np.arctan2(temp_sl[k,1], temp_sl[k,0]) for k in range(len(temp_sl))])
             diff_angle = (phi - phi_sl)
             idx_angle = np.abs(diff_angle) < np.pi/2
             # combine the transects that are close in distance and close in orientation
-            idx_close = np.where(np.logical_and(idx_dist,idx_angle))[0]
-            idx_points_all.append(idx_close)        
+            idx_close = np.where(np.logical_and(idx_dist,idx_angle))[0]     
             
             # in case there are no shoreline points close to the transect 
             if len(idx_close) == 0:
-                chainage_mtx[i,j,:] = np.tile(np.nan,(1,6))
+                intersections[i,j] = np.nan
             else:
                 # change of base to shore-normal coordinate system
                 xy_close = np.array([sl[idx_close,0],sl[idx_close,1]]) - np.tile(np.array([[X0],
                                    [Y0]]), (1,len(sl[idx_close])))
                 xy_rot = np.matmul(Mrot, xy_close)
-                    
-                # compute mean, median, max, min and std of chainage position
-                n_points = len(xy_rot[0,:])
-                mean_cross = np.nanmean(xy_rot[0,:])
-                median_cross = np.nanmedian(xy_rot[0,:])
-                max_cross = np.nanmax(xy_rot[0,:])
-                min_cross = np.nanmin(xy_rot[0,:])
-                std_cross = np.nanstd(xy_rot[0,:])
-                # store all statistics
-                chainage_mtx[i,j,:] = np.array([mean_cross, median_cross, max_cross,
-                            min_cross, n_points, std_cross])
+                # compute the median of the intersections along the transect
+                intersections[i,j] = np.nanmedian(xy_rot[0,:])
     
-        # store the indices of the shoreline points that were used
-        idx_points.append(idx_points_all)
-     
-    # format into dictionnary
-    chainage = dict([])
-    chainage['mean'] = chainage_mtx[:,:,0]
-    chainage['median'] = chainage_mtx[:,:,1]
-    chainage['max'] = chainage_mtx[:,:,2]
-    chainage['min'] = chainage_mtx[:,:,3]
-    chainage['npoints'] = chainage_mtx[:,:,4]
-    chainage['std'] = chainage_mtx[:,:,5]
-    chainage['idx_points'] = idx_points
-        
-    # only return the median
+    # fill the a dictionnary
     cross_dist = dict([])
     for j,key in enumerate(list(transects.keys())): 
-        cross_dist[key] = chainage['median'][:,j]    
+        cross_dist[key] = intersections[:,j]   
+    
+    # save a .csv file for Excel users
+    out_dict = dict([])
+    out_dict['dates'] = output['dates']
+    for key in transects.keys():
+        out_dict['Transect '+ key] = cross_dist[key]
+    df = pd.DataFrame(out_dict)
+    fn = os.path.join(settings['inputs']['filepath'],settings['inputs']['sitename'],
+                      'transect_time_series.csv')
+    df.to_csv(fn, sep=',')
+    print('Time-series of the shoreline change along the transects saved as:\n%s'%fn)
     
     return cross_dist

@@ -46,7 +46,13 @@ inputs = {
     'filepath': filepath_data
         }
 
+# before downloading the images, check how many images are available for your inputs
+SDS_download.check_images_available(inputs);
+
 #%% 2. Retrieve images
+
+# only uncomment this line if you want Landsat Tier 2 images (not suitable for time-series analysis)
+# inputs['include_T2'] = True
 
 # retrieve satellite images from GEE
 metadata = SDS_download.retrieve_images(inputs)
@@ -129,6 +135,7 @@ transects = SDS_transects.draw_transects(output, settings)
 #transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
    
 # intersect the transects with the 2D shorelines to obtain time-series of cross-shore distance
+# (also saved a .csv file with the time-series, dates are in UTC time)
 settings['along_dist'] = 25
 cross_distance = SDS_transects.compute_intersection(output, transects, settings) 
 

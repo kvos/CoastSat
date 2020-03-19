@@ -549,7 +549,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
         # according to the image shape, decide whether it is better to have the images
         # in vertical subplots or horizontal subplots
-        if im_RGB.shape[1] > 1.5*im_RGB.shape[0]:
+        if im_RGB.shape[1] > 2.5*im_RGB.shape[0]:
             # vertical subplots
             gs = gridspec.GridSpec(3, 1)
             gs.update(bottom=0.03, top=0.97, left=0.03, right=0.97)

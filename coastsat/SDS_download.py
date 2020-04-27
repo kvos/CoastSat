@@ -175,13 +175,10 @@ def retrieve_images(inputs):
             if key == 'S2': continue
             else: im_dict_T1[key] += im_dict_T2[key]
     
-    # remove duplicates in S2 collections (they provide several projections for same images)
+    # remove UTM duplicates in S2 collections (they provide several projections for same images)
     if 'S2' in inputs['sat_list'] and len(im_dict_T1['S2'])>0: 
         im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
-    
-    # initialize metadata dictionnary (stores information about each image)
-    metadata = dict([])
-    
+        
     # create a new directory for this site with the name of the site
     im_folder = os.path.join(inputs['filepath'],inputs['sitename'])
     if not os.path.exists(im_folder): os.makedirs(im_folder)    
@@ -193,7 +190,7 @@ def retrieve_images(inputs):
         # create subfolder structure to store the different bands
         filepaths = create_folder_structure(im_folder, satname)
         # initialise variables and loop through images
-        timestamps = []; georef_accs = []; filenames = []; all_names = []; im_epsg = []
+        georef_accs = []; filenames = []; all_names = []; im_epsg = []
         for i in range(len(im_dict_T1[satname])):
             
             im_meta = im_dict_T1[satname][i]
@@ -202,7 +199,7 @@ def retrieve_images(inputs):
             t = im_meta['properties']['system:time_start']
             im_timestamp = datetime.fromtimestamp(t/1000, tz=pytz.utc)
             im_date = im_timestamp.strftime('%Y-%m-%d-%H-%M-%S') 
-            timestamps.append(im_timestamp)
+
             # get epsg code
             im_epsg.append(int(im_meta['bands'][0]['crs'][5:]))
             
@@ -319,6 +316,10 @@ def retrieve_images(inputs):
                 if any(im_fn['10m'] in _ for _ in all_names):
                     for key in bands.keys():
                         im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup' + suffix 
+                    # also check for triplicates (only on S2 imagery) and add 'tri' to the name
+                    if im_fn['10m'] in all_names:
+                        for key in bands.keys():
+                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_tri' + suffix    
                 all_names.append(im_fn['10m'])
                 filenames.append(im_fn['10m']) 
                 # download .tif from EE (multispectral bands at 3 different resolutions)
@@ -360,19 +361,18 @@ def retrieve_images(inputs):
             print('\r%d%%' %int((i+1)/len(im_dict_T1[satname])*100), end='')            
             
         print('')
-        # sort metadata (downloaded images are sorted by date in directory)
-        timestamps_sorted = sorted(timestamps)
-        idx_sorted = sorted(range(len(timestamps)), key=timestamps.__getitem__)
-        acc_georef_sorted = [georef_accs[j] for j in idx_sorted]
-        filenames_sorted = [filenames[j] for j in idx_sorted]
-        im_epsg_sorted = [im_epsg[j] for j in idx_sorted]
-        # save into metadata dict
-        metadata[satname] = {'dates':timestamps_sorted, 'acc_georef':acc_georef_sorted,
-                'epsg':im_epsg_sorted, 'filenames':filenames_sorted}  
+           
+    # once all images have been downloaded, load metadata from .txt files
+    metadata = get_metadata(inputs)
           
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     if 'S2' in metadata.keys():
-        metadata = merge_overlapping_images(metadata,inputs)
+        try:
+            metadata = merge_overlapping_images(metadata,inputs)
+        except:
+            print('WARNING: there was an error while merging overlapping S2 images,'+
+                  ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+                  ' and include your script so we can find out what happened.')
 
     # save metadata dict
     with open(os.path.join(im_folder, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:
@@ -612,7 +612,11 @@ def merge_overlapping_images(metadata,inputs):
         else:
             idx_dup = np.where(boolvec)[0][0]
             pairs.append([i,idx_dup])
-                
+    # because they could be triplicates in S2 images, adjust the  for consecutive merges
+    for i in range(1,len(pairs)): 
+        if pairs[i-1][1] == pairs[i][0]: 
+            pairs[i][0] = pairs[i-1][0]
+    
     # for each pair of image, create a mask and add no_data into the .tif file (this is needed before merging .tif files)
     for i,pair in enumerate(pairs):
         fn_im = []
@@ -642,7 +646,6 @@ def merge_overlapping_images(metadata,inputs):
                     im_ms[mask10,k] = np.nan
                 # mask the 10m .tif file (add no_data where mask is True)
                 SDS_tools.mask_raster(fn_im[index][0], mask10)
-                
                 # create another mask for the 20m band (SWIR1)
                 im_std = SDS_tools.image_std(im_extra,1)
                 im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
@@ -650,7 +653,6 @@ def merge_overlapping_images(metadata,inputs):
                 im_extra[mask20] = np.nan
                 # mask the 20m .tif file (im_extra)
                 SDS_tools.mask_raster(fn_im[index][1], mask20) 
-                
                 # use the 20m mask to create a mask for the 60m QA band (by resampling)
                 mask60 = ndimage.zoom(mask20,zoom=1/3,order=0)
                 mask60 = transform.resize(mask60, im_QA.shape, mode='constant', order=0,
@@ -658,7 +660,6 @@ def merge_overlapping_images(metadata,inputs):
                 mask60 = mask60.astype(bool)
                 # mask the 60m .tif file (im_QA)
                 SDS_tools.mask_raster(fn_im[index][2], mask60)    
-                            
             else:
                 continue
             
@@ -707,7 +708,7 @@ def merge_overlapping_images(metadata,inputs):
         os.chmod(fn_im[1][3], 0o777)
         os.remove(fn_im[1][3])
         
-    print('%d pairs of overlapping Sentinel-2 images were merged' % len(pairs))
+    print('%d Sentinel-2 images were merged (overlapping or duplicate)' % len(pairs))
     
     # update the metadata dict
     metadata_updated = copy.deepcopy(metadata)

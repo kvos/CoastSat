@@ -6,6 +6,8 @@
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
+Visit the [CoastSat webGIS page](http://coastsat.wrl.unsw.edu.au/) to explore and download a regional-scale dataset of satellite-derived shorelines.
+
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
 
 The underlying approach of the CoastSat toolkit are described in detail in:

@@ -1,13 +1,18 @@
 # CoastSat
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3560436.svg)](https://doi.org/10.5281/zenodo.3560436)
-[![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)<br>
+[![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
+To estimate the beach slope from the satellite-derived shorelines and apply a tidal correction check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
+
+Visit the [CoastSat webGIS page](http://coastsat.wrl.unsw.edu.au/) to explore and download a regional-scale dataset of satellite-derived shorelines and beach slopes.
+
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
 
-The underlying approach of the CoastSat toolkit are described in detail in:
+The underlying approach of the CoastSat toolkit is described in detail in:
 
 * Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
 

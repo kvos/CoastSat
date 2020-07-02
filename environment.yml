@@ -6,11 +6,11 @@ dependencies:
   - numpy=1.16.3
   - matplotlib=3.0.3
   - pillow=6.2.1
-  - earthengine-api=0.1.224
+  - earthengine-api=0.1.226
   - gdal=2.3.3
   - pandas=0.24.2
   - geopandas=0.4.1
-  - pytz=2019.1
+  - pytz=2020.1
   - scikit-image=0.15.0
   - scikit-learn=0.20.3
   - shapely=1.6.4

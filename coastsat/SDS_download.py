@@ -5,17 +5,21 @@ from the Google Earth Engine server
 Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
-# load modules
+# load basic modules
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb
 
-# earth engine modules
+# earth engine module
 import ee
+
+# modules to download, unzip and stack the images
 from urllib.request import urlretrieve
 import zipfile
 import copy
+import shutil
+import gdal
 
 # additional modules
 from datetime import datetime, timedelta
@@ -28,95 +32,6 @@ from scipy import ndimage
 from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
-
-
-def check_images_available(inputs):
-    """
-    Create the structure of subfolders for each satellite mission
-     
-    KV WRL 2018       
-  
-    Arguments:
-    -----------
-    inputs: dict 
-        inputs dictionnary
-    
-    Returns:
-    -----------
-    im_dict_T1: list of dict
-        list of images in Tier 1 and Level-1C
-    im_dict_T2: list of dict
-        list of images in Tier 2 (Landsat only)   
-    """
-    
-    # check if EE was initialised or not
-    try:
-        ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
-    except:
-        ee.Initialize()
-    
-    print('Images available between %s and %s:'%(inputs['dates'][0],inputs['dates'][1]), end='\n')          
-    # check how many images are available in Tier 1 and Sentinel Level-1C
-    col_names_T1 = {'L5':'LANDSAT/LT05/C01/T1_TOA',
-                 'L7':'LANDSAT/LE07/C01/T1_TOA',
-                 'L8':'LANDSAT/LC08/C01/T1_TOA',
-                 'S2':'COPERNICUS/S2'}
-    
-    print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
-    im_dict_T1 = dict([])
-    sum_img = 0
-    for satname in inputs['sat_list']:
-        
-        # get list of images in EE collection
-        while True:
-            try:
-                ee_col = ee.ImageCollection(col_names_T1[satname])
-                col = ee_col.filterBounds(ee.Geometry.Polygon(inputs['polygon']))\
-                            .filterDate(inputs['dates'][0],inputs['dates'][1])
-                im_list = col.getInfo().get('features')
-                break
-            except:
-                continue
-        # remove very cloudy images (>95% cloud cover)
-        im_list_upt = remove_cloudy_images(im_list, satname)
-        sum_img = sum_img + len(im_list_upt)
-        print('  %s: %d images'%(satname,len(im_list_upt)))
-        im_dict_T1[satname] = im_list_upt
-              
-    print('  Total: %d images'%sum_img)
-    
-    # in only S2 is in sat_list, stop here
-    if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':
-        return im_dict_T1, []
-    
-    # otherwise check how many images are available in Landsat Tier 2
-    col_names_T2 = {'L5':'LANDSAT/LT05/C01/T2_TOA',
-                 'L7':'LANDSAT/LE07/C01/T2_TOA',
-                 'L8':'LANDSAT/LC08/C01/T2_TOA'}
-    print('- In Landsat Tier 2:', end='\n')
-    im_dict_T2 = dict([])
-    sum_img = 0
-    for satname in inputs['sat_list']:
-        if satname == 'S2': continue
-        # get list of images in EE collection
-        while True:
-            try:
-                ee_col = ee.ImageCollection(col_names_T2[satname])
-                col = ee_col.filterBounds(ee.Geometry.Polygon(inputs['polygon']))\
-                            .filterDate(inputs['dates'][0],inputs['dates'][1])
-                im_list = col.getInfo().get('features')
-                break
-            except:
-                continue
-        # remove very cloudy images (>95% cloud cover)
-        im_list_upt = remove_cloudy_images(im_list, satname)
-        sum_img = sum_img + len(im_list_upt)
-        print('  %s: %d images'%(satname,len(im_list_upt)))
-        im_dict_T2[satname] = im_list_upt
-
-    print('  Total: %d images'%sum_img) 
-
-    return im_dict_T1, im_dict_T2
 
 
 def retrieve_images(inputs):
@@ -381,6 +296,171 @@ def retrieve_images(inputs):
     return metadata
 
 
+def check_images_available(inputs):
+    """
+    Create the structure of subfolders for each satellite mission
+     
+    KV WRL 2018       
+  
+    Arguments:
+    -----------
+    inputs: dict 
+        inputs dictionnary
+    
+    Returns:
+    -----------
+    im_dict_T1: list of dict
+        list of images in Tier 1 and Level-1C
+    im_dict_T2: list of dict
+        list of images in Tier 2 (Landsat only)   
+    """
+    
+    # check if EE was initialised or not
+    try:
+        ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
+    except:
+        ee.Initialize()
+    
+    print('Images available between %s and %s:'%(inputs['dates'][0],inputs['dates'][1]), end='\n')          
+    # check how many images are available in Tier 1 and Sentinel Level-1C
+    col_names_T1 = {'L5':'LANDSAT/LT05/C01/T1_TOA',
+                 'L7':'LANDSAT/LE07/C01/T1_TOA',
+                 'L8':'LANDSAT/LC08/C01/T1_TOA',
+                 'S2':'COPERNICUS/S2'}
+    
+    print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
+    im_dict_T1 = dict([])
+    sum_img = 0
+    for satname in inputs['sat_list']:
+        
+        # get list of images in EE collection
+        while True:
+            try:
+                ee_col = ee.ImageCollection(col_names_T1[satname])
+                col = ee_col.filterBounds(ee.Geometry.Polygon(inputs['polygon']))\
+                            .filterDate(inputs['dates'][0],inputs['dates'][1])
+                im_list = col.getInfo().get('features')
+                break
+            except:
+                continue
+        # remove very cloudy images (>95% cloud cover)
+        im_list_upt = remove_cloudy_images(im_list, satname)
+        sum_img = sum_img + len(im_list_upt)
+        print('  %s: %d images'%(satname,len(im_list_upt)))
+        im_dict_T1[satname] = im_list_upt
+              
+    print('  Total: %d images'%sum_img)
+    
+    # in only S2 is in sat_list, stop here
+    if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':
+        return im_dict_T1, []
+    
+    # otherwise check how many images are available in Landsat Tier 2
+    col_names_T2 = {'L5':'LANDSAT/LT05/C01/T2_TOA',
+                 'L7':'LANDSAT/LE07/C01/T2_TOA',
+                 'L8':'LANDSAT/LC08/C01/T2_TOA'}
+    print('- In Landsat Tier 2:', end='\n')
+    im_dict_T2 = dict([])
+    sum_img = 0
+    for satname in inputs['sat_list']:
+        if satname == 'S2': continue
+        # get list of images in EE collection
+        while True:
+            try:
+                ee_col = ee.ImageCollection(col_names_T2[satname])
+                col = ee_col.filterBounds(ee.Geometry.Polygon(inputs['polygon']))\
+                            .filterDate(inputs['dates'][0],inputs['dates'][1])
+                im_list = col.getInfo().get('features')
+                break
+            except:
+                continue
+        # remove very cloudy images (>95% cloud cover)
+        im_list_upt = remove_cloudy_images(im_list, satname)
+        sum_img = sum_img + len(im_list_upt)
+        print('  %s: %d images'%(satname,len(im_list_upt)))
+        im_dict_T2[satname] = im_list_upt
+
+    print('  Total: %d images'%sum_img) 
+
+    return im_dict_T1, im_dict_T2
+
+
+def download_tif(image, polygon, bandsId, filepath):
+    """
+    Downloads a .TIF image from the ee server. The image is downloaded as a 
+    zip file then moved to the working directory, unzipped and stacked into a 
+    single .TIF file.
+    
+    Two different codes based on which version of the earth-engine-api is being
+    used.
+       
+    KV WRL 2018       
+
+    Arguments:
+    -----------
+    image: ee.Image
+        Image object to be downloaded
+    polygon: list
+        polygon containing the lon/lat coordinates to be extracted
+        longitudes in the first column and latitudes in the second column
+    bandsId: list of dict
+        list of bands to be downloaded
+    filepath: location where the temporary file should be saved
+    
+    Returns:
+    -----------
+    Downloads an image in a file named data.tif     
+      
+    """
+    
+    # for the old version of ee only
+    if ee.__version__ == '0.1.173':
+        url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
+            'image': image.serialize(),
+            'region': polygon,
+            'bands': bandsId,
+            'filePerBand': 'false',
+            'name': 'data',
+            }))
+        local_zip, headers = urlretrieve(url)
+        with zipfile.ZipFile(local_zip) as local_zipfile:
+            return local_zipfile.extract('data.tif', filepath)
+    else:
+        # crop image on the server and create url to download
+        url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
+            'image': image,
+            'region': polygon,
+            'bands': bandsId,
+            'filePerBand': 'false',
+            'name': 'data',
+            }))
+        # download zipfile with the cropped bands
+        local_zip, headers = urlretrieve(url)
+        # move zipfile from temp folder to data folder
+        dest_file = os.path.join(filepath, 'imagezip')
+        shutil.move(local_zip,dest_file)
+        # unzip file 
+        with zipfile.ZipFile(dest_file) as local_zipfile:
+            for fn in local_zipfile.namelist():
+                local_zipfile.extract(fn, filepath)
+            # filepath + filename to single bands
+            fn_tifs = [os.path.join(filepath,_) for _ in local_zipfile.namelist()]
+        # stack bands into single .tif
+        outds = gdal.BuildVRT(os.path.join(filepath,'stacked.vrt'), fn_tifs, separate=True)
+        outds = gdal.Translate(os.path.join(filepath,'data.tif'), outds)
+        # delete single-band files
+        for fn in fn_tifs: os.remove(fn)
+        # delete .vrt file
+        os.remove(os.path.join(filepath,'stacked.vrt'))
+        # delete zipfile
+        os.remove(dest_file)
+        # delete data.tif.aux (not sure why this is created)
+        if os.path.exists(os.path.join(filepath,'data.tif.aux')):
+            os.remove(os.path.join(filepath,'data.tif.aux'))
+        # return filepath to stacked file called data.tif
+        return os.path.join(filepath,'data.tif')
+
+
 def create_folder_structure(im_folder, satname):
     """
     Create the structure of subfolders for each satellite mission
@@ -417,41 +497,6 @@ def create_folder_structure(im_folder, satname):
         if not os.path.exists(fp): os.makedirs(fp)
     
     return filepaths        
-
-
-def download_tif(image, polygon, bandsId, filepath):
-    """
-    Downloads a .TIF image from the ee server and stores it in a temp file
-       
-    KV WRL 2018       
-
-    Arguments:
-    -----------
-    image: ee.Image
-        Image object to be downloaded
-    polygon: list
-        polygon containing the lon/lat coordinates to be extracted
-        longitudes in the first column and latitudes in the second column
-    bandsId: list of dict
-        list of bands to be downloaded
-    filepath: location where the temporary file should be saved
-    
-    Returns:
-    -----------
-    Downloads an image in a file named data.tif     
-      
-    """
-    
-    url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
-        'image': image.serialize(),
-        'region': polygon,
-        'bands': bandsId,
-        'filePerBand': 'false',
-        'name': 'data',
-        }))
-    local_zip, headers = urlretrieve(url)
-    with zipfile.ZipFile(local_zip) as local_zipfile:
-        return local_zipfile.extract('data.tif', filepath)
 
 
 def remove_cloudy_images(im_list, satname, prc_cloud_cover=95):

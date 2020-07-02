@@ -414,7 +414,7 @@ def download_tif(image, polygon, bandsId, filepath):
     """
     
     # for the old version of ee only
-    if ee.__version__ == '0.1.173':
+    if int(ee.__version__[-3:]) <= 201:
         url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
             'image': image.serialize(),
             'region': polygon,
@@ -425,6 +425,7 @@ def download_tif(image, polygon, bandsId, filepath):
         local_zip, headers = urlretrieve(url)
         with zipfile.ZipFile(local_zip) as local_zipfile:
             return local_zipfile.extract('data.tif', filepath)
+    # for the newer versions of ee
     else:
         # crop image on the server and create url to download
         url = ee.data.makeDownloadUrl(ee.data.getDownloadId({

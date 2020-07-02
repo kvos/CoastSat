@@ -6,9 +6,7 @@
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
-To estimate the beach slope from the satellite-derived shorelines and apply a tidal correction check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
-
-Visit the [CoastSat webGIS page](http://coastsat.wrl.unsw.edu.au/) to explore and download a regional-scale dataset of satellite-derived shorelines and beach slopes.
+Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes.
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
 
@@ -18,6 +16,8 @@ The underlying approach of the CoastSat toolkit is described in detail in:
 
 Example applications and accuracy of the resulting satellite-derived shorelines are discussed in:
 * Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+
+To estimate the beach slope from the satellite-derived shorelines and apply a tidal correction check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
 
 ### Description
 
@@ -214,4 +214,4 @@ A fork is a copy on which you can make your changes.
 
 2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
 
-3. Training dataset used for pixel classification in CoastSat: https://doi.org/10.5281/zenodo.3334147
+3. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147

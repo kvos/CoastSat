@@ -282,12 +282,16 @@ def retrieve_images(inputs):
           
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     if 'S2' in metadata.keys():
-        try:
-            metadata = merge_overlapping_images(metadata,inputs)
-        except:
-            print('WARNING: there was an error while merging overlapping S2 images,'+
-                  ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
-                  ' and include your script so we can find out what happened.')
+        if int(ee.__version__[-3:]) <= 201:
+            try:
+                metadata = merge_overlapping_images(metadata,inputs)
+            except:
+                print('WARNING: there was an error while merging overlapping S2 images,'+
+                      ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+                      ' and include your script so we can find out what happened.')
+        else:
+            print('Overlapping Sentinel-2 images cannot be merged with your version of the earthengine-api (%s)'%ee.__version__)
+            print('To be able to merge overlapping images, revert to version 0.1.201')
 
     # save metadata dict
     with open(os.path.join(im_folder, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:

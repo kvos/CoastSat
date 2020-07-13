@@ -12,3 +12,4 @@
 *.geojson
 *checkpoint.ipynb
 *.csv
+*.xml

@@ -66,7 +66,7 @@ metadata = SDS_download.get_metadata(inputs)
 settings = { 
     # general parameters:
     'cloud_thresh': 0.5,        # threshold on maximum cloud cover
-    'output_epsg': 28356,       # epsg code of spatial reference system desired for the output   
+    'output_epsg': 3857,        # epsg code of spatial reference system desired for the output   
     # quality control:
     'check_detection': True,    # if True, shows each shoreline detection to the user for validation
     'save_figure': True,        # if True, saves a figure showing the mapped shoreline for each image

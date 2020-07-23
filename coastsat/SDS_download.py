@@ -131,7 +131,8 @@ def retrieve_images(inputs):
                 # the name of the property containing the flag changes across the S2 archive
                 # check which flag name is used for the image and store the 1/-1 for acc_georef
                 flag_names = ['GEOMETRIC_QUALITY_FLAG', 'GEOMETRIC_QUALITY', 'quality_check']
-                for key in flag_names: if key in im_meta['properties'].keys(): break
+                for key in flag_names: 
+                    if key in im_meta['properties'].keys(): break
                 if im_meta['properties'][key] == 'PASSED': acc_georef = 1
                 else: acc_georef = -1
             georef_accs.append(acc_georef)

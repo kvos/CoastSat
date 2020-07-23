@@ -413,6 +413,85 @@ def merge_output(output):
 
     return output_all
 
+
+def remove_duplicates(output):
+    """
+    Function to remove from the output dictionnary entries containing shorelines for 
+    the same date and satellite mission. This happens when there is an overlap between 
+    adjacent satellite images.
+
+    Arguments:
+    -----------
+        output: dict
+            contains output dict with shoreline and metadata
+
+    Returns:
+    -----------
+        output_no_duplicates: dict
+            contains the updated dict where duplicates have been removed
+
+    """
+
+    # nested function
+    def duplicates_dict(lst):
+        "return duplicates and indices"
+        def duplicates(lst, item):
+                return [i for i, x in enumerate(lst) if x == item]
+        return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)
+
+    dates = output['dates']
+    # make a list with year/month/day
+    dates_str = [_.strftime('%Y%m%d') for _ in dates]
+    # create a dictionnary with the duplicates
+    dupl = duplicates_dict(dates_str)
+    # if there are duplicates, only keep the first element
+    if dupl:
+        output_no_duplicates = dict([])
+        idx_remove = []
+        for k,v in dupl.items():
+            idx_remove.append(v[0])
+        idx_remove = sorted(idx_remove)
+        idx_all = np.linspace(0, len(dates_str)-1, len(dates_str))
+        idx_keep = list(np.where(~np.isin(idx_all,idx_remove))[0])
+        for key in output.keys():
+            output_no_duplicates[key] = [output[key][i] for i in idx_keep]
+        print('%d duplicates' % len(idx_remove))
+        return output_no_duplicates
+    else:
+        print('0 duplicates')
+        return output
+
+def remove_inaccurate_georef(output, accuracy):
+    """
+    Function to remove from the output dictionnary entries containing shorelines 
+    that were mapped on images with inaccurate georeferencing:
+        - RMSE > accuracy for Landsat images
+        - failed geometric test for Sentinel images (flagged with -1)
+
+    Arguments:
+    -----------
+        output: dict
+            contains the extracted shorelines and corresponding metadata
+        accuracy: int
+            minimum horizontal georeferencing accuracy (metres) for a shoreline to be accepted
+
+    Returns:
+    -----------
+        output_filtered: dict
+            contains the updated dictionnary
+
+    """
+
+    # find indices of shorelines to be removed
+    idx = np.where(~np.logical_or(np.array(output['geoaccuracy']) == -1,
+                                  np.array(output['geoaccuracy']) >= accuracy))[0]
+    # idx = np.where(~(np.array(output['geoaccuracy']) >= accuracy))[0]
+    output_filtered = dict([])
+    for key in output.keys():
+        output_filtered[key] = [output[key][i] for i in idx]
+    print('%d bad georef' % (len(output['geoaccuracy']) - len(idx)))
+    return output_filtered
+
 ###################################################################################################
 # CONVERSIONS FROM DICT TO GEODATAFRAME AND READ/WRITE GEOJSON
 ###################################################################################################
@@ -501,7 +580,9 @@ def output_to_gdf(output):
             continue
         else:
             # save the geometry + attributes
-            geom = geometry.LineString(output['shorelines'][i])
+            coords = output['shorelines'][i]
+            geom = geometry.MultiPoint([(coords[_,0], coords[_,1]) for _ in range(coords.shape[0])])
+            # geom = geometry.LineString(output['shorelines'][i])
             gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
             gdf.index = [i]
             gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')

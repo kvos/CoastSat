@@ -91,6 +91,11 @@ settings['max_dist_ref'] = 100
 # extract shorelines from all images (also saves output.pkl and shorelines.kml)
 output = SDS_shoreline.extract_shorelines(metadata, settings)
 
+# remove duplicates (images taken on the same date by the same satellite)
+output = SDS_tools.remove_duplicates(output)
+# remove inaccurate georeferencing (set threshold to 10 m)
+output = SDS_tools.remove_inaccurate_georef(output, 10)
+
 # plot the mapped shorelines
 fig = plt.figure()
 plt.axis('equal')

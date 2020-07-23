@@ -580,7 +580,9 @@ def output_to_gdf(output):
             continue
         else:
             # save the geometry + attributes
-            geom = geometry.LineString(output['shorelines'][i])
+            coords = output['shorelines'][i]
+            geom = geometry.MultiPoint([(coords[_,0], coords[_,1]) for _ in range(coords.shape[0])])
+            # geom = geometry.LineString(output['shorelines'][i])
             gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
             gdf.index = [i]
             gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')

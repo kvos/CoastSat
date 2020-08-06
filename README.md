@@ -10,14 +10,15 @@ Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and do
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
-The underlying approach of the CoastSat toolkit is described in detail in:
+The underlying approach of the CoastSat toolkit is described in detail in the following publications:
 
-* Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
+- Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
+- Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
+- Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 
-Example applications and accuracy of the resulting satellite-derived shorelines are discussed in:
-* Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
-
-To estimate the beach slope from the satellite-derived shorelines check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
+Extensions to this toolbox:
+1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 
 ### Description
 
@@ -28,6 +29,7 @@ The toolbox has three main functionalities:
 - assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
 - automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
 - intersection of the 2D shorelines with user-defined shore-normal transects
+- tidal correction using measured water levels and an estimate of the beach slope
 
 **If you like the repo put a star on it!**
 

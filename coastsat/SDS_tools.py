@@ -492,6 +492,48 @@ def remove_inaccurate_georef(output, accuracy):
     print('%d bad georef' % (len(output['geoaccuracy']) - len(idx)))
     return output_filtered
 
+def get_closest_datapoint(dates, dates_ts, values_ts):
+    """
+    Extremely efficient script to get closest data point to a set of dates from a very
+    long time-series (e.g., 15-minutes tide data, or hourly wave data)
+    
+    Make sure that dates and dates_ts are in the same timezone (also aware or naive)
+    
+    KV WRL 2020
+
+    Arguments:
+    -----------
+    dates: list of datetimes
+        dates at which the closest point from the time-series should be extracted
+    dates_ts: list of datetimes
+        dates of the long time-series
+    values_ts: np.array
+        array with the values of the long time-series (tides, waves, etc...)
+        
+    Returns:    
+    -----------
+    values: np.array
+        values corresponding to the input dates
+        
+    """
+    
+    # check if the time-series cover the dates
+    if dates[0] < dates_ts[0] or dates[-1] > dates_ts[-1]: 
+        raise Exception('Time-series do not cover the range of your input dates')
+    
+    # get closest point to each date (no interpolation)
+    temp = []
+    def find(item, lst):
+        start = 0
+        start = lst.index(item, start)
+        return start
+    for i,date in enumerate(dates):
+        print('\rExtracting closest points: %d%%' % int((i+1)*100/len(dates)), end='')
+        temp.append(values_ts[find(min(item for item in dates_ts if item > date), dates_ts)])
+    values = np.array(temp)
+    
+    return values
+
 ###################################################################################################
 # CONVERSIONS FROM DICT TO GEODATAFRAME AND READ/WRITE GEOJSON
 ###################################################################################################

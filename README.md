@@ -8,7 +8,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/development/examples/doc/example.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
 The underlying approach of the CoastSat toolkit is described in detail in:
 
@@ -17,7 +17,7 @@ The underlying approach of the CoastSat toolkit is described in detail in:
 Example applications and accuracy of the resulting satellite-derived shorelines are discussed in:
 * Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
 
-To estimate the beach slope from the satellite-derived shorelines and apply a tidal correction check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
+To estimate the beach slope from the satellite-derived shorelines check out the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository.
 
 ### Description
 
@@ -163,7 +163,7 @@ As mentioned above, there are some additional parameters that can be modified to
 - `sand_color`: this parameter can take 3 values: `default`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
 
 #### Re-training the classifier
-CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/classification/train_new_classifier.md).
+CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
 
 ### 2.3 Shoreline change analysis
 
@@ -197,6 +197,16 @@ An example is shown in the animation below:
 
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
+### 2.4 Tidal Correction
+
+Each satellite image is captured at a different stage of the tide, therefore a tidal correction is necessary to remove the apparent shoreline changes cause by tidal fluctuations.
+
+In order to tidally-correct the time-series of shoreline change you will need the following data:
+- Time-series of water/tide level: this can be formatted as a .csv file, an example is provided [here](https://github.com/kvos/CoastSat/blob/master/examples/NARRA_tides.csv). Make sure that the dates are in UTC time as the CoastSat shorelines are always in UTC time. Also the vertical datum needs to be approx. Mean Sea Level.
+
+- An estimate of the beach-face slope along each transect. If you don't have this data you can obtain it using [CoastSat.slope](https://github.com/kvos/CoastSat.slope), see [this publication](https://doi.org/10.1029/2020GL088365) for more details (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
+
+
 ## Issues
 Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).
 
@@ -210,8 +220,10 @@ A fork is a copy on which you can make your changes.
 
 ## References
 
-1. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+1. Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 
-2. Vos K., Splinter K.D.,Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528
+2. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
 
-3. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147
+3. Vos K., Harley M.D., Splinter K.D., Walker A., Turner I.L. (2020). Beach slopes from satellite-derived shorelines. *Geophysical Research Letters*. 47(14). https://doi.org/10.1029/2020GL088365 (Open Access preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+
+4. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147

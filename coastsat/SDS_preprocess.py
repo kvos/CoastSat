@@ -492,22 +492,28 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         # resize the cloud mask using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask,(nrows, ncols), order=0, preserve_range=True,
                                       mode='constant')
-        # check if -inf or nan values on any band and add to cloud mask
+        # check if -inf or nan values on any band and create nodata image
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
-            cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
-
         # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
         # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
-        im_zeros = np.ones(cloud_mask.shape).astype(bool)
-        for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
-            im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-        # update cloud mask and nodata
-        cloud_mask = np.logical_or(im_zeros, cloud_mask)
+        im_zeros = np.ones(im_nodata.shape).astype(bool)
+        im_zeros = np.logical_and(np.isin(im_ms[:,:,1],0), im_zeros) # Green
+        im_zeros = np.logical_and(np.isin(im_ms[:,:,3],0), im_zeros) # NIR
+        im_20_zeros = transform.resize(np.isin(im20,0),(nrows, ncols), order=0,
+                                       preserve_range=True, mode='constant').astype(bool)
+        im_zeros = np.logical_and(im_20_zeros, im_zeros) # SWIR1
+        # add to im_nodata
         im_nodata = np.logical_or(im_zeros, im_nodata)
+        # dilate if image was merged as there could be issues at the edges
+        if 'merged' in fn10:
+            im_nodata = morphology.dilation(im_nodata,morphology.square(5))
+            
+        # update cloud mask with all the nodata pixels
+        cloud_mask = np.logical_or(cloud_mask, im_nodata)
 
         # the extra image is the 20m SWIR band
         im_extra = im20

@@ -767,7 +767,10 @@ def merge_overlapping_images(metadata,inputs):
         # rewrite the .txt file with a new metadata file
         with open(fn_im[0][3], 'w') as f:
             for key in metadict0.keys():
-                f.write('%s\t%s\n'%(key,metadict0[key]))        
+                f.write('%s\t%s\n'%(key,metadict0[key]))  
+                
+        # update filenames list (in case there are triplicates)
+        filenames[pair[0]] = metadict0['filename']
      
     print('%d out of %d Sentinel-2 images were merged (overlapping or duplicate)'%(len(pairs), len(filenames)))
 

@@ -642,6 +642,7 @@ def merge_overlapping_images(metadata,inputs):
     sat = 'S2'
     filepath = os.path.join(inputs['filepath'], inputs['sitename'])
     filenames = metadata[sat]['filenames']
+    
     # find the pairs of images that are within 5 minutes of each other
     time_delta = 5*60 # 5 minutes in seconds
     dates = metadata[sat]['dates'].copy()
@@ -662,8 +663,9 @@ def merge_overlapping_images(metadata,inputs):
     for i in range(1,len(pairs)):
         if pairs[i-1][1] == pairs[i][0]:
             pairs[i][0] = pairs[i-1][0]
-
-    # for each pair of image, create a mask and add no_data into the .tif file (this is needed before merging .tif files)
+        
+    # for each pair of image, create a mask and add no_data into the .tif file 
+    # (this is needed before merging .tif files)
     for i,pair in enumerate(pairs):
         fn_im = []
         for index in range(len(pair)):
@@ -674,8 +676,6 @@ def merge_overlapping_images(metadata,inputs):
                   os.path.join(filepath, 'S2', 'meta', filenames[pair[index]].replace('_10m','').replace('.tif','.txt'))])
             # read that image
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False)
-            # im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-
             # in Sentinel2 images close to the edge of the image there are some artefacts,
             # that are squares with constant pixel intensities. They need to be masked in the
             # raster (GEOTIFF). It can be done using the image standard deviation, which
@@ -687,30 +687,37 @@ def merge_overlapping_images(metadata,inputs):
                 im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
                 # dilate to fill the edges (which have high std)
                 mask10 = morphology.dilation(im_binary, morphology.square(3))
-                # mask all 10m bands
-                for k in range(im_ms.shape[2]):
-                    im_ms[mask10,k] = np.nan
                 # mask the 10m .tif file (add no_data where mask is True)
-                SDS_tools.mask_raster(fn_im[index][0], mask10)
-                # create another mask for the 20m band (SWIR1)
-                im_std = SDS_tools.image_std(im_extra,1)
-                im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                mask20 = morphology.dilation(im_binary, morphology.square(3))
-                im_extra[mask20] = np.nan
+                SDS_tools.mask_raster(fn_im[index][0], mask10)    
+                # now calculate the mask for the 20m band (SWIR1)
+                # for the older version of the ee api calculate the image std again 
+                if int(ee.__version__[-3:]) <= 201:
+                    # calculate std to create another mask for the 20m band (SWIR1)
+                    im_std = SDS_tools.image_std(im_extra,1)
+                    im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+                    mask20 = morphology.dilation(im_binary, morphology.square(3))    
+                # for the newer versions just resample the mask for the 10m bands
+                else: 
+                    # create mask for the 20m band (SWIR1) by resampling the 10m one
+                    mask20 = ndimage.zoom(mask10,zoom=1/2,order=0)
+                    mask20 = transform.resize(mask20, im_extra.shape, mode='constant',
+                                              order=0, preserve_range=True)
+                    mask20 = mask20.astype(bool)     
                 # mask the 20m .tif file (im_extra)
                 SDS_tools.mask_raster(fn_im[index][1], mask20)
-                # use the 20m mask to create a mask for the 60m QA band (by resampling)
+                # create a mask for the 60m QA band by resampling the 20m one
                 mask60 = ndimage.zoom(mask20,zoom=1/3,order=0)
-                mask60 = transform.resize(mask60, im_QA.shape, mode='constant', order=0,
-                                          preserve_range=True)
+                mask60 = transform.resize(mask60, im_QA.shape, mode='constant',
+                                          order=0, preserve_range=True)
                 mask60 = mask60.astype(bool)
                 # mask the 60m .tif file (im_QA)
-                SDS_tools.mask_raster(fn_im[index][2], mask60)
+                SDS_tools.mask_raster(fn_im[index][2], mask60)   
             else:
                 continue
-
+            
             # make a figure for quality control
-            # fig,ax= plt.subplots(2,2,tight_layout=True)
+            # im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
+            # fig,ax= plt.subplots(2,3,tight_layout=True)
             # ax[0,0].imshow(im_RGB)
             # ax[0,0].set_title('RGB original')
             # ax[1,0].imshow(mask10)
@@ -719,7 +726,11 @@ def merge_overlapping_images(metadata,inputs):
             # ax[0,1].set_title('Mask 20m')
             # ax[1,1].imshow(mask60)
             # ax[1,1].set_title('Mask 60 m')
-
+            # ax[0,2].imshow(im_QA)
+            # ax[0,2].set_title('Im QA')
+            # ax[1,2].imshow(im_nodata)
+            # ax[1,2].set_title('Im nodata')
+    
         # once all the pairs of .tif files have been masked with no_data, merge the using gdal_merge
         fn_merged = os.path.join(filepath, 'merged.tif')
 
@@ -753,8 +764,8 @@ def merge_overlapping_images(metadata,inputs):
         # remove the metadata .txt file of the duplicate image
         os.chmod(fn_im[1][3], 0o777)
         os.remove(fn_im[1][3])
-
-    print('%d Sentinel-2 images were merged (overlapping or duplicate)' % len(pairs))
+     
+    print('%d out of %d Sentinel-2 images were merged (overlapping or duplicate)'%(len(pairs), len(filenames)))
 
     # update the metadata dict
     metadata_updated = copy.deepcopy(metadata)

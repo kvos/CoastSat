@@ -2,7 +2,7 @@
 
 CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before.
 
-For this reason, we provide the possibility to re-train the classifier by adding labelled data from new sites. This can be done very quickly and easily by using this [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/CoastSat-classifier/classification/train_new_classifier.ipynb).
+For this reason, we provide the possibility to re-train the classifier by adding labelled data from new sites. This can be done very quickly and easily by using this [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/master/classification/train_new_classifier.ipynb).
 
 Let's take this example, Playa Chañaral in the Atacama desert, Chile. At this beach, the sand is extremely white and the default classifier is not able to label correctly the sand pixels:
 

@@ -655,122 +655,154 @@ def merge_overlapping_images(metadata,inputs):
         else:
             idx_dup = np.where(boolvec)[0][0]
             pairs.append([i,idx_dup])
-    # because they could be triplicates in S2 images, adjust the  for consecutive merges
+    # because they could be triplicates in S2 images, adjust the pairs for consecutive merges
     for i in range(1,len(pairs)):
         if pairs[i-1][1] == pairs[i][0]:
             pairs[i][0] = pairs[i-1][0]
         
-    # for each pair of image, create a mask and add no_data into the .tif file 
-    # (this is needed before merging .tif files)
+    # for each pair of image, first check if one image completely contains the other
+    # in that case keep the larger image. Otherwise merge the two images.
     for i,pair in enumerate(pairs):
+        # get filenames of all the files corresponding to the each image in the pair
         fn_im = []
         for index in range(len(pair)):
-            # get filenames of all the files corresponding to the each image in the pair
             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[pair[index]]),
                   os.path.join(filepath, 'S2', '20m',  filenames[pair[index]].replace('10m','20m')),
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m')),
                   os.path.join(filepath, 'S2', 'meta', filenames[pair[index]].replace('_10m','').replace('.tif','.txt'))])
-            # read that image
-            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False)
-            # in Sentinel2 images close to the edge of the image there are some artefacts,
-            # that are squares with constant pixel intensities. They need to be masked in the
-            # raster (GEOTIFF). It can be done using the image standard deviation, which
-            # indicates values close to 0 for the artefacts.
-            if len(im_ms) > 0:
-                # calculate image std for the first 10m band
-                im_std = SDS_tools.image_std(im_ms[:,:,0],1)
-                # convert to binary
-                im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                # dilate to fill the edges (which have high std)
-                mask10 = morphology.dilation(im_binary, morphology.square(3))
-                # mask the 10m .tif file (add no_data where mask is True)
-                SDS_tools.mask_raster(fn_im[index][0], mask10)    
-                # now calculate the mask for the 20m band (SWIR1)
-                # for the older version of the ee api calculate the image std again 
-                if int(ee.__version__[-3:]) <= 201:
-                    # calculate std to create another mask for the 20m band (SWIR1)
-                    im_std = SDS_tools.image_std(im_extra,1)
+        # get polygon for first image
+        polygon0 = SDS_tools.get_image_bounds(fn_im[0][0])
+        im_epsg0 = metadata[sat]['epsg'][pair[0]]
+        # get polygon for second image
+        polygon1 = SDS_tools.get_image_bounds(fn_im[1][0])
+        im_epsg1 = metadata[sat]['epsg'][pair[1]]  
+        # check if epsg are the same
+        if not im_epsg0 == im_epsg1:
+            print('WARNING: there was an error as two S2 images do not have the same epsg,'+
+                  ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+                  ' and include your script so we can find out what happened.')
+            break
+        # check if one image contains the other one
+        if polygon0.contains(polygon1):  
+            # if polygon0 contains polygon1, remove files for polygon1
+            for k in range(4):  # remove the 3 .tif files + the .txt file
+                os.chmod(fn_im[1][k], 0o777)
+                os.remove(fn_im[1][k])
+            continue
+            # print('removed 1')
+        elif polygon1.contains(polygon0):
+            # if polygon1 contains polygon0, remove image0
+            for k in range(4):   # remove the 3 .tif files + the .txt file
+                os.chmod(fn_im[0][k], 0o777)
+                os.remove(fn_im[0][k])
+            # print('removed 0')
+            # adjust the order in case of triplicates
+            if i+1 < len(pairs):
+                if pairs[i+1][0] == pair[0]: pairs[i+1][0] = pairs[i][1]
+            continue
+        # otherwise merge the two images after masking the nodata values
+        else:
+            for index in range(len(pair)):
+                # read image
+                im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False)
+                # in Sentinel2 images close to the edge of the image there are some artefacts,
+                # that are squares with constant pixel intensities. They need to be masked in the
+                # raster (GEOTIFF). It can be done using the image standard deviation, which
+                # indicates values close to 0 for the artefacts.
+                if len(im_ms) > 0:
+                    # calculate image std for the first 10m band
+                    im_std = SDS_tools.image_std(im_ms[:,:,0],1)
+                    # convert to binary
                     im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                    mask20 = morphology.dilation(im_binary, morphology.square(3))    
-                # for the newer versions just resample the mask for the 10m bands
-                else:
-                    # create mask for the 20m band (SWIR1) by resampling the 10m one
-                    mask20 = ndimage.zoom(mask10,zoom=1/2,order=0)
-                    mask20 = transform.resize(mask20, im_extra.shape, mode='constant',
+                    # dilate to fill the edges (which have high std)
+                    mask10 = morphology.dilation(im_binary, morphology.square(3))
+                    # mask the 10m .tif file (add no_data where mask is True)
+                    SDS_tools.mask_raster(fn_im[index][0], mask10)    
+                    # now calculate the mask for the 20m band (SWIR1)
+                    # for the older version of the ee api calculate the image std again 
+                    if int(ee.__version__[-3:]) <= 201:
+                        # calculate std to create another mask for the 20m band (SWIR1)
+                        im_std = SDS_tools.image_std(im_extra,1)
+                        im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
+                        mask20 = morphology.dilation(im_binary, morphology.square(3))    
+                    # for the newer versions just resample the mask for the 10m bands
+                    else:
+                        # create mask for the 20m band (SWIR1) by resampling the 10m one
+                        mask20 = ndimage.zoom(mask10,zoom=1/2,order=0)
+                        mask20 = transform.resize(mask20, im_extra.shape, mode='constant',
+                                                  order=0, preserve_range=True)
+                        mask20 = mask20.astype(bool)     
+                    # mask the 20m .tif file (im_extra)
+                    SDS_tools.mask_raster(fn_im[index][1], mask20)
+                    # create a mask for the 60m QA band by resampling the 20m one
+                    mask60 = ndimage.zoom(mask20,zoom=1/3,order=0)
+                    mask60 = transform.resize(mask60, im_QA.shape, mode='constant',
                                               order=0, preserve_range=True)
-                    mask20 = mask20.astype(bool)     
-                # mask the 20m .tif file (im_extra)
-                SDS_tools.mask_raster(fn_im[index][1], mask20)
-                # create a mask for the 60m QA band by resampling the 20m one
-                mask60 = ndimage.zoom(mask20,zoom=1/3,order=0)
-                mask60 = transform.resize(mask60, im_QA.shape, mode='constant',
-                                          order=0, preserve_range=True)
-                mask60 = mask60.astype(bool)
-                # mask the 60m .tif file (im_QA)
-                SDS_tools.mask_raster(fn_im[index][2], mask60)   
-                
-                # make a figure for quality control/debugging
-                # im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-                # fig,ax= plt.subplots(2,3,tight_layout=True)
-                # ax[0,0].imshow(im_RGB)
-                # ax[0,0].set_title('RGB original')
-                # ax[1,0].imshow(mask10)
-                # ax[1,0].set_title('Mask 10m')
-                # ax[0,1].imshow(mask20)
-                # ax[0,1].set_title('Mask 20m')
-                # ax[1,1].imshow(mask60)
-                # ax[1,1].set_title('Mask 60 m')
-                # ax[0,2].imshow(im_QA)
-                # ax[0,2].set_title('Im QA')
-                # ax[1,2].imshow(im_nodata)
-                # ax[1,2].set_title('Im nodata')
-                
-            else:
-                continue
-
-        # once all the pairs of .tif files have been masked with no_data, merge the using gdal_merge
-        fn_merged = os.path.join(filepath, 'merged.tif')
-        for k in range(3):  
-            # merge masked bands
-            gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][k], fn_im[1][k]])
-            # remove old files
-            os.chmod(fn_im[0][k], 0o777)
-            os.remove(fn_im[0][k])
-            os.chmod(fn_im[1][k], 0o777)
-            os.remove(fn_im[1][k])
-            # rename new file
-            fn_new = fn_im[0][k].split('.')[0] + '_merged.tif'
-            os.chmod(fn_merged, 0o777)
-            os.rename(fn_merged, fn_new)
-
-        # open both metadata files
-        metadict0 = dict([])
-        with open(fn_im[0][3], 'r') as f:
-            metadict0['filename'] = f.readline().split('\t')[1].replace('\n','')
-            metadict0['acc_georef'] = float(f.readline().split('\t')[1].replace('\n',''))
-            metadict0['epsg'] = int(f.readline().split('\t')[1].replace('\n',''))
-        metadict1 = dict([])
-        with open(fn_im[1][3], 'r') as f:
-            metadict1['filename'] = f.readline().split('\t')[1].replace('\n','')
-            metadict1['acc_georef'] = float(f.readline().split('\t')[1].replace('\n',''))
-            metadict1['epsg'] = int(f.readline().split('\t')[1].replace('\n',''))
-        # check if both images have the same georef accuracy
-        if np.any(np.array([metadict0['acc_georef'],metadict1['acc_georef']]) == -1):
-            metadict0['georef'] = -1
-        # add new name
-        metadict0['filename'] =  metadict0['filename'].split('.')[0] + '_merged.tif'
-        # remove the old metadata.txt files
-        os.chmod(fn_im[0][3], 0o777)
-        os.remove(fn_im[0][3])
-        os.chmod(fn_im[1][3], 0o777)
-        os.remove(fn_im[1][3])        
-        # rewrite the .txt file with a new metadata file
-        with open(fn_im[0][3], 'w') as f:
-            for key in metadict0.keys():
-                f.write('%s\t%s\n'%(key,metadict0[key]))  
-                
-        # update filenames list (in case there are triplicates)
-        filenames[pair[0]] = metadict0['filename']
+                    mask60 = mask60.astype(bool)
+                    # mask the 60m .tif file (im_QA)
+                    SDS_tools.mask_raster(fn_im[index][2], mask60)   
+                    # make a figure for quality control/debugging
+                    # im_RGB = SDS_preprocess.rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
+                    # fig,ax= plt.subplots(2,3,tight_layout=True)
+                    # ax[0,0].imshow(im_RGB)
+                    # ax[0,0].set_title('RGB original')
+                    # ax[1,0].imshow(mask10)
+                    # ax[1,0].set_title('Mask 10m')
+                    # ax[0,1].imshow(mask20)
+                    # ax[0,1].set_title('Mask 20m')
+                    # ax[1,1].imshow(mask60)
+                    # ax[1,1].set_title('Mask 60 m')
+                    # ax[0,2].imshow(im_QA)
+                    # ax[0,2].set_title('Im QA')
+                    # ax[1,2].imshow(im_nodata)
+                    # ax[1,2].set_title('Im nodata') 
+                else:
+                    continue
+    
+            # once all the pairs of .tif files have been masked with no_data, merge the using gdal_merge
+            fn_merged = os.path.join(filepath, 'merged.tif')
+            for k in range(3):  
+                # merge masked bands
+                gdal_merge.main(['', '-o', fn_merged, '-n', '0', fn_im[0][k], fn_im[1][k]])
+                # remove old files
+                os.chmod(fn_im[0][k], 0o777)
+                os.remove(fn_im[0][k])
+                os.chmod(fn_im[1][k], 0o777)
+                os.remove(fn_im[1][k])
+                # rename new file
+                fn_new = fn_im[0][k].split('.')[0] + '_merged.tif'
+                os.chmod(fn_merged, 0o777)
+                os.rename(fn_merged, fn_new)
+    
+            # open both metadata files
+            metadict0 = dict([])
+            with open(fn_im[0][3], 'r') as f:
+                metadict0['filename'] = f.readline().split('\t')[1].replace('\n','')
+                metadict0['acc_georef'] = float(f.readline().split('\t')[1].replace('\n',''))
+                metadict0['epsg'] = int(f.readline().split('\t')[1].replace('\n',''))
+            metadict1 = dict([])
+            with open(fn_im[1][3], 'r') as f:
+                metadict1['filename'] = f.readline().split('\t')[1].replace('\n','')
+                metadict1['acc_georef'] = float(f.readline().split('\t')[1].replace('\n',''))
+                metadict1['epsg'] = int(f.readline().split('\t')[1].replace('\n',''))
+            # check if both images have the same georef accuracy
+            if np.any(np.array([metadict0['acc_georef'],metadict1['acc_georef']]) == -1):
+                metadict0['georef'] = -1
+            # add new name
+            metadict0['filename'] =  metadict0['filename'].split('.')[0] + '_merged.tif'
+            # remove the old metadata.txt files
+            os.chmod(fn_im[0][3], 0o777)
+            os.remove(fn_im[0][3])
+            os.chmod(fn_im[1][3], 0o777)
+            os.remove(fn_im[1][3])        
+            # rewrite the .txt file with a new metadata file
+            fn_new = fn_im[0][3].split('.')[0] + '_merged.txt'
+            with open(fn_new, 'w') as f:
+                for key in metadict0.keys():
+                    f.write('%s\t%s\n'%(key,metadict0[key]))  
+                    
+            # update filenames list (in case there are triplicates)
+            filenames[pair[0]] = metadict0['filename']
      
     print('%d out of %d Sentinel-2 images were merged (overlapping or duplicate)'%(len(pairs), len(filenames)))
 

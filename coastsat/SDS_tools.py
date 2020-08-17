@@ -672,3 +672,45 @@ def transects_to_gdf(transects):
             gdf_all = gdf_all.append(gdf)
             
     return gdf_all
+
+def get_image_bounds(fn):
+    """
+    Returns a polygon with the bounds of the image in the .tif file
+     
+    KV WRL 2020
+
+    Arguments:
+    -----------
+    fn: str
+        path to the image (.tif file)         
+                
+    Returns:    
+    -----------
+    bounds_polygon: shapely.geometry.Polygon
+        polygon with the image bounds
+        
+    """
+    
+    # nested functions to get the extent 
+    # copied from https://gis.stackexchange.com/questions/57834/how-to-get-raster-corner-coordinates-using-python-gdal-bindings
+    def GetExtent(gt,cols,rows):
+        'Return list of corner coordinates from a geotransform'
+        ext=[]
+        xarr=[0,cols]
+        yarr=[0,rows]
+        for px in xarr:
+            for py in yarr:
+                x=gt[0]+(px*gt[1])+(py*gt[2])
+                y=gt[3]+(px*gt[4])+(py*gt[5])
+                ext.append([x,y])
+            yarr.reverse()
+        return ext
+    
+    # load .tif file and get bounds
+    data = gdal.Open(fn, gdal.GA_ReadOnly)
+    gt = data.GetGeoTransform()
+    cols = data.RasterXSize
+    rows = data.RasterYSize
+    ext = GetExtent(gt,cols,rows)
+    
+    return geometry.Polygon(ext)

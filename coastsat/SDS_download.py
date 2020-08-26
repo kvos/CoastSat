@@ -688,8 +688,8 @@ def merge_overlapping_images(metadata,inputs):
             for k in range(4):  # remove the 3 .tif files + the .txt file
                 os.chmod(fn_im[1][k], 0o777)
                 os.remove(fn_im[1][k])
-            continue
             # print('removed 1')
+            continue
         elif polygon1.contains(polygon0):
             # if polygon1 contains polygon0, remove image0
             for k in range(4):   # remove the 3 .tif files + the .txt file

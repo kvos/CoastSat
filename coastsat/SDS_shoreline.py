@@ -758,10 +758,11 @@ def extract_shorelines(metadata, settings):
             image_epsg = metadata[satname]['epsg'][i]
             # define an advanced cloud mask (for L7 it takes into account the fact that diagonal
             # bands of no data are not clouds)
-            if not satname == 'L7' or sum(sum(im_nodata)) == 0 or sum(sum(im_nodata)) > 0.5*im_nodata.size:
-                cloud_mask_adv = cloud_mask
-            else:
-                cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
+            # if not satname == 'L7' or sum(sum(im_nodata)) == 0 or sum(sum(im_nodata)) > 0.5*im_nodata.size:
+            #     cloud_mask_adv = cloud_mask
+            # else:
+            #     cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
+            cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
 
             # calculate cloud cover
             cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),

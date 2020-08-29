@@ -756,18 +756,19 @@ def extract_shorelines(metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, settings['cloud_mask_issue'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
-            # define an advanced cloud mask (for L7 it takes into account the fact that diagonal
-            # bands of no data are not clouds)
-            # if not satname == 'L7' or sum(sum(im_nodata)) == 0 or sum(sum(im_nodata)) > 0.5*im_nodata.size:
-            #     cloud_mask_adv = cloud_mask
-            # else:
-            #     cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
-            cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
-
-            # calculate cloud cover
+            
+            # compute cloud_cover percentage (with no data pixels)
+            cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
+                                    (cloud_mask.shape[0]*cloud_mask.shape[1]))
+            if cloud_cover_combined > 0.99: # if 99% of cloudy pixels in image skip
+                continue
+            # remove no data pixels from the cloud mask 
+            # (for example L7 bands of no data should not be accounted for)
+            cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata) 
+            # compute updated cloud cover percentage (without no data pixels)
             cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
-            # skip image if cloud cover is above threshold
+            # skip image if cloud cover is above user-defined threshold
             if cloud_cover > settings['cloud_thresh']:
                 continue
 
@@ -831,7 +832,7 @@ def extract_shorelines(metadata, settings):
                 }
         print('')
 
-    # Close figure window if still open
+    # close figure window if still open
     if plt.get_fignums():
         plt.close()
 
@@ -842,12 +843,5 @@ def extract_shorelines(metadata, settings):
     filepath = os.path.join(filepath_data, sitename)
     with open(os.path.join(filepath, sitename + '_output.pkl'), 'wb') as f:
         pickle.dump(output, f)
-
-    # save output into a gdb.GeoDataFrame
-    gdf = SDS_tools.output_to_gdf(output)
-    # set projection
-    gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])}
-    # save as geojson
-    gdf.to_file(os.path.join(filepath, sitename + '_output.geojson'), driver='GeoJSON', encoding='utf-8')
 
     return output

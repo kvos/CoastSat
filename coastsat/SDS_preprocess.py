@@ -300,21 +300,22 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         georef[0] = georef[0] + 7.5
         georef[3] = georef[3] - 7.5
         
-        # check if -inf or nan values on any band and add to cloud mask
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask        
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
-            cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
         # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
         # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
         im_zeros = np.ones(cloud_mask.shape).astype(bool)
         for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-        # update cloud mask and nodata
-        cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, im_nodata)
+        # add zeros to im nodata
+        im_nodata = np.logical_or(im_zeros, im_nodata)   
+        # update cloud mask with all the nodata pixels
+        cloud_mask = np.logical_or(cloud_mask, im_nodata)
+        
         # no extra image for Landsat 5 (they are all 30 m bands)
         im_extra = []
 
@@ -351,21 +352,21 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         # resize the image using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_')
-        # check if -inf or nan values on any band and eventually add those pixels to cloud mask
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask        
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
-            cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
         # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
         # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
         im_zeros = np.ones(cloud_mask.shape).astype(bool)
         for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-        # update cloud mask and nodata
-        cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, im_nodata)
+        # add zeros to im nodata
+        im_nodata = np.logical_or(im_zeros, im_nodata)   
+        # update cloud mask with all the nodata pixels
+        cloud_mask = np.logical_or(cloud_mask, im_nodata)
 
         # pansharpen Green, Red, NIR (where there is overlapping with pan band in L7)
         try:
@@ -413,22 +414,22 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         # resize the image using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_')
-        # check if -inf or nan values on any band and eventually add those pixels to cloud mask
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask        
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
-            cloud_mask = np.logical_or(np.logical_or(cloud_mask, im_inf), im_nan)
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
         # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
         # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
         im_zeros = np.ones(cloud_mask.shape).astype(bool)
         for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-        # update cloud mask and nodata
-        cloud_mask = np.logical_or(im_zeros, cloud_mask)
-        im_nodata = np.logical_or(im_zeros, im_nodata)
-
+        # add zeros to im nodata
+        im_nodata = np.logical_or(im_zeros, im_nodata)   
+        # update cloud mask with all the nodata pixels
+        cloud_mask = np.logical_or(cloud_mask, im_nodata)
+        
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
             im_ms_ps = pansharpen(im_ms[:,:,[0,1,2]], im_pan, cloud_mask)

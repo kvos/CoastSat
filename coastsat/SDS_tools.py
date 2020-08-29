@@ -596,7 +596,7 @@ def transects_from_geojson(filename):
 
     return transects
 
-def output_to_gdf(output):
+def output_to_gdf(output, geomtype):
     """
     Saves the mapped shorelines as a gpd.GeoDataFrame    
     
@@ -605,7 +605,9 @@ def output_to_gdf(output):
     Arguments:
     -----------
     output: dict
-        contains the coordinates of the mapped shorelines + attributes          
+        contains the coordinates of the mapped shorelines + attributes
+    geomtype: str
+        'lines' for LineString and 'points' for Multipoint geometry      
                 
     Returns:    
     -----------
@@ -621,10 +623,15 @@ def output_to_gdf(output):
         if len(output['shorelines'][i]) == 0:
             continue
         else:
-            # save the geometry + attributes
-            coords = output['shorelines'][i]
-            geom = geometry.MultiPoint([(coords[_,0], coords[_,1]) for _ in range(coords.shape[0])])
-            # geom = geometry.LineString(output['shorelines'][i])
+            # save the geometry depending on the linestyle
+            if geomtype == 'lines':
+                geom = geometry.LineString(output['shorelines'][i])
+            elif geomtype == 'points':
+                coords = output['shorelines'][i]
+                geom = geometry.MultiPoint([(coords[_,0], coords[_,1]) for _ in range(coords.shape[0])])
+            else:
+                raise Exception('geomtype %s is not an option, choose between lines or points'%geomtype)
+            # save into geodataframe with attributes
             gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(geom))
             gdf.index = [i]
             gdf.loc[i,'date'] = output['dates'][i].strftime('%Y-%m-%d %H:%M:%S')

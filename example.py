@@ -100,6 +100,14 @@ output = SDS_tools.remove_duplicates(output)
 # remove inaccurate georeferencing (set threshold to 10 m)
 output = SDS_tools.remove_inaccurate_georef(output, 10)
 
+# for GIS applications, save output into a GEOJSON layer
+geomtype = 'lines' # choose 'points' or 'lines' for the layer geometry
+gdf = SDS_tools.output_to_gdf(output, geomtype)
+gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])} # set layer projection
+# save GEOJSON layer to file
+gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.geojson'%(sitename,geomtype)),
+                                driver='GeoJSON', encoding='utf-8')
+
 # plot the mapped shorelines
 fig = plt.figure(figsize=[15,8], tight_layout=True)
 plt.axis('equal')

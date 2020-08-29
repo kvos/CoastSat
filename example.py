@@ -33,7 +33,7 @@ polygon = [[[151.301454, -33.700754],
 dates = ['2017-12-01', '2018-01-01']
 
 # satellite missions
-sat_list = ['S2']
+sat_list = ['L7','L8','S2']
 
 # name of the site
 sitename = 'NARRA'

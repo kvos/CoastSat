@@ -17,6 +17,8 @@ from shapely import geometry
 import skimage.transform as transform
 from astropy.convolution import convolve
 
+np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
+
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
 ###################################################################################################

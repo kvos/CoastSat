@@ -396,18 +396,8 @@ def find_wl_contours1(im_ndwi, cloud_mask, im_ref_buffer):
     im_ndwi_buffer = np.copy(im_ndwi)
     im_ndwi_buffer[~im_ref_buffer] = np.nan
     contours = measure.find_contours(im_ndwi_buffer, t_otsu)
-
     # remove contours that contain NaNs (due to cloud pixels in the contour)
-    contours_nonans = []
-    for k in range(len(contours)):
-        if np.any(np.isnan(contours[k])):
-            index_nan = np.where(np.isnan(contours[k]))[0]
-            contours_temp = np.delete(contours[k], index_nan, axis=0)
-            if len(contours_temp) > 1:
-                contours_nonans.append(contours_temp)
-        else:
-            contours_nonans.append(contours[k])
-    contours = contours_nonans
+    contours = process_contours(contours)
 
     return contours
 
@@ -486,31 +476,9 @@ def find_wl_contours2(im_ms, im_labels, cloud_mask, buffer_size, im_ref_buffer):
     im_mwi_buffer[~im_ref_buffer] = np.nan
     contours_wi = measure.find_contours(im_wi_buffer, t_wi)
     contours_mwi = measure.find_contours(im_mwi_buffer, t_mwi)
-
     # remove contour points that are NaNs (around clouds)
-    contours = contours_wi
-    contours_nonans = []
-    for k in range(len(contours)):
-        if np.any(np.isnan(contours[k])):
-            index_nan = np.where(np.isnan(contours[k]))[0]
-            contours_temp = np.delete(contours[k], index_nan, axis=0)
-            if len(contours_temp) > 1:
-                contours_nonans.append(contours_temp)
-        else:
-            contours_nonans.append(contours[k])
-    contours_wi = contours_nonans
-    # repeat for MNDWI contours
-    contours = contours_mwi
-    contours_nonans = []
-    for k in range(len(contours)):
-        if np.any(np.isnan(contours[k])):
-            index_nan = np.where(np.isnan(contours[k]))[0]
-            contours_temp = np.delete(contours[k], index_nan, axis=0)
-            if len(contours_temp) > 1:
-                contours_nonans.append(contours_temp)
-        else:
-            contours_nonans.append(contours[k])
-    contours_mwi = contours_nonans
+    contours_wi = process_contours(contours_wi)
+    contours_mwi = process_contours(contours_mwi)
 
     return contours_wi, contours_mwi
 
@@ -579,6 +547,39 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
 
     return im_buffer
 
+def process_contours(contours):
+    """
+    Remove contours that contain NaNs, usually these are contours that are in contact 
+    with clouds.
+    
+    KV WRL 2020
+    
+    Arguments:
+    -----------
+    contours: list of np.array
+        image contours as detected by the function skimage.measure.find_contours    
+    
+    Returns:
+    -----------
+    contours: list of np.array
+        processed image contours (only the ones that do not contains NaNs) 
+        
+    """
+    
+    # initialise variable
+    contours_nonans = []
+    # loop through contours and only keep the ones without NaNs
+    for k in range(len(contours)):
+        if np.any(np.isnan(contours[k])):
+            index_nan = np.where(np.isnan(contours[k]))[0]
+            contours_temp = np.delete(contours[k], index_nan, axis=0)
+            if len(contours_temp) > 1:
+                contours_nonans.append(contours_temp)
+        else:
+            contours_nonans.append(contours[k])
+    
+    return contours_nonans
+    
 def process_shoreline(contours, cloud_mask, georef, image_epsg, settings):
     """
     Converts the contours from image coordinates to world coordinates. 

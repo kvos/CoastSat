@@ -77,7 +77,7 @@ def retrieve_images(inputs):
         date, filename, georeferencing accuracy and image coordinate reference system
 
     """
-
+    
     # initialise connection with GEE server
     ee.Initialize()
 
@@ -374,6 +374,11 @@ def check_images_available(inputs):
     im_dict_T2: list of dict
         list of images in Tier 2 (Landsat only)
     """
+
+    # check if dates are in correct order
+    dates = [datetime.strptime(_,'%Y-%m-%d') for _ in inputs['dates']]
+    if  dates[1] <= dates[0]:
+        raise Exception('Verify that your dates are in the correct order')
 
     # check if EE was initialised or not
     try:

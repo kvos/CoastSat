@@ -814,7 +814,7 @@ def get_reference_sl(metadata, settings):
                     plt.draw()
 
                     # let user click on the shoreline
-                    pts = ginput(n=50000, timeout=1e9, show_clicks=True)
+                    pts = ginput(n=50000, timeout=-1, show_clicks=True)
                     pts_pix = np.array(pts)
                     # convert pixel coordinates to world coordinates
                     pts_world = SDS_tools.convert_pix2world(pts_pix[:,[1,0]], georef)
@@ -854,7 +854,7 @@ def get_reference_sl(metadata, settings):
                     plt.draw()
 
                     # let the user click again (<add> another shoreline or <end>)
-                    pt_input = ginput(n=1, timeout=1e9, show_clicks=False)
+                    pt_input = ginput(n=1, timeout=-1, show_clicks=False)
                     pt_input = np.array(pt_input)
 
                     # if user clicks on <end>, save the points and break the loop

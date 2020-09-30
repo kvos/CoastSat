@@ -109,7 +109,7 @@ def draw_transects(output, settings):
     # loop until user breaks it by click <enter>
     while 1:
         # let user click two points
-        pts = ginput(n=2, timeout=1e9)
+        pts = ginput(n=2, timeout=-1)
         if len(pts) > 0:
             origin = pts[0]
         # if user presses <enter>, no points are selected

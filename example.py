@@ -26,9 +26,11 @@ polygon = [[[151.301454, -33.700754],
             [151.294220, -33.736329],
             [151.301454, -33.700754]]]
 # can also be loaded from a .kml polygon
-#kml_polygon = os.path.join(os.getcwd(), 'examples', 'NARRA_polygon.kml')
-#polygon = SDS_tools.polygon_from_kml(kml_polygon)
-       
+# kml_polygon = os.path.join(os.getcwd(), 'examples', 'NARRA_polygon.kml')
+# polygon = SDS_tools.polygon_from_kml(kml_polygon)
+# convert polygon to a smallest rectangle (sides parallel to coordinate axes)       
+polygon = SDS_tools.smallest_rectangle(polygon)
+
 # date range
 dates = ['2017-12-01', '2018-01-01']
 

@@ -723,3 +723,29 @@ def get_image_bounds(fn):
     ext = GetExtent(gt,cols,rows)
     
     return geometry.Polygon(ext)
+
+def smallest_rectangle(polygon):
+    """
+    Converts a polygon to the smallest rectangle polygon with sides parallel
+    to coordinate axes.
+     
+    KV WRL 2020
+
+    Arguments:
+    -----------
+    polygon: list of coordinates 
+        pair of coordinates for 5 vertices, in clockwise order,
+        first and last points must match     
+                
+    Returns:    
+    -----------
+    polygon: list of coordinates
+        smallest rectangle polygon
+        
+    """
+    
+    multipoints = geometry.Polygon(polygon[0])
+    polygon_geom = multipoints.envelope
+    coords_polygon = np.array(polygon_geom.exterior.coords)
+    polygon_rect = [[[_[0], _[1]] for _ in coords_polygon]]
+    return polygon_rect

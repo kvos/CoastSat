@@ -30,202 +30,7 @@ from coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
-def create_cloud_mask(im_QA, satname, cloud_mask_issue):
-    """
-    Creates a cloud mask using the information contained in the QA band.
-
-    KV WRL 2018
-
-    Arguments:
-    -----------
-    im_QA: np.array
-        Image containing the QA band
-    satname: string
-        short name for the satellite: ```'L5', 'L7', 'L8' or 'S2'```
-    cloud_mask_issue: boolean
-        True if there is an issue with the cloud mask and sand pixels are being
-        erroneously masked on the images
-
-    Returns:
-    -----------
-    cloud_mask : np.array
-        boolean array with True if a pixel is cloudy and False otherwise
-        
-    """
-
-    # convert QA bits (the bits allocated to cloud cover vary depending on the satellite mission)
-    if satname == 'L8':
-        cloud_values = [2800, 2804, 2808, 2812, 6896, 6900, 6904, 6908]
-    elif satname == 'L7' or satname == 'L5' or satname == 'L4':
-        cloud_values = [752, 756, 760, 764]
-    elif satname == 'S2':
-        cloud_values = [1024, 2048] # 1024 = dense cloud, 2048 = cirrus clouds
-
-    # find which pixels have bits corresponding to cloud values
-    cloud_mask = np.isin(im_QA, cloud_values)
-
-    # remove cloud pixels that form very thin features. These are beach or swash pixels that are
-    # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
-    if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
-        morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
-
-        if cloud_mask_issue:
-            elem = morphology.square(3) # use a square of width 3 pixels
-            cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
-            # remove objects with less than 25 connected pixels
-            morphology.remove_small_objects(cloud_mask, min_size=25, connectivity=1, in_place=True)
-
-    return cloud_mask
-
-def hist_match(source, template):
-    """
-    Adjust the pixel values of a grayscale image such that its histogram matches
-    that of a target image.
-
-    Arguments:
-    -----------
-    source: np.array
-        Image to transform; the histogram is computed over the flattened
-        array
-    template: np.array
-        Template image; can have different dimensions to source
-        
-    Returns:
-    -----------
-    matched: np.array
-        The transformed output image
-        
-    """
-
-    oldshape = source.shape
-    source = source.ravel()
-    template = template.ravel()
-
-    # get the set of unique pixel values and their corresponding indices and
-    # counts
-    s_values, bin_idx, s_counts = np.unique(source, return_inverse=True,
-                                            return_counts=True)
-    t_values, t_counts = np.unique(template, return_counts=True)
-
-    # take the cumsum of the counts and normalize by the number of pixels to
-    # get the empirical cumulative distribution functions for the source and
-    # template images (maps pixel value --> quantile)
-    s_quantiles = np.cumsum(s_counts).astype(np.float64)
-    s_quantiles /= s_quantiles[-1]
-    t_quantiles = np.cumsum(t_counts).astype(np.float64)
-    t_quantiles /= t_quantiles[-1]
-
-    # interpolate linearly to find the pixel values in the template image
-    # that correspond most closely to the quantiles in the source image
-    interp_t_values = np.interp(s_quantiles, t_quantiles, t_values)
-
-    return interp_t_values[bin_idx].reshape(oldshape)
-
-def pansharpen(im_ms, im_pan, cloud_mask):
-    """
-    Pansharpens a multispectral image, using the panchromatic band and a cloud mask.
-    A PCA is applied to the image, then the 1st PC is replaced, after histogram 
-    matching with the panchromatic band. Note that it is essential to match the
-    histrograms of the 1st PC and the panchromatic band before replacing and 
-    inverting the PCA.
-
-    KV WRL 2018
-
-    Arguments:
-    -----------
-    im_ms: np.array
-        Multispectral image to pansharpen (3D)
-    im_pan: np.array
-        Panchromatic band (2D)
-    cloud_mask: np.array
-        2D cloud mask with True where cloud pixels are
-
-    Returns:
-    -----------
-    im_ms_ps: np.ndarray
-        Pansharpened multispectral image (3D)
-        
-    """
-
-    # reshape image into vector and apply cloud mask
-    vec = im_ms.reshape(im_ms.shape[0] * im_ms.shape[1], im_ms.shape[2])
-    vec_mask = cloud_mask.reshape(im_ms.shape[0] * im_ms.shape[1])
-    vec = vec[~vec_mask, :]
-    # apply PCA to multispectral bands
-    pca = decomposition.PCA()
-    vec_pcs = pca.fit_transform(vec)
-
-    # replace 1st PC with pan band (after matching histograms)
-    vec_pan = im_pan.reshape(im_pan.shape[0] * im_pan.shape[1])
-    vec_pan = vec_pan[~vec_mask]
-    vec_pcs[:,0] = hist_match(vec_pan, vec_pcs[:,0])
-    vec_ms_ps = pca.inverse_transform(vec_pcs)
-
-    # reshape vector into image
-    vec_ms_ps_full = np.ones((len(vec_mask), im_ms.shape[2])) * np.nan
-    vec_ms_ps_full[~vec_mask,:] = vec_ms_ps
-    im_ms_ps = vec_ms_ps_full.reshape(im_ms.shape[0], im_ms.shape[1], im_ms.shape[2])
-
-    return im_ms_ps
-
-
-def rescale_image_intensity(im, cloud_mask, prob_high):
-    """
-    Rescales the intensity of an image (multispectral or single band) by applying
-    a cloud mask and clipping the prob_high upper percentile. This functions allows
-    to stretch the contrast of an image, only for visualisation purposes.
-
-    KV WRL 2018
-
-    Arguments:
-    -----------
-    im: np.array
-        Image to rescale, can be 3D (multispectral) or 2D (single band)
-    cloud_mask: np.array
-        2D cloud mask with True where cloud pixels are
-    prob_high: float
-        probability of exceedence used to calculate the upper percentile
-
-    Returns:
-    -----------
-    im_adj: np.array
-        rescaled image
-    """
-
-    # lower percentile is set to 0
-    prc_low = 0
-
-    # reshape the 2D cloud mask into a 1D vector
-    vec_mask = cloud_mask.reshape(im.shape[0] * im.shape[1])
-
-    # if image contains several bands, stretch the contrast for each band
-    if len(im.shape) > 2:
-        # reshape into a vector
-        vec =  im.reshape(im.shape[0] * im.shape[1], im.shape[2])
-        # initiliase with NaN values
-        vec_adj = np.ones((len(vec_mask), im.shape[2])) * np.nan
-        # loop through the bands
-        for i in range(im.shape[2]):
-            # find the higher percentile (based on prob)
-            prc_high = np.percentile(vec[~vec_mask, i], prob_high)
-            # clip the image around the 2 percentiles and rescale the contrast
-            vec_rescaled = exposure.rescale_intensity(vec[~vec_mask, i],
-                                                      in_range=(prc_low, prc_high))
-            vec_adj[~vec_mask,i] = vec_rescaled
-        # reshape into image
-        im_adj = vec_adj.reshape(im.shape[0], im.shape[1], im.shape[2])
-
-    # if image only has 1 bands (grayscale image)
-    else:
-        vec =  im.reshape(im.shape[0] * im.shape[1])
-        vec_adj = np.ones(len(vec_mask)) * np.nan
-        prc_high = np.percentile(vec[~vec_mask], prob_high)
-        vec_rescaled = exposure.rescale_intensity(vec[~vec_mask], in_range=(prc_low, prc_high))
-        vec_adj[~vec_mask] = vec_rescaled
-        im_adj = vec_adj.reshape(im.shape[0], im.shape[1])
-
-    return im_adj
-
+# Main function to preprocess a satellite image (L5,L7,L8 or S2)
 def preprocess_single(fn, satname, cloud_mask_issue):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands,
@@ -522,6 +327,206 @@ def preprocess_single(fn, satname, cloud_mask_issue):
     return im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata
 
 
+###################################################################################################
+# AUXILIARY FUNCTIONS
+###################################################################################################
+
+def create_cloud_mask(im_QA, satname, cloud_mask_issue):
+    """
+    Creates a cloud mask using the information contained in the QA band.
+
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    im_QA: np.array
+        Image containing the QA band
+    satname: string
+        short name for the satellite: ```'L5', 'L7', 'L8' or 'S2'```
+    cloud_mask_issue: boolean
+        True if there is an issue with the cloud mask and sand pixels are being
+        erroneously masked on the images
+
+    Returns:
+    -----------
+    cloud_mask : np.array
+        boolean array with True if a pixel is cloudy and False otherwise
+        
+    """
+
+    # convert QA bits (the bits allocated to cloud cover vary depending on the satellite mission)
+    if satname == 'L8':
+        cloud_values = [2800, 2804, 2808, 2812, 6896, 6900, 6904, 6908]
+    elif satname == 'L7' or satname == 'L5' or satname == 'L4':
+        cloud_values = [752, 756, 760, 764]
+    elif satname == 'S2':
+        cloud_values = [1024, 2048] # 1024 = dense cloud, 2048 = cirrus clouds
+
+    # find which pixels have bits corresponding to cloud values
+    cloud_mask = np.isin(im_QA, cloud_values)
+
+    # remove cloud pixels that form very thin features. These are beach or swash pixels that are
+    # erroneously identified as clouds by the CFMASK algorithm applied to the images by the USGS.
+    if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
+        morphology.remove_small_objects(cloud_mask, min_size=10, connectivity=1, in_place=True)
+
+        if cloud_mask_issue:
+            elem = morphology.square(3) # use a square of width 3 pixels
+            cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
+            # remove objects with less than 25 connected pixels
+            morphology.remove_small_objects(cloud_mask, min_size=25, connectivity=1, in_place=True)
+
+    return cloud_mask
+
+def hist_match(source, template):
+    """
+    Adjust the pixel values of a grayscale image such that its histogram matches
+    that of a target image.
+
+    Arguments:
+    -----------
+    source: np.array
+        Image to transform; the histogram is computed over the flattened
+        array
+    template: np.array
+        Template image; can have different dimensions to source
+        
+    Returns:
+    -----------
+    matched: np.array
+        The transformed output image
+        
+    """
+
+    oldshape = source.shape
+    source = source.ravel()
+    template = template.ravel()
+
+    # get the set of unique pixel values and their corresponding indices and
+    # counts
+    s_values, bin_idx, s_counts = np.unique(source, return_inverse=True,
+                                            return_counts=True)
+    t_values, t_counts = np.unique(template, return_counts=True)
+
+    # take the cumsum of the counts and normalize by the number of pixels to
+    # get the empirical cumulative distribution functions for the source and
+    # template images (maps pixel value --> quantile)
+    s_quantiles = np.cumsum(s_counts).astype(np.float64)
+    s_quantiles /= s_quantiles[-1]
+    t_quantiles = np.cumsum(t_counts).astype(np.float64)
+    t_quantiles /= t_quantiles[-1]
+
+    # interpolate linearly to find the pixel values in the template image
+    # that correspond most closely to the quantiles in the source image
+    interp_t_values = np.interp(s_quantiles, t_quantiles, t_values)
+
+    return interp_t_values[bin_idx].reshape(oldshape)
+
+def pansharpen(im_ms, im_pan, cloud_mask):
+    """
+    Pansharpens a multispectral image, using the panchromatic band and a cloud mask.
+    A PCA is applied to the image, then the 1st PC is replaced, after histogram 
+    matching with the panchromatic band. Note that it is essential to match the
+    histrograms of the 1st PC and the panchromatic band before replacing and 
+    inverting the PCA.
+
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    im_ms: np.array
+        Multispectral image to pansharpen (3D)
+    im_pan: np.array
+        Panchromatic band (2D)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+
+    Returns:
+    -----------
+    im_ms_ps: np.ndarray
+        Pansharpened multispectral image (3D)
+        
+    """
+
+    # reshape image into vector and apply cloud mask
+    vec = im_ms.reshape(im_ms.shape[0] * im_ms.shape[1], im_ms.shape[2])
+    vec_mask = cloud_mask.reshape(im_ms.shape[0] * im_ms.shape[1])
+    vec = vec[~vec_mask, :]
+    # apply PCA to multispectral bands
+    pca = decomposition.PCA()
+    vec_pcs = pca.fit_transform(vec)
+
+    # replace 1st PC with pan band (after matching histograms)
+    vec_pan = im_pan.reshape(im_pan.shape[0] * im_pan.shape[1])
+    vec_pan = vec_pan[~vec_mask]
+    vec_pcs[:,0] = hist_match(vec_pan, vec_pcs[:,0])
+    vec_ms_ps = pca.inverse_transform(vec_pcs)
+
+    # reshape vector into image
+    vec_ms_ps_full = np.ones((len(vec_mask), im_ms.shape[2])) * np.nan
+    vec_ms_ps_full[~vec_mask,:] = vec_ms_ps
+    im_ms_ps = vec_ms_ps_full.reshape(im_ms.shape[0], im_ms.shape[1], im_ms.shape[2])
+
+    return im_ms_ps
+
+
+def rescale_image_intensity(im, cloud_mask, prob_high):
+    """
+    Rescales the intensity of an image (multispectral or single band) by applying
+    a cloud mask and clipping the prob_high upper percentile. This functions allows
+    to stretch the contrast of an image, only for visualisation purposes.
+
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    im: np.array
+        Image to rescale, can be 3D (multispectral) or 2D (single band)
+    cloud_mask: np.array
+        2D cloud mask with True where cloud pixels are
+    prob_high: float
+        probability of exceedence used to calculate the upper percentile
+
+    Returns:
+    -----------
+    im_adj: np.array
+        rescaled image
+    """
+
+    # lower percentile is set to 0
+    prc_low = 0
+
+    # reshape the 2D cloud mask into a 1D vector
+    vec_mask = cloud_mask.reshape(im.shape[0] * im.shape[1])
+
+    # if image contains several bands, stretch the contrast for each band
+    if len(im.shape) > 2:
+        # reshape into a vector
+        vec =  im.reshape(im.shape[0] * im.shape[1], im.shape[2])
+        # initiliase with NaN values
+        vec_adj = np.ones((len(vec_mask), im.shape[2])) * np.nan
+        # loop through the bands
+        for i in range(im.shape[2]):
+            # find the higher percentile (based on prob)
+            prc_high = np.percentile(vec[~vec_mask, i], prob_high)
+            # clip the image around the 2 percentiles and rescale the contrast
+            vec_rescaled = exposure.rescale_intensity(vec[~vec_mask, i],
+                                                      in_range=(prc_low, prc_high))
+            vec_adj[~vec_mask,i] = vec_rescaled
+        # reshape into image
+        im_adj = vec_adj.reshape(im.shape[0], im.shape[1], im.shape[2])
+
+    # if image only has 1 bands (grayscale image)
+    else:
+        vec =  im.reshape(im.shape[0] * im.shape[1])
+        vec_adj = np.ones(len(vec_mask)) * np.nan
+        prc_high = np.percentile(vec[~vec_mask], prob_high)
+        vec_rescaled = exposure.rescale_intensity(vec[~vec_mask], in_range=(prc_low, prc_high))
+        vec_adj[~vec_mask] = vec_rescaled
+        im_adj = vec_adj.reshape(im.shape[0], im.shape[1])
+
+    return im_adj
+
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     """
     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
@@ -809,7 +814,7 @@ def get_reference_sl(metadata, settings):
                     plt.draw()
 
                     # let user click on the shoreline
-                    pts = ginput(n=50000, timeout=1e9, show_clicks=True)
+                    pts = ginput(n=50000, timeout=-1, show_clicks=True)
                     pts_pix = np.array(pts)
                     # convert pixel coordinates to world coordinates
                     pts_world = SDS_tools.convert_pix2world(pts_pix[:,[1,0]], georef)
@@ -849,7 +854,7 @@ def get_reference_sl(metadata, settings):
                     plt.draw()
 
                     # let the user click again (<add> another shoreline or <end>)
-                    pt_input = ginput(n=1, timeout=1e9, show_clicks=False)
+                    pt_input = ginput(n=1, timeout=-1, show_clicks=False)
                     pt_input = np.array(pt_input)
 
                     # if user clicks on <end>, save the points and break the loop

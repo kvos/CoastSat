@@ -3,6 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779293.svg)](https://doi.org/10.5281/zenodo.2779293)
 [![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub release](https://img.shields.io/github/release/kvos/CoastSat)](https://GitHub.com/kvos/CoastSat/releases/)
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
@@ -55,7 +56,7 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
-**In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the *environment.yml* file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
+**In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the `environment.yml` file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API
 
@@ -87,7 +88,7 @@ The following sections guide the reader through the different functionalities of
 
 If using `example.py` on **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
-A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (shown below) and progress forward.
+A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
 
 ![run_cell](https://user-images.githubusercontent.com/7217258/60766570-c2100080-a0ee-11e9-9675-e2aeba87e4a7.png)
 
@@ -100,7 +101,7 @@ To retrieve from the GEE server the available satellite images cropped around th
 - `sitename`: name of the site (this is the name of the subfolder where the images and other accompanying files will be stored)
 - `filepath`: filepath to the directory where the data will be stored
 
-The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under *filepath\sitename*). The metadata contains the exact time of acquisition (in UTC time) and geometric accuracy of each downloaded image and is saved as `metadata_sitename.pkl`. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly by running `metadata = SDS_download.get_metadata(inputs)`.
+The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under */filepath/sitename*). The metadata contains the exact time of acquisition (in UTC time) of each image, its projection and its geometric accuracy. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly by running `metadata = SDS_download.get_metadata(inputs)`.
 
 The screenshot below shows an example of inputs that will retrieve all the images of Collaroy-Narrabeen (Australia) acquired by Sentinel-2 in December 2017.
 
@@ -113,14 +114,15 @@ The screenshot below shows an example of inputs that will retrieve all the image
 To map the shorelines, the following user-defined settings are needed:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation).
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesian coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system.
-- `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time).
-- `save_figure`: if set to `True` a figure of each mapped shoreline is saved (under *filepath/sitename/jpg_files/detection*). Note that this may slow down the process.
+- `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time) and accept/reject each shoreline.
+- `adjust_detection`: in case the user wants more control over the detected shorelines, by setting this parameter to `True` the user can manually adjust the threshold used to map the shoreline on each image (more time consuming).
+- `save_figure`: if set to `True` a figure of each mapped shoreline is saved under */filepath/sitename/jpg_files/detection*, even if the two previous parameters are set to `False`. Note that this may slow down the process.
 
 There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `sand_color`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![settings](https://user-images.githubusercontent.com/7217258/65950715-f68f2080-e481-11e9-80b6-19e13f2ec179.PNG)
+![settings](https://user-images.githubusercontent.com/7217258/95036869-f4a31180-0714-11eb-81fd-9bab011b5b2d.JPG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -130,7 +132,7 @@ When `check_detection` is set to `True`, a figure like the one below appears and
 
 ![map_shorelines](https://user-images.githubusercontent.com/7217258/60766769-fafda480-a0f1-11e9-8f91-419d848ff98d.gif)
 
-Once all the shorelines have been mapped, the output is available in two different formats (saved under *.\data\sitename*):
+Once all the shorelines have been mapped, the output is available in two different formats (saved under */filepath/data/sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.
 - `sitename_output.geojson`: this output can be visualised in a GIS software (e.g., QGIS, ArcGIS).
 

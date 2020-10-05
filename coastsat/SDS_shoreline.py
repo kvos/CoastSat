@@ -981,7 +981,7 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
     blue_patch = mpatches.Patch(color=colours[2,:], label='water')
     black_line = mlines.Line2D([],[],color='k',linestyle='-', label='shoreline')
     ax2.legend(handles=[orange_patch,white_patch,blue_patch, black_line],
-               bbox_to_anchor=(1.5, 0.5), fontsize=10)
+               bbox_to_anchor=(1.1, 0.5), fontsize=10)
     ax2.set_title(date_str, fontsize=12)
 
     # plot image 3 (MNDWI)
@@ -991,31 +991,32 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
     
     # plot histogram of MNDWI values
     binwidth = 0.01
-    labels_other = np.logical_and(np.logical_and(~im_labels[:,:,0],~im_labels[:,:,1]),~im_labels[:,:,2])
     ax4.set_facecolor('0.75')
     ax4.yaxis.grid(color='w', linestyle='--', linewidth=0.5)
     ax4.set(ylabel='PDF',yticklabels=[], xlim=[-1,1])
-    int_sand = im_mndwi[im_labels[:,:,0]]
-    bins = np.arange(np.nanmin(int_sand), np.nanmax(int_sand) + binwidth, binwidth)
-    ax4.hist(int_sand, bins=bins, density=True, color=colours[0,:], label='sand')
-    int_ww = im_mndwi[im_labels[:,:,1]]
-    bins = np.arange(np.nanmin(int_ww), np.nanmax(int_ww) + binwidth, binwidth)
-    ax4.hist(int_ww, bins=bins, density=True, color=colours[1,:], label='whitewater', alpha=0.75) 
-    int_water = im_mndwi[im_labels[:,:,2]]
-    bins = np.arange(np.nanmin(int_water), np.nanmax(int_water) + binwidth, binwidth)
-    ax4.hist(int_water, bins=bins, density=True, color=colours[2,:], label='water', alpha=0.75) 
-    int_other = im_mndwi[labels_other]
-    bins = np.arange(np.nanmin(int_other), np.nanmax(int_other) + binwidth, binwidth)
-    ax4.hist(int_other, bins=bins, density=True, color='C4', label='other', alpha=0.5) 
-    
-    # map the shoreline automatically
-    if sum(sum(im_labels[:,:,0])) < 10 :
-        # find water contours on MNDWI grayscale image
-        contours_mndwi, t_mndwi = find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)
-    else:
+    if sum(sum(im_labels[:,:,0])) > 10:
+        labels_other = np.logical_and(np.logical_and(~im_labels[:,:,0],~im_labels[:,:,1]),~im_labels[:,:,2])
+        int_sand = im_mndwi[im_labels[:,:,0]]
+        bins = np.arange(np.nanmin(int_sand), np.nanmax(int_sand) + binwidth, binwidth)
+        ax4.hist(int_sand, bins=bins, density=True, color=colours[0,:], label='sand')
+        int_ww = im_mndwi[im_labels[:,:,1]]
+        bins = np.arange(np.nanmin(int_ww), np.nanmax(int_ww) + binwidth, binwidth)
+        ax4.hist(int_ww, bins=bins, density=True, color=colours[1,:], label='whitewater', alpha=0.75) 
+        int_water = im_mndwi[im_labels[:,:,2]]
+        bins = np.arange(np.nanmin(int_water), np.nanmax(int_water) + binwidth, binwidth)
+        ax4.hist(int_water, bins=bins, density=True, color=colours[2,:], label='water', alpha=0.75) 
+        int_other = im_mndwi[labels_other]
+        bins = np.arange(np.nanmin(int_other), np.nanmax(int_other) + binwidth, binwidth)
+        ax4.hist(int_other, bins=bins, density=True, color='C4', label='other', alpha=0.5) 
         # use classification to refine threshold and extract the sand/water interface
         contours_mndwi, t_mndwi = find_wl_contours2(im_ms, im_labels, cloud_mask,
                                                     buffer_size_pixels, im_ref_buffer)
+    else:
+        bins = np.arange(np.nanmin(im_mndwi), np.nanmax(im_mndwi) + binwidth, binwidth)
+        ax4.hist(im_mndwi.flatten(), bins=bins, density=True, color='0.4', label='all pixels')        
+        # find water contours on MNDWI grayscale image
+        contours_mndwi, t_mndwi = find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)    
+
     # process the water contours into a shoreline
     shoreline = process_shoreline(contours_mndwi, cloud_mask, georef, image_epsg, settings)
     # convert shoreline to pixels

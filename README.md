@@ -113,9 +113,9 @@ The screenshot below shows an example of inputs that will retrieve all the image
 
 To map the shorelines, the following user-defined settings are needed:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation).
-- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesian coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system.
+- `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesian coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If unsure, use 3857 which is the web-mercator.
 - `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time) and accept/reject each shoreline.
-- `adjust_detection`: in case the user wants more control over the detected shorelines, by setting this parameter to `True` the user can manually adjust the threshold used to map the shoreline on each image (more time consuming).
+- `adjust_detection`: in case users wants more control over the detected shorelines, they can set this parameter to `True`, then they will be able to manually adjust the threshold used to map the shoreline on each image.
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved under */filepath/sitename/jpg_files/detection*, even if the two previous parameters are set to `False`. Note that this may slow down the process.
 
 There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `sand_color`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
@@ -131,6 +131,10 @@ output = SDS_shoreline.extract_shorelines(metadata, settings)
 When `check_detection` is set to `True`, a figure like the one below appears and asks the user to manually accept/reject each detection by pressing **on the keyboard** the `right arrow` (⇨) to `keep` the shoreline or `left arrow` (⇦) to `skip` the mapped shoreline. The user can break the loop at any time by pressing `escape` (nothing will be saved though).
 
 ![map_shorelines](https://user-images.githubusercontent.com/7217258/60766769-fafda480-a0f1-11e9-8f91-419d848ff98d.gif)
+
+When `adjust_detection` is set to `True`, a figure like the one below appears and the user can adjust the position of the shoreline by clicking on the histogram of MNDWI pixel intensities. Once the threshold has been adjusted, press `Enter` and then accept/reject the image with the keyboard arrows.
+
+![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/adjust_shorelines.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under */filepath/data/sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.

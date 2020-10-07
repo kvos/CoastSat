@@ -134,7 +134,7 @@ When `check_detection` is set to `True`, a figure like the one below appears and
 
 When `adjust_detection` is set to `True`, a figure like the one below appears and the user can adjust the position of the shoreline by clicking on the histogram of MNDWI pixel intensities. Once the threshold has been adjusted, press `Enter` and then accept/reject the image with the keyboard arrows.
 
-![Alt text](https://github.com/kvos/CoastSat/blob/development/doc/adjust_shorelines.gif)
+![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/adjust_shorelines.gif)
 
 Once all the shorelines have been mapped, the output is available in two different formats (saved under */filepath/data/sitename*):
 - `sitename_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.

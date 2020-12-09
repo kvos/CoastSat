@@ -728,7 +728,22 @@ def merge_overlapping_images(metadata,inputs):
     for i in range(1,len(pairs)):
         if pairs[i-1][1] == pairs[i][0]:
             pairs[i][0] = pairs[i-1][0]
-        
+    # check also for quadruplicates and remove them 
+    pair_first = [_[0] for _ in pairs]
+    for idx in np.unique(pair_first):
+        # quadruplicate if trying to merge 3 times the same image with a successive
+        if sum(pair_first == idx) == 3: 
+            # remove the last image: 3 .tif files + the .txt file
+            idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][-1][1]
+            fn_im = [os.path.join(filepath, 'S2', '10m', filenames[idx_last]),
+                     os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
+                     os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
+                     os.path.join(filepath, 'S2', 'meta', filenames[idx_last].replace('_10m','').replace('.tif','.txt'))]
+            for k in range(4):  
+                os.chmod(fn_im[k], 0o777)
+                os.remove(fn_im[k]) 
+            # remove that pair from the list
+            pairs.pop(np.where(pair_first == idx)[0][-1])        
     # for each pair of image, first check if one image completely contains the other
     # in that case keep the larger image. Otherwise merge the two images.
     for i,pair in enumerate(pairs):

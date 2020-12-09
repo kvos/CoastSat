@@ -108,7 +108,8 @@ def extract_shorelines(metadata, settings):
         output_cloudcover = [] # cloud cover of the images
         output_geoaccuracy = []# georeferencing accuracy of the images
         output_idxkeep = []    # index that were kept during the analysis (cloudy images are skipped)
-
+        output_t_mndwi = []    # MNDWI threshold used to map the shoreline
+        
         # load classifiers
         if satname in ['L5','L7','L8']:
             pixel_size = 15
@@ -165,9 +166,9 @@ def extract_shorelines(metadata, settings):
             # if adjust_detection is True, let the user adjust the detected shoreline
             if settings['adjust_detection']:
                 date = filenames[i][:19]
-                skip_image, shoreline = adjust_detection(im_ms, cloud_mask, im_labels,
-                                        im_ref_buffer, image_epsg, georef, settings, date,
-                                        satname, buffer_size_pixels)
+                skip_image, shoreline, t_mndwi = adjust_detection(im_ms, cloud_mask, im_labels,
+                                                                  im_ref_buffer, image_epsg, georef,
+                                                                  settings, date, satname, buffer_size_pixels)
                 # if the user decides to skip the image, continue and do not save the mapped shoreline
                 if skip_image:
                     continue
@@ -213,6 +214,7 @@ def extract_shorelines(metadata, settings):
             output_cloudcover.append(cloud_cover)
             output_geoaccuracy.append(metadata[satname]['acc_georef'][i])
             output_idxkeep.append(i)
+            output_t_mndwi.append(t_mndwi)
 
         # create dictionnary of output
         output[satname] = {
@@ -221,7 +223,8 @@ def extract_shorelines(metadata, settings):
                 'filename': output_filename,
                 'cloud_cover': output_cloudcover,
                 'geoaccuracy': output_geoaccuracy,
-                'idx': output_idxkeep
+                'idx': output_idxkeep,
+                'MNDWI_threshold': output_t_mndwi,
                 }
         print('')
 
@@ -909,6 +912,8 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
         True if the user wants to skip the image, False otherwise
     shoreline: np.array
         array of points with the X and Y coordinates of the shoreline 
+    t_mndwi: float
+        value of the MNDWI threshold used to map the shoreline
 
     """
 
@@ -1044,11 +1049,11 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
         # let the user click on the threshold plot
         pt = ginput(n=1, show_clicks=True, timeout=-1)
         # if a point was clicked
-        if len(pt) > 0:
+        if len(pt) > 0: 
+            # if user clicked somewhere wrong and value is not between -1 and 1
+            if np.abs(pt[0][0]) >= 1: continue
             # update the threshold value
             t_mndwi = pt[0][0]
-            # if user clicked somewhere wrong and value is not between -1 and 1
-            if np.abs(t_mndwi) >= 1: continue
             # update the plot
             t_line.set_xdata([t_mndwi,t_mndwi])
             # map contours with new threshold
@@ -1121,4 +1126,4 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
     for ax in fig.axes:
         ax.clear()
 
-    return skip_image, shoreline
+    return skip_image, shoreline, t_mndwi

@@ -1006,16 +1006,16 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
     ax4.set_facecolor('0.75')
     ax4.yaxis.grid(color='w', linestyle='--', linewidth=0.5)
     ax4.set(ylabel='PDF',yticklabels=[], xlim=[-1,1])
-    if len(int_sand) > 0:
+    if len(int_sand) > 0 and sum(~np.isnan(int_sand)) > 0:
         bins = np.arange(np.nanmin(int_sand), np.nanmax(int_sand) + binwidth, binwidth)
         ax4.hist(int_sand, bins=bins, density=True, color=colours[0,:], label='sand')
-    if len(int_ww) > 0:
+    if len(int_ww) > 0 and sum(~np.isnan(int_ww)) > 0:
         bins = np.arange(np.nanmin(int_ww), np.nanmax(int_ww) + binwidth, binwidth)
         ax4.hist(int_ww, bins=bins, density=True, color=colours[1,:], label='whitewater', alpha=0.75) 
-    if len(int_water) > 0:
+    if len(int_water) > 0 and sum(~np.isnan(int_water)) > 0:
         bins = np.arange(np.nanmin(int_water), np.nanmax(int_water) + binwidth, binwidth)
         ax4.hist(int_water, bins=bins, density=True, color=colours[2,:], label='water', alpha=0.75) 
-    if len(int_other) > 0:
+    if len(int_other) > 0 and sum(~np.isnan(int_other)) > 0:
         bins = np.arange(np.nanmin(int_other), np.nanmax(int_other) + binwidth, binwidth)
         ax4.hist(int_other, bins=bins, density=True, color='C4', label='other', alpha=0.5) 
     

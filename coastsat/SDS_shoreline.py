@@ -1020,13 +1020,20 @@ def adjust_detection(im_ms, cloud_mask, im_labels, im_ref_buffer, image_epsg, ge
         ax4.hist(int_other, bins=bins, density=True, color='C4', label='other', alpha=0.5) 
     
     # automatically map the shoreline based on the classifier if enough sand pixels
-    if sum(sum(im_labels[:,:,0])) > 10:
-        # use classification to refine threshold and extract the sand/water interface
-        contours_mndwi, t_mndwi = find_wl_contours2(im_ms, im_labels, cloud_mask,
-                                                    buffer_size_pixels, im_ref_buffer)
-    else:       
-        # find water contours on MNDWI grayscale image
-        contours_mndwi, t_mndwi = find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)    
+    try:
+        if sum(sum(im_labels[:,:,0])) > 10:
+            # use classification to refine threshold and extract the sand/water interface
+            contours_mndwi, t_mndwi = find_wl_contours2(im_ms, im_labels, cloud_mask,
+                                                        buffer_size_pixels, im_ref_buffer)
+        else:       
+            # find water contours on MNDWI grayscale image
+            contours_mndwi, t_mndwi = find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)    
+    except:
+        print('Could not map shoreline so image was skipped')
+        # clear axes and return skip_image=True, so that image is skipped above
+        for ax in fig.axes:
+            ax.clear()
+        return True,[],[]
 
     # process the water contours into a shoreline
     shoreline = process_shoreline(contours_mndwi, cloud_mask, georef, image_epsg, settings)

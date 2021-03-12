@@ -579,10 +579,10 @@ def evaluate_classifier(classifier, metadata, settings):
                     # compute MNDWI image (SWIR-G)
                     im_mndwi = SDS_tools.nd_index(im_ms[:,:,4], im_ms[:,:,1], cloud_mask)
                     # find water contours on MNDWI grayscale image
-                    contours_mwi = SDS_shoreline.find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)
+                    contours_mwi, t_mndwi = SDS_shoreline.find_wl_contours1(im_mndwi, cloud_mask, im_ref_buffer)
                 else:
                     # use classification to refine threshold and extract the sand/water interface
-                    contours_wi, contours_mwi = SDS_shoreline.find_wl_contours2(im_ms, im_labels,
+                    contours_mwi, t_mndwi = SDS_shoreline.find_wl_contours2(im_ms, im_labels,
                                                 cloud_mask, buffer_size_pixels, im_ref_buffer)
             except:
                 print('Could not map shoreline for this image: ' + filenames[i])

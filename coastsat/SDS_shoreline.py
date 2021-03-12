@@ -17,7 +17,8 @@ import skimage.measure as measure
 import skimage.morphology as morphology
 
 # machine learning modules
-from sklearn.externals import joblib
+# from sklearn.externals import joblib
+import joblib
 from shapely.geometry import LineString
 
 # other modules

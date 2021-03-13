@@ -17,7 +17,11 @@ import skimage.measure as measure
 import skimage.morphology as morphology
 
 # machine learning modules
-from sklearn.externals import joblib
+import sklearn
+if sklearn.__version__[:4] == '0.20':
+    from sklearn.externals import joblib
+else:
+    import joblib
 from shapely.geometry import LineString
 
 # other modules
@@ -110,19 +114,22 @@ def extract_shorelines(metadata, settings):
         output_idxkeep = []    # index that were kept during the analysis (cloudy images are skipped)
         output_t_mndwi = []    # MNDWI threshold used to map the shoreline
         
-        # load classifiers
+        # load classifiers (if sklearn version above 0.20, learn the new files)
+        str_new = ''
+        if not sklearn.__version__[:4] == '0.20':
+            str_new = '_new'
         if satname in ['L5','L7','L8']:
             pixel_size = 15
             if settings['sand_color'] == 'dark':
-                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_dark.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_dark%s.pkl'%str_new))
             elif settings['sand_color'] == 'bright':
-                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_bright.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat_bright%s.pkl'%str_new))
             else:
-                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat.pkl'))
+                clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_Landsat%s.pkl'%str_new))
 
         elif satname == 'S2':
             pixel_size = 10
-            clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_S2.pkl'))
+            clf = joblib.load(os.path.join(filepath_models, 'NN_4classes_S2%s.pkl'%str_new))
 
         # convert settings['min_beach_area'] and settings['buffer_size'] from metres to pixels
         buffer_size_pixels = np.ceil(settings['buffer_size']/pixel_size)

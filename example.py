@@ -112,6 +112,7 @@ gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.g
                                 driver='GeoJSON', encoding='utf-8')
 
 # plot the mapped shorelines
+plt.ion()
 fig = plt.figure(figsize=[15,8], tight_layout=True)
 plt.axis('equal')
 plt.xlabel('Eastings')

@@ -724,17 +724,20 @@ def merge_overlapping_images(metadata,inputs):
         else:
             idx_dup = np.where(boolvec)[0][0]
             pairs.append([i,idx_dup])
+            
     # because they could be triplicates in S2 images, adjust the pairs for consecutive merges
     for i in range(1,len(pairs)):
         if pairs[i-1][1] == pairs[i][0]:
             pairs[i][0] = pairs[i-1][0]
+            
     # check also for quadruplicates and remove them 
     pair_first = [_[0] for _ in pairs]
+    idx_remove_pair = []
     for idx in np.unique(pair_first):
-        # quadruplicate if trying to merge 3 times the same image with a successive
+        # quadruplicate if trying to merge 3 times the same image with a successive image
         if sum(pair_first == idx) == 3: 
             # remove the last image: 3 .tif files + the .txt file
-            idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][-1][1]
+            idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][-1][-1]
             fn_im = [os.path.join(filepath, 'S2', '10m', filenames[idx_last]),
                      os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
                      os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
@@ -742,8 +745,11 @@ def merge_overlapping_images(metadata,inputs):
             for k in range(4):  
                 os.chmod(fn_im[k], 0o777)
                 os.remove(fn_im[k]) 
-            # remove that pair from the list
-            pairs.pop(np.where(pair_first == idx)[0][-1])        
+            # store the index of the pair to remove it outside the loop
+            idx_remove_pair.append(np.where(pair_first == idx)[0][-1])
+    # remove quadruplicates from list of pairs
+    pairs = [i for j, i in enumerate(pairs) if j not in idx_remove_pair]
+
     # for each pair of image, first check if one image completely contains the other
     # in that case keep the larger image. Otherwise merge the two images.
     for i,pair in enumerate(pairs):

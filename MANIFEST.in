@@ -1,0 +1,14 @@
+include LICENSE
+include README.md
+include pyproject.toml
+
+graft coastsat
+
+prune classification/
+prune docs
+prune examples/
+prune *.egg-info
+
+exclude *.yml
+exclude .gitignore
+exclude coastsat/_version.py

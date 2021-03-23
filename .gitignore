@@ -14,3 +14,7 @@
 *.csv
 *.xml
 /deprecated
+*.egg*
+build
+dist
+_version.py

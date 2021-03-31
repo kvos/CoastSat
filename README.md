@@ -13,14 +13,16 @@ Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and do
 
 The underlying approach of the CoastSat toolkit is described in detail in the following publications:
 
-- Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
-- Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
-- Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+1. Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
+2. Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
+3. Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+4. Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
 
 Extensions to this toolbox:
 1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
-3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily, 3m resolution).
+3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
+4. [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 
 ### Description
 
@@ -213,8 +215,9 @@ Each satellite image is captured at a different stage of the tide, therefore a t
 In order to tidally-correct the time-series of shoreline change you will need the following data:
 - Time-series of water/tide level: this can be formatted as a .csv file, an example is provided [here](https://github.com/kvos/CoastSat/blob/master/examples/NARRA_tides.csv). Make sure that the dates are in UTC time as the CoastSat shorelines are always in UTC time. Also the vertical datum needs to be approx. Mean Sea Level.
 
-- An estimate of the beach-face slope along each transect. If you don't have this data you can obtain it using [CoastSat.slope](https://github.com/kvos/CoastSat.slope), see [this publication](https://doi.org/10.1029/2020GL088365) for more details (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
+- An estimate of the beach-face slope along each transect. If you don't have this data you can obtain it using [CoastSat.slope](https://github.com/kvos/CoastSat.slope), see [Vos et al. 2020](https://doi.org/10.1029/2020GL088365) for more details (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
 
+Wave setup and runup corrections are not included in the toolbox, but for more information on these additional corrections see [Castelle et al. 2021](https://doi.org/10.1016/j.geomorph.2021.107707).
 
 ## Issues
 Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).
@@ -235,4 +238,6 @@ A fork is a copy on which you can make your changes.
 
 3. Vos K., Harley M.D., Splinter K.D., Walker A., Turner I.L. (2020). Beach slopes from satellite-derived shorelines. *Geophysical Research Letters*. 47(14). https://doi.org/10.1029/2020GL088365 (Open Access preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 
-4. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147
+4. Castelle B., Masselink G., Scott T., Stokes C., Konstantinou A., Marieu V., Bujan S. (2021). Satellite-derived shoreline detection at a high-energy meso-macrotidal beach. *Geomorphology*. volume 383, 107707. https://doi.org/10.1016/j.geomorph.2021.107707
+
+5. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147

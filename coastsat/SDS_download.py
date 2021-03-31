@@ -226,11 +226,15 @@ def retrieve_images(inputs):
                 # if two images taken at the same date add 'dup' to the name (duplicate)
                 if any(im_fn['10m'] in _ for _ in all_names):
                     for key in bands.keys():
-                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup' + suffix
+                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup2' + suffix
                     # also check for triplicates (only on S2 imagery) and add 'tri' to the name
                     if im_fn['10m'] in all_names:
                         for key in bands.keys():
-                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_tri' + suffix
+                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup3' + suffix
+                        # also check for quadruplicates (only on S2 imagery) add 'qua' to the name
+                        if im_fn['10m'] in all_names:
+                            for key in bands.keys():
+                                im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup4' + suffix
                 all_names.append(im_fn['10m'])
                 filenames.append(im_fn['10m'])
                 # download .tif from EE (multispectral bands at 3 different resolutions)
@@ -707,8 +711,66 @@ def merge_overlapping_images(metadata,inputs):
     sat = 'S2'
     filepath = os.path.join(inputs['filepath'], inputs['sitename'])
     filenames = metadata[sat]['filenames']
+    total_images = len(filenames)
+    # nested function
+    def duplicates_dict(lst):
+        "return duplicates and indices"
+        def duplicates(lst, item):
+                return [i for i, x in enumerate(lst) if x == item]
+        return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)    
+      
+    # first pass on images that have the exact same timestamp
+    duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
+    if len(duplicates) > 0:
+        total_removed_step1 = 0
+        # loop through each pair of duplicates and merge them
+        for key in duplicates.keys():
+            idx_dup = duplicates[key]
+            # get full filenames (3 images and .txtt) for each index and bounding polygons
+            fn_im, polygons, im_epsg = [], [], []
+            for index in range(len(idx_dup)):
+                # image names
+                fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[idx_dup[index]]),
+                      os.path.join(filepath, 'S2', '20m',  filenames[idx_dup[index]].replace('10m','20m')),
+                      os.path.join(filepath, 'S2', '60m',  filenames[idx_dup[index]].replace('10m','60m')),
+                      os.path.join(filepath, 'S2', 'meta', filenames[idx_dup[index]].replace('_10m','').replace('.tif','.txt'))])
+                # bounding polygons
+                polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
+                im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
+            # check if epsg are the same, print a warning message
+            if len(np.unique(im_epsg)) > 1:
+                print('WARNING: there was an error as two S2 images do not have the same epsg,'+
+                      ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+                      ' and include your script so I can find out what happened.')
+            # find which images contain other images
+            contain_bools_list = []
+            for i,poly1 in enumerate(polygons):
+                contain_bools = []
+                for k,poly2 in enumerate(polygons):
+                    if k == i: 
+                        contain_bools.append(True)
+                        # print('%d*: '%k+str(poly1.contains(poly2)))
+                    else:
+                        # print('%d: '%k+str(poly1.contains(poly2)))
+                        contain_bools.append(poly1.contains(poly2))
+                contain_bools_list.append(contain_bools)
+            # look if one image contains all the others
+            contain_all = [np.all(_) for _ in contain_bools_list]
+            # if one image contains all the others, keep that one and delete the rest
+            if np.any(contain_all):
+                idx_keep = np.where(contain_all)[0][0]
+                for i in [_ for _ in range(len(idx_dup)) if not _ == idx_keep]:
+                    # print('removed %s'%(fn_im[i][-1]))
+                    # remove the 3 .tif files + the .txt file
+                    for k in range(4):  
+                        os.chmod(fn_im[i][k], 0o777)
+                        os.remove(fn_im[i][k])
+                    total_removed_step1 += 1
+        # load metadata again and update filenames
+        metadata = get_metadata(inputs) 
+        filenames = metadata[sat]['filenames']
     
-    # find the pairs of images that are within 5 minutes of each other
+    # find the pairs of images that are within 5 minutes of each other and merge them
     time_delta = 5*60 # 5 minutes in seconds
     dates = metadata[sat]['dates'].copy()
     pairs = []
@@ -724,7 +786,7 @@ def merge_overlapping_images(metadata,inputs):
         else:
             idx_dup = np.where(boolvec)[0][0]
             pairs.append([i,idx_dup])
-            
+    total_merged_step2 = len(pairs)        
     # because they could be triplicates in S2 images, adjust the pairs for consecutive merges
     for i in range(1,len(pairs)):
         if pairs[i-1][1] == pairs[i][0]:
@@ -749,7 +811,7 @@ def merge_overlapping_images(metadata,inputs):
             idx_remove_pair.append(np.where(pair_first == idx)[0][-1])
     # remove quadruplicates from list of pairs
     pairs = [i for j, i in enumerate(pairs) if j not in idx_remove_pair]
-
+    
     # for each pair of image, first check if one image completely contains the other
     # in that case keep the larger image. Otherwise merge the two images.
     for i,pair in enumerate(pairs):
@@ -894,7 +956,8 @@ def merge_overlapping_images(metadata,inputs):
             # update filenames list (in case there are triplicates)
             filenames[pair[0]] = metadict0['filename']
      
-    print('%d out of %d Sentinel-2 images were merged (overlapping or duplicate)'%(len(pairs), len(filenames)))
+    print('%d out of %d Sentinel-2 images were merged (overlapping or duplicate)'%(total_removed_step1+total_merged_step2,
+                                                                                   total_images))
 
     # update the metadata dict
     metadata_updated = get_metadata(inputs)

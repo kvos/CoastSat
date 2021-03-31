@@ -20,6 +20,7 @@ The underlying approach of the CoastSat toolkit is described in detail in the fo
 Extensions to this toolbox:
 1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
+3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily, 3m resolution).
 
 ### Description
 

@@ -721,8 +721,8 @@ def merge_overlapping_images(metadata,inputs):
       
     # first pass on images that have the exact same timestamp
     duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
+    total_removed_step1 = 0
     if len(duplicates) > 0:
-        total_removed_step1 = 0
         # loop through each pair of duplicates and merge them
         for key in duplicates.keys():
             idx_dup = duplicates[key]

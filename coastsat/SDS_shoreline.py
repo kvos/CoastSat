@@ -157,7 +157,7 @@ def extract_shorelines(metadata, settings):
             cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata) 
             # compute updated cloud cover percentage (without no data pixels)
             cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
-                                    (cloud_mask.shape[0]*cloud_mask.shape[1]))
+                                    (sum(sum((~im_nodata).astype(int)))))
             # skip image if cloud cover is above user-defined threshold
             if cloud_cover > settings['cloud_thresh']:
                 continue

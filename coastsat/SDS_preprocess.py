@@ -641,9 +641,18 @@ def save_jpg(metadata, settings, **kwargs):
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
-            # calculate cloud cover
-            cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
+
+            # compute cloud_cover percentage (with no data pixels)
+            cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
+            if cloud_cover_combined > 0.99: # if 99% of cloudy pixels in image skip
+                continue
+
+            # remove no data pixels from the cloud mask (for example L7 bands of no data should not be accounted for)
+            cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
+            # compute updated cloud cover percentage (without no data pixels)
+            cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
+                                    (sum(sum((~im_nodata).astype(int)))))
             # skip image if cloud cover is above threshold
             if cloud_cover > cloud_thresh or cloud_cover == 1:
                 continue
@@ -733,9 +742,17 @@ def get_reference_sl(metadata, settings):
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
 
-            # calculate cloud cover
-            cloud_cover = np.divide(sum(sum(cloud_mask.astype(int))),
+            # compute cloud_cover percentage (with no data pixels)
+            cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
                                     (cloud_mask.shape[0]*cloud_mask.shape[1]))
+            if cloud_cover_combined > 0.99: # if 99% of cloudy pixels in image skip
+                continue
+
+            # remove no data pixels from the cloud mask (for example L7 bands of no data should not be accounted for)
+            cloud_mask_adv = np.logical_xor(cloud_mask, im_nodata)
+            # compute updated cloud cover percentage (without no data pixels)
+            cloud_cover = np.divide(sum(sum(cloud_mask_adv.astype(int))),
+                                    (sum(sum((~im_nodata).astype(int)))))
 
             # skip image if cloud cover is above threshold
             if cloud_cover > settings['cloud_thresh']:

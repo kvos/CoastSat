@@ -357,7 +357,8 @@ def classify_image_NN(im_ms, im_extra, cloud_mask, min_beach_area, clf):
     # remove NaNs and cloudy pixels
     vec_cloud = cloud_mask.reshape(cloud_mask.shape[0]*cloud_mask.shape[1])
     vec_nan = np.any(np.isnan(vec_features), axis=1)
-    vec_mask = np.logical_or(vec_cloud, vec_nan)
+    vec_inf = np.any(np.isinf(vec_features), axis=1)    
+    vec_mask = np.logical_or(vec_cloud,np.logical_or(vec_nan,vec_inf))
     vec_features = vec_features[~vec_mask, :]
 
     # classify pixels

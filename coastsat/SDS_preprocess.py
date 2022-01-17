@@ -588,9 +588,7 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
 #    ax3.set_title('Short-wave Infrared', fontsize=16)
 
     # save figure
-    plt.rcParams['savefig.jpeg_quality'] = 100
-    fig.savefig(os.path.join(filepath,
-                             date + '_' + satname + '.jpg'), dpi=150)
+    fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
     plt.close()
 
 

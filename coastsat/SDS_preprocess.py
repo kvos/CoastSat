@@ -17,6 +17,8 @@ import skimage.transform as transform
 import skimage.morphology as morphology
 import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
+# New import for testing jpg
+from skimage.io import imsave, imread
 
 # other modules
 from osgeo import gdal
@@ -34,10 +36,9 @@ np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 def preprocess_single(fn, satname, cloud_mask_issue):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands,
-    the georeferencing vector of the image (coordinates of the upper left pixel),
-    the cloud mask, the QA band and a no_data image. 
-    For Landsat 7-8 it also outputs the panchromatic band and for Sentinel-2 it
-    also outputs the 20m SWIR band.
+    the georeferencing vector of the image (coordinates of the upper left pixel), the cloud mask,
+    the QA band and a no_data image. 
+    For Landsat 7-8 it also outputs the panchromatic band and for Sentinel-2 it also outputs the 20m SWIR band.
 
     KV WRL 2018
 
@@ -61,7 +62,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         coordinates of the top-left pixel of the image
     cloud_mask: np.array
         2D cloud mask with True where cloud pixels are
-    im_extra : np.array
+    im_extra : np.array=
         2D array containing the 20m resolution SWIR band for Sentinel-2 and the 15m resolution
         panchromatic band for Landsat 7 and Landsat 8. This field is empty for Landsat 5.
     im_QA: np.array
@@ -527,6 +528,7 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
     return im_adj
 
+
 def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     """
     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
@@ -554,42 +556,74 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
 
     # rescale image intensity for display purposes
     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-#    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
-#    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
+    # Save the image with skimage.io
+    fname=os.path.join(filepath, date + '_' + satname + '.jpg')
+    imsave(fname, im_RGB)
 
-    # make figure (just RGB)
-    fig = plt.figure()
-    fig.set_size_inches([18,9])
-    fig.set_tight_layout(True)
-    ax1 = fig.add_subplot(111)
-    ax1.axis('off')
-    ax1.imshow(im_RGB)
-    ax1.set_title(date + '   ' + satname, fontsize=16)
 
-#    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-#        ax1 = fig.add_subplot(311)
-#        ax2 = fig.add_subplot(312)
-#        ax3 = fig.add_subplot(313)
-#    else:
-#        ax1 = fig.add_subplot(131)
-#        ax2 = fig.add_subplot(132)
-#        ax3 = fig.add_subplot(133)
-#    # RGB
-#    ax1.axis('off')
-#    ax1.imshow(im_RGB)
-#    ax1.set_title(date + '   ' + satname, fontsize=16)
-#    # NIR
-#    ax2.axis('off')
-#    ax2.imshow(im_NIR, cmap='seismic')
-#    ax2.set_title('Near Infrared', fontsize=16)
-#    # SWIR
-#    ax3.axis('off')
-#    ax3.imshow(im_SWIR, cmap='seismic')
-#    ax3.set_title('Short-wave Infrared', fontsize=16)
+# def create_jpg(im_ms, cloud_mask, date, satname, filepath):
+#     """
+#     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
+#     This functions can be modified to obtain different visualisations of the 
+#     multispectral images.
 
-    # save figure
-    fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
-    plt.close()
+#     KV WRL 2018
+
+#     Arguments:
+#     -----------
+#     im_ms: np.array
+#         3D array containing the pansharpened/down-sampled bands (B,G,R,NIR,SWIR1)
+#     cloud_mask: np.array
+#         2D cloud mask with True where cloud pixels are
+#     date: str
+#         string containing the date at which the image was acquired
+#     satname: str
+#         name of the satellite mission (e.g., 'L5')
+
+#     Returns:
+#     -----------
+#         Saves a .jpg image corresponding to the preprocessed satellite image
+
+#     """
+
+#     # rescale image intensity for display purposes
+#     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
+# #    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
+# #    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
+
+#     # make figure (just RGB)
+#     fig = plt.figure()
+#     fig.set_size_inches([18,9])
+#     fig.set_tight_layout(True)
+#     ax1 = fig.add_subplot(111)
+#     ax1.axis('off')
+#     ax1.imshow(im_RGB)
+#     ax1.set_title(date + '   ' + satname, fontsize=16)
+
+# #    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+# #        ax1 = fig.add_subplot(311)
+# #        ax2 = fig.add_subplot(312)
+# #        ax3 = fig.add_subplot(313)
+# #    else:
+# #        ax1 = fig.add_subplot(131)
+# #        ax2 = fig.add_subplot(132)
+# #        ax3 = fig.add_subplot(133)
+# #    # RGB
+# #    ax1.axis('off')
+# #    ax1.imshow(im_RGB)
+# #    ax1.set_title(date + '   ' + satname, fontsize=16)
+# #    # NIR
+# #    ax2.axis('off')
+# #    ax2.imshow(im_NIR, cmap='seismic')
+# #    ax2.set_title('Near Infrared', fontsize=16)
+# #    # SWIR
+# #    ax3.axis('off')
+# #    ax3.imshow(im_SWIR, cmap='seismic')
+# #    ax3.set_title('Short-wave Infrared', fontsize=16)
+
+#     # save figure
+#     fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
+#     plt.close()
 
 
 def save_jpg(metadata, settings, **kwargs):

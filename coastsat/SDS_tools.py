@@ -17,7 +17,6 @@ from shapely import geometry
 import skimage.transform as transform
 from astropy.convolution import convolve
 
-np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -716,11 +715,19 @@ def get_image_bounds(fn):
         return ext
     
     # load .tif file and get bounds
+    if not os.path.exists(fn):
+        raise FileNotFoundError(f"{fn}")
     data = gdal.Open(fn, gdal.GA_ReadOnly)
-    gt = data.GetGeoTransform()
-    cols = data.RasterXSize
-    rows = data.RasterYSize
-    ext = GetExtent(gt,cols,rows)
+    # Check if data is null meaning the open failed
+    if data is None:
+        print("TIF file: ",fn, "cannot be opened" )
+        os.remove(fn)
+        raise AttributeError
+    else:
+        gt = data.GetGeoTransform()
+        cols = data.RasterXSize
+        rows = data.RasterYSize
+        ext = GetExtent(gt,cols,rows)
     
     return geometry.Polygon(ext)
 

@@ -722,65 +722,65 @@ def merge_overlapping_images(metadata,inputs):
         return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)    
 
     # first pass on images that have the exact same timestamp
-    # duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
+    duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
     # {"S2-2029-2020": [0,1,2,3]}
     # {"duplicate_filename": [indices of duplicated files]"}
 
     total_removed_step1 = 0
-    # if len(duplicates) > 0:
-    #     # loop through each pair of duplicates and merge them
-    #     for key in duplicates.keys():
-    #         idx_dup = duplicates[key]
-    #         # get full filenames (3 images and .txtt) for each index and bounding polygons
-    #         fn_im, polygons, im_epsg = [], [], []
-    #         for index in range(len(idx_dup)):
-    #             # image names
-    #             fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[idx_dup[index]]),
-    #                   os.path.join(filepath, 'S2', '20m',  filenames[idx_dup[index]].replace('10m','20m')),
-    #                   os.path.join(filepath, 'S2', '60m',  filenames[idx_dup[index]].replace('10m','60m')),
-    #                   os.path.join(filepath, 'S2', 'meta', filenames[idx_dup[index]].replace('_10m','').replace('.tif','.txt'))])
-    #             try: 
-    #                 # bounding polygons
-    #                 polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
-    #                 im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
-    #             except AttributeError:
-    #                 print("\n Error getting the TIF. Skipping this iteration of the loop")    
-    #                 continue
-    #             except FileNotFoundError:
-    #                 print(f"\n The file {fn_im[index][0]} did not exist")    
-    #                 continue
-    #         # check if epsg are the same, print a warning message
-    #         if len(np.unique(im_epsg)) > 1:
-    #             print('WARNING: there was an error as two S2 images do not have the same epsg,'+
-    #                   ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
-    #                   ' and include your script so I can find out what happened.')
-    #         # find which images contain other images
-    #         contain_bools_list = []
-    #         for i,poly1 in enumerate(polygons):
-    #             contain_bools = []
-    #             for k,poly2 in enumerate(polygons):
-    #                 if k == i: 
-    #                     contain_bools.append(True)
-    #                     # print('%d*: '%k+str(poly1.contains(poly2)))
-    #                 else:
-    #                     # print('%d: '%k+str(poly1.contains(poly2)))
-    #                     contain_bools.append(poly1.contains(poly2))
-    #             contain_bools_list.append(contain_bools)
-    #         # look if one image contains all the others
-    #         contain_all = [np.all(_) for _ in contain_bools_list]
-    #         # if one image contains all the others, keep that one and delete the rest
-    #         if np.any(contain_all):
-    #             idx_keep = np.where(contain_all)[0][0]
-    #             for i in [_ for _ in range(len(idx_dup)) if not _ == idx_keep]:
-    #                 # print('removed %s'%(fn_im[i][-1]))
-    #                 # remove the 3 .tif files + the .txt file
-    #                 for k in range(4):  
-    #                     os.chmod(fn_im[i][k], 0o777)
-    #                     os.remove(fn_im[i][k])
-    #                 total_removed_step1 += 1
-    #     # load metadata again and update filenames
-    #     metadata = get_metadata(inputs) 
-    #     filenames = metadata[sat]['filenames']
+    if len(duplicates) > 0:
+        # loop through each pair of duplicates and merge them
+        for key in duplicates.keys():
+            idx_dup = duplicates[key]
+            # get full filenames (3 images and .txtt) for each index and bounding polygons
+            fn_im, polygons, im_epsg = [], [], []
+            for index in range(len(idx_dup)):
+                # image names
+                fn_im.append([os.path.join(filepath, 'S2', '10m', filenames[idx_dup[index]]),
+                      os.path.join(filepath, 'S2', '20m',  filenames[idx_dup[index]].replace('10m','20m')),
+                      os.path.join(filepath, 'S2', '60m',  filenames[idx_dup[index]].replace('10m','60m')),
+                      os.path.join(filepath, 'S2', 'meta', filenames[idx_dup[index]].replace('_10m','').replace('.tif','.txt'))])
+                try: 
+                    # bounding polygons
+                    polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
+                    im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
+                except AttributeError:
+                    print("\n Error getting the TIF. Skipping this iteration of the loop")    
+                    continue
+                except FileNotFoundError:
+                    print(f"\n The file {fn_im[index][0]} did not exist")    
+                    continue
+            # check if epsg are the same, print a warning message
+            if len(np.unique(im_epsg)) > 1:
+                print('WARNING: there was an error as two S2 images do not have the same epsg,'+
+                      ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+                      ' and include your script so I can find out what happened.')
+            # find which images contain other images
+            contain_bools_list = []
+            for i,poly1 in enumerate(polygons):
+                contain_bools = []
+                for k,poly2 in enumerate(polygons):
+                    if k == i: 
+                        contain_bools.append(True)
+                        # print('%d*: '%k+str(poly1.contains(poly2)))
+                    else:
+                        # print('%d: '%k+str(poly1.contains(poly2)))
+                        contain_bools.append(poly1.contains(poly2))
+                contain_bools_list.append(contain_bools)
+            # look if one image contains all the others
+            contain_all = [np.all(_) for _ in contain_bools_list]
+            # if one image contains all the others, keep that one and delete the rest
+            if np.any(contain_all):
+                idx_keep = np.where(contain_all)[0][0]
+                for i in [_ for _ in range(len(idx_dup)) if not _ == idx_keep]:
+                    # print('removed %s'%(fn_im[i][-1]))
+                    # remove the 3 .tif files + the .txt file
+                    for k in range(4):  
+                        os.chmod(fn_im[i][k], 0o777)
+                        os.remove(fn_im[i][k])
+                    total_removed_step1 += 1
+        # load metadata again and update filenames
+        metadata = get_metadata(inputs) 
+        filenames = metadata[sat]['filenames']
     
     # find the pairs of images that are within 5 minutes of each other and merge them
     time_delta = 5*60 # 5 minutes in seconds

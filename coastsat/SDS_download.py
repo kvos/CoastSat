@@ -5,6 +5,7 @@ from the Google Earth Engine server
 Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
+
 # load basic modules
 import os
 import numpy as np
@@ -279,9 +280,9 @@ def retrieve_images(inputs):
 
     # once all images have been downloaded, load metadata from .txt files
     metadata = get_metadata(inputs)
-
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     if 'S2' in metadata.keys():
+        print("\n Called merge_overlapping_images\n")
         try:
             metadata = merge_overlapping_images(metadata,inputs)
         except:
@@ -717,10 +718,14 @@ def merge_overlapping_images(metadata,inputs):
         "return duplicates and indices"
         def duplicates(lst, item):
                 return [i for i, x in enumerate(lst) if x == item]
+
         return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)    
-      
+
     # first pass on images that have the exact same timestamp
     duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
+    # {"S2-2029-2020": [0,1,2,3]}
+    # {"duplicate_filename": [indices of duplicated files]"}
+
     total_removed_step1 = 0
     if len(duplicates) > 0:
         # loop through each pair of duplicates and merge them
@@ -734,9 +739,16 @@ def merge_overlapping_images(metadata,inputs):
                       os.path.join(filepath, 'S2', '20m',  filenames[idx_dup[index]].replace('10m','20m')),
                       os.path.join(filepath, 'S2', '60m',  filenames[idx_dup[index]].replace('10m','60m')),
                       os.path.join(filepath, 'S2', 'meta', filenames[idx_dup[index]].replace('_10m','').replace('.tif','.txt'))])
-                # bounding polygons
-                polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
-                im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
+                try: 
+                    # bounding polygons
+                    polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
+                    im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
+                except AttributeError:
+                    print("\n Error getting the TIF. Skipping this iteration of the loop")    
+                    continue
+                except FileNotFoundError:
+                    print(f"\n The file {fn_im[index][0]} did not exist")    
+                    continue
             # check if epsg are the same, print a warning message
             if len(np.unique(im_epsg)) > 1:
                 print('WARNING: there was an error as two S2 images do not have the same epsg,'+
@@ -804,9 +816,9 @@ def merge_overlapping_images(metadata,inputs):
                 # remove the last image: 3 .tif files + the .txt file
                 idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][i][-1]
                 fn_im = [os.path.join(filepath, 'S2', '10m', filenames[idx_last]),
-                         os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
-                         os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
-                         os.path.join(filepath, 'S2', 'meta', filenames[idx_last].replace('_10m','').replace('.tif','.txt'))]
+                        os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
+                        os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
+                        os.path.join(filepath, 'S2', 'meta', filenames[idx_last].replace('_10m','').replace('.tif','.txt'))]
                 for k in range(4):  
                     os.chmod(fn_im[k], 0o777)
                     os.remove(fn_im[k]) 
@@ -826,11 +838,25 @@ def merge_overlapping_images(metadata,inputs):
                   os.path.join(filepath, 'S2', '60m',  filenames[pair[index]].replace('10m','60m')),
                   os.path.join(filepath, 'S2', 'meta', filenames[pair[index]].replace('_10m','').replace('.tif','.txt'))])
         # get polygon for first image
-        polygon0 = SDS_tools.get_image_bounds(fn_im[0][0])
-        im_epsg0 = metadata[sat]['epsg'][pair[0]]
+        try: 
+            polygon0 = SDS_tools.get_image_bounds(fn_im[0][0])
+            im_epsg0 = metadata[sat]['epsg'][pair[0]]
+        except AttributeError:
+            print("\n Error getting the TIF. Skipping this iteration of the loop")    
+            continue
+        except FileNotFoundError:
+            print(f"\n The file {fn_im[index][0]} did not exist")    
+            continue
         # get polygon for second image
-        polygon1 = SDS_tools.get_image_bounds(fn_im[1][0])
-        im_epsg1 = metadata[sat]['epsg'][pair[1]]  
+        try: 
+            polygon1 = SDS_tools.get_image_bounds(fn_im[1][0])
+            im_epsg1 = metadata[sat]['epsg'][pair[1]] 
+        except AttributeError:
+            print("\n Error getting the TIF. Skipping this iteration of the loop")    
+            continue
+        except FileNotFoundError:
+                print(f"\n The file {fn_im[index][0]} did not exist")    
+                continue  
         # check if epsg are the same
         if not im_epsg0 == im_epsg1:
             print('WARNING: there was an error as two S2 images do not have the same epsg,'+

@@ -808,23 +808,23 @@ def merge_overlapping_images(metadata,inputs):
     pair_first = [_[0] for _ in pairs]
     idx_remove_pair = []
     for idx in np.unique(pair_first):
-            # calculate the number of duplicates
-            n_duplicates = sum(pair_first == idx)
-            # if more than 3 duplicates, delete the other images so that a max of 3 duplicates are handled
-            if n_duplicates > 2:
-                for i in range(2,n_duplicates):
-                    # remove the last image: 3 .tif files + the .txt file
-                    idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][i][-1]
-                    fn_im = [os.path.join(filepath, 'S2', '10m', filenames[idx_last]),
-                            os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
-                            os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
-                            os.path.join(filepath, 'S2', 'meta', filenames[idx_last].replace('_10m','').replace('.tif','.txt'))]
-                    for k in range(4):  
-                        os.chmod(fn_im[k], 0o777)
-                        os.remove(fn_im[k]) 
-                    # store the index of the pair to remove it outside the loop
-                    idx_remove_pair.append(np.where(pair_first == idx)[0][i])
-        # remove quadruplicates from list of pairs
+        # calculate the number of duplicates
+        n_duplicates = sum(pair_first == idx)
+        # if more than 3 duplicates, delete the other images so that a max of 3 duplicates are handled
+        if n_duplicates > 2:
+            for i in range(2,n_duplicates):
+                # remove the last image: 3 .tif files + the .txt file
+                idx_last = [pairs[_] for _ in np.where(pair_first == idx)[0]][i][-1]
+                fn_im = [os.path.join(filepath, 'S2', '10m', filenames[idx_last]),
+                        os.path.join(filepath, 'S2', '20m',  filenames[idx_last].replace('10m','20m')),
+                        os.path.join(filepath, 'S2', '60m',  filenames[idx_last].replace('10m','60m')),
+                        os.path.join(filepath, 'S2', 'meta', filenames[idx_last].replace('_10m','').replace('.tif','.txt'))]
+                for k in range(4):  
+                    os.chmod(fn_im[k], 0o777)
+                    os.remove(fn_im[k]) 
+                # store the index of the pair to remove it outside the loop
+                idx_remove_pair.append(np.where(pair_first == idx)[0][i])
+    # remove quadruplicates from list of pairs
     pairs = [i for j, i in enumerate(pairs) if j not in idx_remove_pair]
     
     # for each pair of image, first check if one image completely contains the other

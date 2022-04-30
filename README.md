@@ -17,19 +17,21 @@ The underlying approach of the CoastSat toolkit is described in detail in the fo
 2. Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
 3. Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 4. Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
+4. Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-Extensions to this toolbox:
+Extensions/Addons to this toolbox:
 1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
 4. [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+5. [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
 
 ### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
 The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.   It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
-The toolbox has three main functionalities:
+The toolbox has four main functionalities:
 - assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
 - automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
 - intersection of the 2D shorelines with user-defined shore-normal transects
@@ -93,7 +95,8 @@ If using `example.py` on **Spyder**, make sure that the Graphics Backend is set 
 
 A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
 
-![run_cell](https://user-images.githubusercontent.com/7217258/60766570-c2100080-a0ee-11e9-9675-e2aeba87e4a7.png)
+![image](https://user-images.githubusercontent.com/7217258/165960239-e8870f7e-0dab-416e-bbdd-089b136b7d20.png)
+
 
 ### 2.1 Retrieval of the satellite images
 

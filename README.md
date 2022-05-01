@@ -7,24 +7,25 @@
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
-Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes.
-
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
-The underlying approach of the CoastSat toolkit is described in detail in the following publications:
+:page_with_curl: Relevant publications:
 
-1. Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
-2. Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
-3. Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
-4. Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
-4. Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
+- Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
+- Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
+- Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+- Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
+- Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-Extensions/Addons to this toolbox:
-1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
-2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
-3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-4. [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
-5. [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat.
+
+:point_right: Other extensions and addons related to this toolbox:
+- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+- [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
+- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+- [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
+- [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 
 ### Description
 
@@ -37,7 +38,7 @@ The toolbox has four main functionalities:
 - intersection of the 2D shorelines with user-defined shore-normal transects
 - tidal correction using measured water levels and an estimate of the beach slope
 
-**If you like the repo put a star on it!**
+:star: **If you like the repo put a star on it! **
 
 ## 1. Installation
 
@@ -47,13 +48,19 @@ To run the toolbox you first need to install the required Python packages in an 
 
 Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linux, open a terminal window) and use the `cd` command (change directory) to go the folder where you have downloaded this repository.
 
-Create a new environment named `coastsat` with all the required packages:
+Create a new environment named `coastsat` with all the required packages by entering these commands in succession:
 
 ```
-conda env create -f environment.yml -n coastsat
+conda create -n coastsat python=3.8
+conda activate coastsat
+conda install -c conda-forge earthengine-api=0.1.236
+conda install gdal geopandas
+conda install scikit-image
+conda install -c anaconda astropy
+conda install spyder notebook
 ```
 
-All the required packages have now been installed in an environment called `coastsat`. Now, activate the new environment:
+All the required packages have now been installed in an environment called `coastsat`. Always make sure that the environment is activated with:
 
 ```
 conda activate coastsat
@@ -61,7 +68,12 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
-**In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the `environment.yml` file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
+:warning: **In case errors are raised:**: clean things up with the following command (better to have the Anaconda Prompt open as administrator) before attempting to install `coastsat` again:
+```
+conda clean --all
+```
+
+You can also install the packages with the **Anaconda Navigator**, in the *Environments* tab. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API
 

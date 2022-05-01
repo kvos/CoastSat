@@ -17,7 +17,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
 - Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-:point_right: Other extensions and addons related to this toolbox:
+:point_right: Other repositories and addons related to this toolbox:
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.

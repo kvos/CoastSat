@@ -9,15 +9,13 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
-:page_with_curl: Relevant publications:
+:point_right: Relevant publications:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 - Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
 - Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
-
-:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat.
 
 :point_right: Other extensions and addons related to this toolbox:
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
@@ -27,18 +25,20 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat.
+
 ### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
 The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.   It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 The toolbox has four main functionalities:
-- assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
-- automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
-- intersection of the 2D shorelines with user-defined shore-normal transects
-- tidal correction using measured water levels and an estimate of the beach slope
+1. assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
+2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
+3. intersection of the 2D shorelines with user-defined shore-normal transects
+4. tidal correction using measured water levels and an estimate of the beach slope
 
-:star: **If you like the repo put a star on it! **
+:star: **If you like the repo put a star on it!** :star:
 
 ## 1. Installation
 

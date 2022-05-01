@@ -120,7 +120,7 @@ def retrieve_images(inputs):
             im_epsg.append(int(im_meta['bands'][0]['crs'][5:]))
 
             # get geometric accuracy
-            if satname in ['L5','L7','L8']:
+            if satname in ['L5','L7','L8','L9']:
                 if 'GEOMETRIC_RMSE_MODEL' in im_meta['properties'].keys():
                     acc_georef = im_meta['properties']['GEOMETRIC_RMSE_MODEL']
                 else:
@@ -175,7 +175,7 @@ def retrieve_images(inputs):
                             'epsg':im_epsg[i]}
 
             # Landsat 7 and 8 download
-            elif satname in ['L7', 'L8']:
+            elif satname in ['L7', 'L8', 'L9']:
                 if satname == 'L7':
                     bands['pan'] = [im_bands[8]] # panchromatic band
                     bands['ms'] = [im_bands[0], im_bands[1], im_bands[2], im_bands[3],
@@ -324,7 +324,7 @@ def get_metadata(inputs):
     # initialize metadata dict
     metadata = dict([])
     # loop through the satellite missions
-    for satname in ['L5','L7','L8','S2']:
+    for satname in ['L5','L7','L8','L9','S2']:
         # if a folder has been created for the given satellite mission
         if satname in os.listdir(filepath):
             # update the metadata dict
@@ -397,15 +397,15 @@ def check_images_available(inputs):
     except:
         ee.Initialize()
         
-    print('Using Landsat collection %s'%inputs['landsat_collection'])
     print('Number of images available between %s and %s:'%(dates_str[0],dates_str[1]), end='\n')
     
     # get images in Landsat Tier 1 as well as Sentinel Level-1C
+    print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
     col_names_T1 = {'L5':'LANDSAT/LT05/%s/T1_TOA'%inputs['landsat_collection'],
                     'L7':'LANDSAT/LE07/%s/T1_TOA'%inputs['landsat_collection'],
                     'L8':'LANDSAT/LC08/%s/T1_TOA'%inputs['landsat_collection'],
+                    'L9':'LANDSAT/LC09/C02/T1_TOA', # only C02 for Landsat 9
                     'S2':'COPERNICUS/S2'}
-    print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
     im_dict_T1 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:
@@ -416,11 +416,12 @@ def check_images_available(inputs):
         
     # if using C01 (only goes to the end of 2021), complete with C02 for L7 and L8
     if dates[1] > datetime(2022,1,1) and inputs['landsat_collection'] == 'C01':
-        print('-> completing Tier 1 with collection C02 after %s:'%'2022-01-01')
+        print('  -> completing Tier 1 with C02 after %s...'%'2022-01-01')
         col_names_C02 = {'L7':'LANDSAT/LE07/C02/T1_TOA',
                          'L8':'LANDSAT/LC08/C02/T1_TOA'}
         dates_C02 = ['2022-01-01',dates_str[1]]
-        for satname in ['L7','L8']:
+        for satname in inputs['sat_list']:
+            if satname not in ['L7','L8']: continue # only L7 and L8 
             im_list = get_image_info(col_names_C02[satname],satname,polygon,dates_C02)
             sum_img = sum_img + len(im_list)
             print('     %s: %d images'%(satname,len(im_list)))
@@ -440,7 +441,7 @@ def check_images_available(inputs):
     im_dict_T2 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:
-        if satname == 'S2': continue
+        if satname in ['L9','S2']: continue # no Tier 2 for Sentinel-2 and Landsat 9
         im_list = get_image_info(col_names_T2[satname],satname,polygon,dates_str)
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
@@ -448,11 +449,12 @@ def check_images_available(inputs):
         
     # also complete with C02 for L7 and L8 after 2022
     if dates[1] > datetime(2022,1,1) and inputs['landsat_collection'] == 'C01':
-        print('-> completing Tier 2 with collection C02 after %s:'%'2022-01-01')
+        print('  -> completing Tier 2 with C02 after %s...'%'2022-01-01')
         col_names_C02 = {'L7':'LANDSAT/LE07/C02/T2_TOA',
                          'L8':'LANDSAT/LC08/C02/T2_TOA'}
         dates_C02 = ['2022-01-01',dates_str[1]]
-        for satname in ['L7','L8']:
+        for satname in inputs['sat_list']:
+            if satname not in ['L7','L8']: continue # only L7 and L8 
             im_list = get_image_info(col_names_C02[satname],satname,polygon,dates_C02)
             sum_img = sum_img + len(im_list)
             print('     %s: %d images'%(satname,len(im_list)))
@@ -601,7 +603,7 @@ def create_folder_structure(im_folder, satname):
     # subfolders depending on satellite mission
     if satname == 'L5':
         filepaths.append(os.path.join(im_folder, satname, '30m'))
-    elif satname in ['L7','L8']:
+    elif satname in ['L7','L8','L9']:
         filepaths.append(os.path.join(im_folder, satname, 'pan'))
         filepaths.append(os.path.join(im_folder, satname, 'ms'))
     elif satname in ['S2']:
@@ -637,7 +639,7 @@ def remove_cloudy_images(im_list, satname, prc_cloud_cover=95):
     """
 
     # remove very cloudy images from the collection (>95% cloud)
-    if satname in ['L5','L7','L8']:
+    if satname in ['L5','L7','L8','L9']:
         cloud_property = 'CLOUD_COVER'
     elif satname in ['S2']:
         cloud_property = 'CLOUDY_PIXEL_PERCENTAGE'
@@ -650,6 +652,9 @@ def remove_cloudy_images(im_list, satname, prc_cloud_cover=95):
 
     return im_list_upt
 
+###################################################################################################
+# Sentinel-2 ONLY
+###################################################################################################
 
 def filter_S2_collection(im_list):
     """
@@ -705,7 +710,6 @@ def filter_S2_collection(im_list):
         im_list_flt = [x for k,x in enumerate(im_list) if k not in idx_delete]
 
     return im_list_flt
-
 
 def merge_overlapping_images(metadata,inputs):
     """

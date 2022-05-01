@@ -29,8 +29,8 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 ### Description
 
-Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
-The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.   It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
+The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 The toolbox has four main functionalities:
 1. assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
@@ -68,7 +68,7 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
-:warning: **In case errors are raised:**: clean things up with the following command (better to have the Anaconda Prompt open as administrator) before attempting to install `coastsat` again:
+:warning: **In case errors are raised:** :warning:: clean things up with the following command (better to have the Anaconda Prompt open as administrator) before attempting to install `coastsat` again:
 ```
 conda clean --all
 ```

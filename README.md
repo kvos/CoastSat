@@ -7,35 +7,42 @@
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
-Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes.
-
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
-The underlying approach of the CoastSat toolkit is described in detail in the following publications:
+:point_right: Relevant publications:
 
-1. Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
-2. Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
-3. Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
-4. Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
+- Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
+- Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
+- Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+- Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
+- Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-Extensions to this toolbox:
-1. [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
-2. [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
-3. [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-4. [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+:point_right: Other repositories and addons related to this toolbox:
+- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+- [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
+- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+- [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
+- [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 
-### Description
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat.
 
-Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2 images.
-The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines.   It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+:star: **If you like the repo put a star on it!** :star:
 
-The toolbox has three main functionalities:
-- assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
-- automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
-- intersection of the 2D shorelines with user-defined shore-normal transects
-- tidal correction using measured water levels and an estimate of the beach slope
+### Latest updates
+:arrow_forward: *(2022/05/02)*
+Compatibility with Landsat 9 and Landsat Collection 2
 
-**If you like the repo put a star on it!**
+### Project description
+
+Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
+The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+
+The toolbox has four main functionalities:
+1. assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
+2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
+3. intersection of the 2D shorelines with user-defined shore-normal transects
+4. tidal correction using measured water levels and an estimate of the beach slope
 
 ## 1. Installation
 
@@ -45,13 +52,19 @@ To run the toolbox you first need to install the required Python packages in an 
 
 Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linux, open a terminal window) and use the `cd` command (change directory) to go the folder where you have downloaded this repository.
 
-Create a new environment named `coastsat` with all the required packages:
+Create a new environment named `coastsat` with all the required packages by entering these commands in succession:
 
 ```
-conda env create -f environment.yml -n coastsat
+conda create -n coastsat python=3.8
+conda activate coastsat
+conda install -c conda-forge earthengine-api=0.1.236
+conda install gdal geopandas
+conda install scikit-image
+conda install -c anaconda astropy
+conda install spyder notebook
 ```
 
-All the required packages have now been installed in an environment called `coastsat`. Now, activate the new environment:
+All the required packages have now been installed in an environment called `coastsat`. Always make sure that the environment is activated with:
 
 ```
 conda activate coastsat
@@ -59,7 +72,12 @@ conda activate coastsat
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with (coastsat).
 
-**In case errors are raised:**: open the **Anaconda Navigator**, in the *Environments* tab click on *Import* and select the `environment.yml` file. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
+:warning: **In case errors are raised** :warning:: clean things up with the following command (better to have the Anaconda Prompt open as administrator) before attempting to install `coastsat` again:
+```
+conda clean --all
+```
+
+You can also install the packages with the **Anaconda Navigator**, in the *Environments* tab. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
 
 ### 1.2 Activate Google Earth Engine Python API
 
@@ -93,22 +111,24 @@ If using `example.py` on **Spyder**, make sure that the Graphics Backend is set 
 
 A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
 
-![run_cell](https://user-images.githubusercontent.com/7217258/60766570-c2100080-a0ee-11e9-9675-e2aeba87e4a7.png)
+![image](https://user-images.githubusercontent.com/7217258/165960239-e8870f7e-0dab-416e-bbdd-089b136b7d20.png)
+
 
 ### 2.1 Retrieval of the satellite images
 
 To retrieve from the GEE server the available satellite images cropped around the user-defined region of coastline for the particular time period of interest, the following variables are required:
 - `polygon`: the coordinates of the region of interest (longitude/latitude pairs in WGS84)
 - `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)
-- `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'S2']` for Landsat 5, 7, 8 and Sentinel-2 collections)
+- `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'L9', 'S2']` for Landsat 5, 7, 8, 9 and Sentinel-2 collections)
 - `sitename`: name of the site (this is the name of the subfolder where the images and other accompanying files will be stored)
 - `filepath`: filepath to the directory where the data will be stored
+- :new: `landsat_collection`: whether to use Collection 1 (`C01`) or Collection 2 (`C02`). Note that after 2022/01/01, Landsat images are only available in Collection 2. Landsat 9 is therefore only available as Collection 2. So if the user has selected `C01`, images prior to 2022/01/01 will be downloaded from Collection 1, while images captured after that date will be automatically taken from `C02`. Also note that at the time of writing `C02` is not complete in Google Earth Engine and still being uploaded.
 
 The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under */filepath/sitename*). The metadata contains the exact time of acquisition (in UTC time) of each image, its projection and its geometric accuracy. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly by running `metadata = SDS_download.get_metadata(inputs)`.
 
 The screenshot below shows an example of inputs that will retrieve all the images of Collaroy-Narrabeen (Australia) acquired by Sentinel-2 in December 2017.
 
-![doc1](https://user-images.githubusercontent.com/7217258/56278746-20f65700-614a-11e9-8715-ba5b8f938063.PNG)
+![doc1](https://user-images.githubusercontent.com/7217258/166197244-9f41de17-f387-40a6-945e-8a78b581c4b1.png)
 
 **Note:** The area of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
 
@@ -240,4 +260,6 @@ A fork is a copy on which you can make your changes.
 
 4. Castelle B., Masselink G., Scott T., Stokes C., Konstantinou A., Marieu V., Bujan S. (2021). Satellite-derived shoreline detection at a high-energy meso-macrotidal beach. *Geomorphology*. volume 383, 107707. https://doi.org/10.1016/j.geomorph.2021.107707
 
-5. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147
+5. Vos, K. and Deng, W. and Harley, M. D. and Turner, I. L. and Splinter, K. D. M. (2022). Beach-face slope dataset for Australia. *Earth System Science Data*. volume 14, 3, p. 1345--1357. https://doi.org/10.5194/essd-14-1345-2022
+
+6. Training dataset used for pixel-wise classification in CoastSat: https://doi.org/10.5281/zenodo.3334147

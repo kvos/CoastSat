@@ -17,8 +17,6 @@ from shapely import geometry
 import skimage.transform as transform
 from astropy.convolution import convolve
 
-np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
-
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
 ###################################################################################################
@@ -113,7 +111,6 @@ def convert_world2pix(points, georef):
         raise
         
     return points_converted
-
 
 def convert_epsg(points, epsg_in, epsg_out):
     """
@@ -268,7 +265,6 @@ def mask_raster(fn, mask):
     # close dataset and flush cache
     raster = None
 
-
 ###################################################################################################
 # UTILITIES
 ###################################################################################################
@@ -301,7 +297,7 @@ def get_filepath(inputs,satname):
         'sat_list': list of str
             list that contains the names of the satellite missions to include: 
             ```
-            sat_list = ['L5', 'L7', 'L8', 'S2']
+            sat_list = ['L5', 'L7', 'L8', 'L9', 'S2']
             ```
         'filepath_data': str
             filepath to the directory where the images are downloaded
@@ -321,15 +317,10 @@ def get_filepath(inputs,satname):
     if satname == 'L5':
         # access downloaded Landsat 5 images
         filepath = os.path.join(filepath_data, sitename, satname, '30m')
-    elif satname == 'L7':
+    elif satname in ['L7','L8','L9']:
         # access downloaded Landsat 7 images
-        filepath_pan = os.path.join(filepath_data, sitename, 'L7', 'pan')
-        filepath_ms = os.path.join(filepath_data, sitename, 'L7', 'ms')
-        filepath = [filepath_pan, filepath_ms]
-    elif satname == 'L8':
-        # access downloaded Landsat 8 images
-        filepath_pan = os.path.join(filepath_data, sitename, 'L8', 'pan')
-        filepath_ms = os.path.join(filepath_data, sitename, 'L8', 'ms')
+        filepath_pan = os.path.join(filepath_data, sitename, satname, 'pan')
+        filepath_ms = os.path.join(filepath_data, sitename, satname, 'ms')
         filepath = [filepath_pan, filepath_ms]
     elif satname == 'S2':
         # access downloaded Sentinel 2 images
@@ -364,7 +355,7 @@ def get_filenames(filename, filepath, satname):
     
     if satname == 'L5':
         fn = os.path.join(filepath, filename)
-    if satname == 'L7' or satname == 'L8':
+    if satname in ['L7','L8','L9']:
         filename_ms = filename.replace('pan','ms')
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], filename_ms)]
@@ -716,11 +707,19 @@ def get_image_bounds(fn):
         return ext
     
     # load .tif file and get bounds
+    if not os.path.exists(fn):
+        raise FileNotFoundError(f"{fn}")
     data = gdal.Open(fn, gdal.GA_ReadOnly)
-    gt = data.GetGeoTransform()
-    cols = data.RasterXSize
-    rows = data.RasterYSize
-    ext = GetExtent(gt,cols,rows)
+    # Check if data is null meaning the open failed
+    if data is None:
+        print("TIF file: ",fn, "cannot be opened" )
+        os.remove(fn)
+        raise AttributeError
+    else:
+        gt = data.GetGeoTransform()
+        cols = data.RasterXSize
+        rows = data.RasterYSize
+        ext = GetExtent(gt,cols,rows)
     
     return geometry.Polygon(ext)
 

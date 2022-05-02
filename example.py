@@ -36,7 +36,7 @@ dates = ['2017-12-01', '2018-01-01']
 
 # satellite missions
 sat_list = ['S2']
-
+collection = 'C01' # choose Landsat collection 'C01' or 'C02'
 # name of the site
 sitename = 'NARRA'
 
@@ -49,7 +49,8 @@ inputs = {
     'dates': dates,
     'sat_list': sat_list,
     'sitename': sitename,
-    'filepath': filepath_data
+    'filepath': filepath_data,
+    'landsat_collection': collection
         }
 
 # before downloading the images, check how many images are available for your inputs

@@ -2,20 +2,12 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.7
+  - python=3.8
   - earthengine-api=0.1.236
-  - google-api-python-client==1.12.8
-  - gdal=2.3.3
-  - pandas=0.24.2
-  - geopandas=0.4.1
-  - numpy
+  - gdal
+  - geopandas
   - matplotlib
-  - pillow
-  - pytz
   - scikit-image
-  - scikit-learn
-  - shapely
-  - scipy
   - astropy
   - spyder
   - notebook

@@ -27,6 +27,11 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 :point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat.
 
+:star: **If you like the repo put a star on it!** :star:
+
+#### Latest updates
+:arrow_forward: Compatibility with Landsat 9 and Landsat Collection 2
+
 ### Description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
@@ -37,8 +42,6 @@ The toolbox has four main functionalities:
 2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
 3. intersection of the 2D shorelines with user-defined shore-normal transects
 4. tidal correction using measured water levels and an estimate of the beach slope
-
-:star: **If you like the repo put a star on it!** :star:
 
 ## 1. Installation
 

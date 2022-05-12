@@ -20,7 +20,7 @@ from urllib.request import urlretrieve
 import zipfile
 import copy
 import shutil
-import gdal
+from osgeo import gdal
 
 # additional modules
 from datetime import datetime, timedelta

@@ -60,7 +60,7 @@ conda activate coastsat
 conda install -c conda-forge earthengine-api=0.1.236
 conda install gdal geopandas
 conda install scikit-image
-conda install -c anaconda astropy
+conda install -c conda-forge astropy
 conda install spyder notebook
 ```
 

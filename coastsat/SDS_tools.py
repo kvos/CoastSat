@@ -17,6 +17,8 @@ from shapely import geometry
 import skimage.transform as transform
 from astropy.convolution import convolve
 
+# np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
+
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
 ###################################################################################################
@@ -111,6 +113,7 @@ def convert_world2pix(points, georef):
         raise
         
     return points_converted
+
 
 def convert_epsg(points, epsg_in, epsg_out):
     """
@@ -264,6 +267,7 @@ def mask_raster(fn, mask):
         out_band.WriteArray(out_data)
     # close dataset and flush cache
     raster = None
+
 
 ###################################################################################################
 # UTILITIES

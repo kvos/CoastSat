@@ -34,7 +34,7 @@ from datetime import datetime
 from pylab import ginput
 
 # CoastSat modules
-from coastsat import SDS_tools, SDS_preprocess
+from CoastSeg.coastsat import SDS_tools, SDS_preprocess
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 

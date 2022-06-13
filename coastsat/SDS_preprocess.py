@@ -19,6 +19,7 @@ import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
 # New import for testing jpg
 from skimage.io import imsave, imread
+from skimage import img_as_ubyte
 
 # other modules
 from osgeo import gdal
@@ -556,6 +557,7 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
 
     # rescale image intensity for display purposes
     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
+    im_RGB = img_as_ubyte(im_RGB)
     # Save the image with skimage.io
     fname=os.path.join(filepath, date + '_' + satname + '.jpg')
     imsave(fname, im_RGB)

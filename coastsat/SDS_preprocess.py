@@ -17,8 +17,7 @@ import skimage.transform as transform
 import skimage.morphology as morphology
 import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
-# New import for testing jpg
-from skimage.io import imsave, imread
+from skimage.io import imsave
 from skimage import img_as_ubyte
 
 # other modules

@@ -30,8 +30,7 @@ from skimage import morphology, transform
 from scipy import ndimage
 
 # CoastSat modules
-# from coastsat import SDS_preprocess, SDS_tools, gdal_merge
-from CoastSeg.CoastSat.coastsat import SDS_preprocess, SDS_tools, gdal_merge
+from CoastSeg.CoastSat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
@@ -366,7 +365,7 @@ def get_metadata(inputs):
 
 def check_images_available(inputs):
     """
-    Scan the GEE collections to see how many images are available for each
+   Scan the GEE collections to see how many images are available for each
     satellite mission (L5,L7,L8,L9,S2), collection (C01,C02) and tier (T1,T2).
 
     KV WRL 2018
@@ -397,10 +396,10 @@ def check_images_available(inputs):
         ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
     except:
         ee.Initialize()
-        
+
     print('Number of images available between %s and %s:'%(dates_str[0],dates_str[1]), end='\n')
     
-    # get images in Landsat Tier 1 as well as Sentinel Level-1C
+# get images in Landsat Tier 1 as well as Sentinel Level-1C
     print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
     col_names_T1 = {'L5':'LANDSAT/LT05/%s/T1_TOA'%inputs['landsat_collection'],
                     'L7':'LANDSAT/LE07/%s/T1_TOA'%inputs['landsat_collection'],
@@ -653,6 +652,7 @@ def remove_cloudy_images(im_list, satname, prc_cloud_cover=95):
 
     return im_list_upt
 
+
 ###################################################################################################
 # Sentinel-2 ONLY
 ###################################################################################################
@@ -712,6 +712,7 @@ def filter_S2_collection(im_list):
 
     return im_list_flt
 
+
 def merge_overlapping_images(metadata,inputs):
     """
     Merge simultaneous overlapping images that cover the area of interest.
@@ -768,14 +769,14 @@ def merge_overlapping_images(metadata,inputs):
         "return duplicates and indices"
         def duplicates(lst, item):
                 return [i for i, x in enumerate(lst) if x == item]
-
+            
         return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)    
-
+      
     # first pass on images that have the exact same timestamp
     duplicates = duplicates_dict([_.split('_')[0] for _ in filenames])
     # {"S2-2029-2020": [0,1,2,3]}
     # {"duplicate_filename": [indices of duplicated files]"}
-
+    
     total_removed_step1 = 0
     if len(duplicates) > 0:
         # loop through each pair of duplicates and merge them
@@ -789,7 +790,7 @@ def merge_overlapping_images(metadata,inputs):
                       os.path.join(filepath, 'S2', '20m',  filenames[idx_dup[index]].replace('10m','20m')),
                       os.path.join(filepath, 'S2', '60m',  filenames[idx_dup[index]].replace('10m','60m')),
                       os.path.join(filepath, 'S2', 'meta', filenames[idx_dup[index]].replace('_10m','').replace('.tif','.txt'))])
-                try: 
+                try:
                     # bounding polygons
                     polygons.append(SDS_tools.get_image_bounds(fn_im[index][0]))
                     im_epsg.append(metadata[sat]['epsg'][idx_dup[index]])
@@ -799,6 +800,7 @@ def merge_overlapping_images(metadata,inputs):
                 except FileNotFoundError:
                     print(f"\n The file {fn_im[index][0]} did not exist")    
                     continue
+                
             # check if epsg are the same, print a warning message
             if len(np.unique(im_epsg)) > 1:
                 print('WARNING: there was an error as two S2 images do not have the same epsg,'+

@@ -28,7 +28,7 @@ import geopandas as gpd
 from shapely import geometry
 
 # CoastSat modules
-from coastsat import SDS_tools
+from CoastSeg.CoastSat.coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 

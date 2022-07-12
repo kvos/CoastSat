@@ -30,7 +30,7 @@ from skimage import morphology, transform
 from scipy import ndimage
 
 # CoastSat modules
-from CoastSeg.CoastSat import SDS_preprocess, SDS_tools, gdal_merge
+from CoastSeg.CoastSat.coastsat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 

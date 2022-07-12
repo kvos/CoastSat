@@ -33,6 +33,7 @@ from scipy import ndimage
 from CoastSeg.CoastSat.coastsat import SDS_preprocess, SDS_tools, gdal_merge
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
+gdal.PushErrorHandler('CPLQuietErrorHandler')
 
 # Main function to download images from the EarthEngine server
 def retrieve_images(inputs):

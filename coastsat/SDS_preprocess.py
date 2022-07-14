@@ -713,7 +713,7 @@ def get_reference_sl(metadata, settings):
     elif 'L8' in metadata.keys(): satname = 'L8'
     elif 'L9' in metadata.keys(): satname = 'L9'
     # if no S2, L8 or L9 use L5 (30m res)
-    elif 'L9' in metadata.keys(): satname = 'L9'
+    elif 'L5' in metadata.keys(): satname = 'L5'
     # if only L7 images, ask user to download other images
     else:
         raise Exception('You cannot digitize the shoreline on L7 images (because of gaps in the images), add another L8, S2 or L5 to your dataset.')

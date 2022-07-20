@@ -73,7 +73,8 @@ metadata = SDS_download.get_metadata(inputs)
 settings = { 
     # general parameters:
     'cloud_thresh': 0.5,        # threshold on maximum cloud cover
-    'output_epsg': 3857,        # epsg code of spatial reference system desired for the output   
+    'output_epsg': 3857,        # epsg code of spatial reference system desired for the output
+    'pan_off': True,            # True to set pansharpening off
     # quality control:
     'check_detection': True,    # if True, shows each shoreline detection to the user for validation
     'adjust_detection': False,  # if True, allows user to adjust the postion of each shoreline by changing the threhold

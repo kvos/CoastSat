@@ -57,7 +57,7 @@ Create a new environment named `coastsat` with all the required packages by ente
 ```
 conda create -n coastsat python=3.8
 conda activate coastsat
-conda install -c conda-forge earthengine-api=0.1.236
+conda install -c conda-forge earthengine-api
 conda install gdal geopandas
 conda install scikit-image
 conda install -c conda-forge astropy

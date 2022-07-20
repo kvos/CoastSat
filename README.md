@@ -32,6 +32,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 ### Latest updates
 :arrow_forward: *(2022/07/20)*
 Option to disable panchromatic sharpening on Landsat 7, 8 and 9 imagery. This setting is recommended for the time being as a bug has been reported with occasional misalignment between the panchromatic and multispectral bands downloaded from Google Earth Engine.
+
 :arrow_forward: *(2022/05/02)*
 Compatibility with Landsat 9 and Landsat Collection 2
 

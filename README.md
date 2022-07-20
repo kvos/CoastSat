@@ -30,6 +30,8 @@ CoastSat is an open-source software toolkit written in Python that enables users
 :star: **If you like the repo put a star on it!** :star:
 
 ### Latest updates
+:arrow_forward: *(2022/07/20)*
+Option to disable panchromatic sharpening on Landsat 7, 8 and 9 imagery. This setting is recommended for the time being as a bug has been reported with occasional misalignment between the panchromatic and multispectral bands downloaded from Google Earth Engine.
 :arrow_forward: *(2022/05/02)*
 Compatibility with Landsat 9 and Landsat Collection 2
 
@@ -140,12 +142,13 @@ To map the shorelines, the following user-defined settings are needed:
 - `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time) and accept/reject each shoreline.
 - `adjust_detection`: in case users wants more control over the detected shorelines, they can set this parameter to `True`, then they will be able to manually adjust the threshold used to map the shoreline on each image.
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved under */filepath/sitename/jpg_files/detection*, even if the two previous parameters are set to `False`. Note that this may slow down the process.
+- `pan_off`: set to `True` to disable panchromatic sharpening of Landsat 7, 8, 9 images. Down-sampled images to 15 m are used instead.
 
 There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `sand_color`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![settings](https://user-images.githubusercontent.com/7217258/95036869-f4a31180-0714-11eb-81fd-9bab011b5b2d.JPG)
+![Capture](https://user-images.githubusercontent.com/7217258/179879844-82f8ebea-0278-490f-9c79-111e5e363160.JPG)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```

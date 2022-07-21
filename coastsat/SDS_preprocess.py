@@ -32,8 +32,8 @@ from CoastSeg.CoastSat.coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
-# Main function to preprocess a satellite image (L5,L7,L8, L9or S2)
-def preprocess_single(fn, satname, cloud_mask_issue):
+# Main function to preprocess a satellite image (L5, L7, L8, L9 or S2)
+def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands,
     the georeferencing vector of the image (coordinates of the upper left pixel),
@@ -53,7 +53,9 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         name of the satellite mission (e.g., 'L5')
     cloud_mask_issue: boolean
         True if there is an issue with the cloud mask and sand pixels are being masked on the images
-
+    pan_off : boolean
+        if True, disable panchromatic sharpening and ignore pan band
+        
     Returns:
     -----------
     im_ms: np.array
@@ -127,7 +129,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_extra = []
 
     #=============================================================================================#
-    # L7 images
+    # L7, L8 and L9 images
     #=============================================================================================#
     elif satname == 'L7':
 
@@ -159,7 +161,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         # resize the image using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_')
-        # check if -inf or nan values on any band and eventually add those pixels to cloud mask        
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
@@ -171,7 +173,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # add zeros to im nodata
-        im_nodata = np.logical_or(im_zeros, im_nodata)   
+        im_nodata = np.logical_or(im_zeros, im_nodata)
         # update cloud mask with all the nodata pixels
         cloud_mask = np.logical_or(cloud_mask, im_nodata)
 
@@ -189,10 +191,10 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         im_extra = im_pan
 
     #=============================================================================================#
-    # L8 and L9images
+    # L8 and L9 images
     #=============================================================================================#
     elif satname in ['L8','L9']:
-
+        
         # read pan image
         fn_pan = fn[0]
         data = gdal.Open(fn_pan, gdal.GA_ReadOnly)
@@ -221,7 +223,7 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         # resize the image using nearest neighbour interpolation (order 0)
         cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
                                       mode='constant').astype('bool_')
-        # check if -inf or nan values on any band and eventually add those pixels to cloud mask        
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
@@ -233,10 +235,10 @@ def preprocess_single(fn, satname, cloud_mask_issue):
         for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
             im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
         # add zeros to im nodata
-        im_nodata = np.logical_or(im_zeros, im_nodata)   
+        im_nodata = np.logical_or(im_zeros, im_nodata)
         # update cloud mask with all the nodata pixels
         cloud_mask = np.logical_or(cloud_mask, im_nodata)
-        
+
         # pansharpen Blue, Green, Red (where there is overlapping with pan band in L8)
         try:
             im_ms_ps = pansharpen(im_ms[:,:,[0,1,2]], im_pan, cloud_mask)
@@ -555,11 +557,42 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
     """
     # rescale image intensity for display purposes
     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-    im_RGB = img_as_ubyte(im_RGB)
-    # Save the image with skimage.io
-    fname=os.path.join(filepath, date + '_' + satname + '.jpg')
-    imsave(fname, im_RGB)
+#    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
+#    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
 
+    # make figure (just RGB)
+    fig = plt.figure()
+    fig.set_size_inches([18,9])
+    fig.set_tight_layout(True)
+    ax1 = fig.add_subplot(111)
+    ax1.axis('off')
+    ax1.imshow(im_RGB)
+    ax1.set_title(date + '   ' + satname, fontsize=16)
+
+#    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
+#        ax1 = fig.add_subplot(311)
+#        ax2 = fig.add_subplot(312)
+#        ax3 = fig.add_subplot(313)
+#    else:
+#        ax1 = fig.add_subplot(131)
+#        ax2 = fig.add_subplot(132)
+#        ax3 = fig.add_subplot(133)
+#    # RGB
+#    ax1.axis('off')
+#    ax1.imshow(im_RGB)
+#    ax1.set_title(date + '   ' + satname, fontsize=16)
+#    # NIR
+#    ax2.axis('off')
+#    ax2.imshow(im_NIR, cmap='seismic')
+#    ax2.set_title('Near Infrared', fontsize=16)
+#    # SWIR
+#    ax3.axis('off')
+#    ax3.imshow(im_SWIR, cmap='seismic')
+#    ax3.set_title('Short-wave Infrared', fontsize=16)
+
+    # save figure
+    fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
+    plt.close()
 
 def save_jpg(metadata, settings, **kwargs):
     """
@@ -607,7 +640,7 @@ def save_jpg(metadata, settings, **kwargs):
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
-            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
+            im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'], settings['pan_off'])
 
             # compute cloud_cover percentage (with no data pixels)
             cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
@@ -684,7 +717,7 @@ def get_reference_sl(metadata, settings):
     elif 'L8' in metadata.keys(): satname = 'L8'
     elif 'L9' in metadata.keys(): satname = 'L9'
     # if no S2, L8 or L9 use L5 (30m res)
-    elif 'L9' in metadata.keys(): satname = 'L9'
+    elif 'L5' in metadata.keys(): satname = 'L5'
     # if only L7 images, ask user to download other images
     else:
             raise Exception('You cannot digitize the shoreline on L7 images (because of gaps in the images), add another L8, S2 or L5 to your dataset.')
@@ -700,6 +733,7 @@ def get_reference_sl(metadata, settings):
         # read image
         fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
         im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'])
+
         # compute cloud_cover percentage (with no data pixels)
         cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
                                 (cloud_mask.shape[0]*cloud_mask.shape[1]))

@@ -77,35 +77,18 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
     # L5 images
     #=============================================================================================#
     if satname == 'L5':
-
-        # read all bands
-        data = gdal.Open(fn, gdal.GA_ReadOnly)
+        fn_ms = fn[0]
+        fn_mask = fn[1]
+        # read ms bands
+        data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
         georef = np.array(data.GetGeoTransform())
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_ms = np.stack(bands, 2)
-
-        # down-sample to 15 m (half of the original pixel size)
-        nrows = im_ms.shape[0]*2
-        ncols = im_ms.shape[1]*2
-
-        # create cloud mask
-        im_QA = im_ms[:,:,5]
-        im_ms = im_ms[:,:,:-1]
+        # read cloud mask
+        data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
+        bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+        im_QA = bands[0]
         cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
-
-        # resize the image using bilinear interpolation (order 1)
-        im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
-                                 mode='constant')
-        # resize the image using nearest neighbour interpolation (order 0)
-        cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
-                                      mode='constant').astype('bool_')
-
-        # adjust georeferencing vector to the new image size
-        # scale becomes 15m and the origin is adjusted to the center of new top left pixel
-        georef[1] = 15
-        georef[5] = -15
-        georef[0] = georef[0] + 7.5
-        georef[3] = georef[3] - 7.5
 
         # check if -inf or nan values on any band and eventually add those pixels to cloud mask
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
@@ -130,30 +113,23 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
     # L7, L8 and L9 images
     #=============================================================================================#
     elif satname in ['L7','L8','L9']:
+        fn_ms = fn[0]
+        fn_pan = fn[1]  
+        fn_mask = fn[2]  
         
         # if panchromatic sharpening is turned off
         if pan_off:
             # load multispetral bands
-            fn_ms = fn[1]
             data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
             georef = np.array(data.GetGeoTransform())
             bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
             im_ms = np.stack(bands, 2)
-            # create cloud mask (last band)
-            im_QA = im_ms[:,:,5]
+            # read cloud mask
+            data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
+            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+            im_QA = bands[0]
             cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
-            
-            # downsample to 15m
-            nrows = im_ms.shape[0]*2
-            ncols = im_ms.shape[1]*2
-            # resize the ms bands using bilinear interpolation (order 1)
-            im_ms = im_ms[:,:,:5]
-            im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
-                                     mode='constant') 
-            
-            # downsample the cloud mask using nearest neighbour interpolation (order 0)
-            cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
-                                          mode='constant').astype('bool_')
+     
             # check if -inf or nan values on any band and eventually add those pixels to cloud mask
             im_nodata = np.zeros(cloud_mask.shape).astype(bool)
             for k in range(im_ms.shape[2]):
@@ -170,44 +146,28 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
             # update cloud mask with all the nodata pixels
             cloud_mask = np.logical_or(cloud_mask, im_nodata) 
             
-            # adjust the georef vector accordingly
-            georef[1] = 15
-            georef[5] = -15
-            georef[0] = georef[0] + 7.5
-            georef[3] = georef[3] - 7.5
-            
             # the extra image is empty
             im_extra = []
     
         # perform panchromatic sharpening
         else:
             # load the panchromatic band
-            fn_pan = fn[0]
             data = gdal.Open(fn_pan, gdal.GA_ReadOnly)
             georef = np.array(data.GetGeoTransform())
             bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
-            im_pan = np.stack(bands, 2)[:,:,0]
+            im_pan = bands[0]
            
             # load the multispectral bands
-            fn_ms = fn[1]
             data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
             bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
             im_ms = np.stack(bands, 2)
-            # create cloud mask (last band)
-            im_QA = im_ms[:,:,5]
+
+            # read cloud mask
+            data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
+            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+            im_QA = bands[0]
             cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
-            
-            # size of pan image
-            nrows = im_pan.shape[0]
-            ncols = im_pan.shape[1]             
-            # resize the ms bands to the size of the pan band using bilinear interpolation (order 1)
-            im_ms = im_ms[:,:,:5]
-            im_ms = transform.resize(im_ms,(nrows, ncols), order=1, preserve_range=True,
-                                     mode='constant')
-            
-            # downsample the cloud mask using nearest neighbour interpolation (order 0)
-            cloud_mask = transform.resize(cloud_mask, (nrows, ncols), order=0, preserve_range=True,
-                                          mode='constant').astype('bool_')
+
             # check if -inf or nan values on any band and eventually add those pixels to cloud mask
             im_nodata = np.zeros(cloud_mask.shape).astype(bool)
             for k in range(im_ms.shape[2]):
@@ -223,12 +183,13 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
             im_nodata = np.logical_or(im_zeros, im_nodata)
             # update cloud mask with all the nodata pixels
             cloud_mask = np.logical_or(cloud_mask, im_nodata)                        
-            
+
             # pansharpen Green, Blue, NIR for Landsat 7
             if satname == 'L7':
                 try:
                     im_ms_ps = pansharpen(im_ms[:,:,[1,2,3]], im_pan, cloud_mask)
                 except: # if pansharpening fails, keep downsampled bands (for long runs)
+                    print('\npansharpening of image %s failed.'%fn[0])
                     im_ms_ps = im_ms[:,:,[1,2,3]]
                 # add downsampled Blue and SWIR1 bands
                 im_ms_ps = np.append(im_ms[:,:,[0]], im_ms_ps, axis=2)
@@ -242,12 +203,14 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
                 try:
                     im_ms_ps = pansharpen(im_ms[:,:,[0,1,2]], im_pan, cloud_mask)
                 except: # if pansharpening fails, keep downsampled bands (for long runs)
+                    print('\npansharpening of image %s failed.'%fn[0])
                     im_ms_ps = im_ms[:,:,[0,1,2]]
                 # add downsampled NIR and SWIR1 bands
                 im_ms_ps = np.append(im_ms_ps, im_ms[:,:,[3,4]], axis=2)
                 im_ms = im_ms_ps.copy()
                 # the extra image is the 15m panchromatic band
                 im_extra = im_pan
+                
     #=============================================================================================#
     # S2 images
     #=============================================================================================#
@@ -447,7 +410,10 @@ def pansharpen(im_ms, im_pan, cloud_mask):
         Pansharpened multispectral image (3D)
 
     """
-
+    # check that cloud cover is not too high otherwise pansharpening fails
+    if sum(sum(cloud_mask)) > 0.95*cloud_mask.shape[0]*cloud_mask.shape[1]:
+        return im_ms
+    
     # reshape image into vector and apply cloud mask
     vec = im_ms.reshape(im_ms.shape[0] * im_ms.shape[1], im_ms.shape[2])
     vec_mask = cloud_mask.reshape(im_ms.shape[0] * im_ms.shape[1])
@@ -626,13 +592,15 @@ def save_jpg(metadata, settings, **kwargs):
             os.makedirs(filepath_jpg)
 
     # loop through satellite list
+    print('Saving images as jpg:')
     for satname in metadata.keys():
-
+        
         filepath = SDS_tools.get_filepath(settings['inputs'],satname)
         filenames = metadata[satname]['filenames']
-
+        print('%s: %d images'%(satname,len(filenames)))
         # loop through images
         for i in range(len(filenames)):
+            print('\r%d%%' %int((i+1)/len(filenames)*100), end='')
             # image filename
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
@@ -656,7 +624,7 @@ def save_jpg(metadata, settings, **kwargs):
             date = filenames[i][:19]
             plt.ioff()  # turning interactive plotting off
             create_jpg(im_ms, cloud_mask, date, satname, filepath_jpg)
-
+        print('')
     # print the location where the images have been saved
     print('Satellite images saved as .jpg in ' + os.path.join(filepath_data, sitename,
                                                     'jpg_files', 'preprocessed'))

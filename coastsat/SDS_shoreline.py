@@ -97,6 +97,7 @@ def extract_shorelines(metadata, settings):
 
     print('Mapping shorelines:')
 
+    default_min_length_sl = settings['min_length_sl']
     # loop through satellite list
     for satname in metadata.keys():
 
@@ -133,7 +134,10 @@ def extract_shorelines(metadata, settings):
 
         # convert settings['min_beach_area'] from metres to pixels
         min_beach_area_pixels = np.ceil(settings['min_beach_area']/pixel_size**2)
-
+        # reduce min shoreline length for L7 because of the diagonal bands
+        if satname == 'L7': settings['min_length_sl'] = 200
+        else: settings['min_length_sl'] = default_min_length_sl
+        
         # loop through the images
         for i in range(len(filenames)):
 

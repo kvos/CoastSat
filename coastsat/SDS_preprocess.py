@@ -77,6 +77,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
     # L5 images
     #=============================================================================================#
     if satname == 'L5':
+        # filepaths to .tif files
         fn_ms = fn[0]
         fn_mask = fn[1]
         # read ms bands
@@ -113,77 +114,49 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off):
     # L7, L8 and L9 images
     #=============================================================================================#
     elif satname in ['L7','L8','L9']:
+        # filepaths to .tif files
         fn_ms = fn[0]
         fn_pan = fn[1]  
         fn_mask = fn[2]  
+        # read ms bands
+        data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
+        georef = np.array(data.GetGeoTransform())
+        bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+        im_ms = np.stack(bands, 2)
+        # read cloud mask
+        data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
+        bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+        im_QA = bands[0]
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
+        # check if -inf or nan values on any band and eventually add those pixels to cloud mask
+        im_nodata = np.zeros(cloud_mask.shape).astype(bool)
+        for k in range(im_ms.shape[2]):
+            im_inf = np.isin(im_ms[:,:,k], -np.inf)
+            im_nan = np.isnan(im_ms[:,:,k])
+            im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
+        # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
+        # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
+        im_zeros = np.ones(cloud_mask.shape).astype(bool)
+        for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
+            im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
+        # add zeros to im nodata
+        im_nodata = np.logical_or(im_zeros, im_nodata)
+        # update cloud mask with all the nodata pixels
+        cloud_mask = np.logical_or(cloud_mask, im_nodata) 
         
         # if panchromatic sharpening is turned off
-        if pan_off:
-            # load multispetral bands
-            data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
-            georef = np.array(data.GetGeoTransform())
-            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
-            im_ms = np.stack(bands, 2)
-            # read cloud mask
-            data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
-            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
-            im_QA = bands[0]
-            cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
-     
-            # check if -inf or nan values on any band and eventually add those pixels to cloud mask
-            im_nodata = np.zeros(cloud_mask.shape).astype(bool)
-            for k in range(im_ms.shape[2]):
-                im_inf = np.isin(im_ms[:,:,k], -np.inf)
-                im_nan = np.isnan(im_ms[:,:,k])
-                im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
-            # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
-            # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
-            im_zeros = np.ones(cloud_mask.shape).astype(bool)
-            for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
-                im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-            # add zeros to im nodata
-            im_nodata = np.logical_or(im_zeros, im_nodata)
-            # update cloud mask with all the nodata pixels
-            cloud_mask = np.logical_or(cloud_mask, im_nodata) 
-            
-            # the extra image is empty
+        if pan_off:            
+            # ms bands are untouched and the extra image is empty
             im_extra = []
     
-        # perform panchromatic sharpening
+        # otherwise perform panchromatic sharpening
         else:
-            # load the panchromatic band
+            # read panchromatic band
             data = gdal.Open(fn_pan, gdal.GA_ReadOnly)
             georef = np.array(data.GetGeoTransform())
             bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
             im_pan = bands[0]
            
-            # load the multispectral bands
-            data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
-            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
-            im_ms = np.stack(bands, 2)
-
-            # read cloud mask
-            data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
-            bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
-            im_QA = bands[0]
-            cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
-
-            # check if -inf or nan values on any band and eventually add those pixels to cloud mask
-            im_nodata = np.zeros(cloud_mask.shape).astype(bool)
-            for k in range(im_ms.shape[2]):
-                im_inf = np.isin(im_ms[:,:,k], -np.inf)
-                im_nan = np.isnan(im_ms[:,:,k])
-                im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
-            # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
-            # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
-            im_zeros = np.ones(cloud_mask.shape).astype(bool)
-            for k in [1,3,4]: # loop through the Green, NIR and SWIR bands
-                im_zeros = np.logical_and(np.isin(im_ms[:,:,k],0), im_zeros)
-            # add zeros to im nodata
-            im_nodata = np.logical_or(im_zeros, im_nodata)
-            # update cloud mask with all the nodata pixels
-            cloud_mask = np.logical_or(cloud_mask, im_nodata)                        
-
             # pansharpen Green, Blue, NIR for Landsat 7
             if satname == 'L7':
                 try:

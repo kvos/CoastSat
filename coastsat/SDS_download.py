@@ -17,8 +17,8 @@ import ee
 
 # modules to download, unzip and stack the images
 import requests
+from urllib.request import urlretrieve
 import zipfile
-import copy
 import shutil
 from osgeo import gdal
 
@@ -297,9 +297,9 @@ def retrieve_images(inputs):
                 while True:
                     try:
                         im_ee = ee.Image(im_meta['id'])
-                        local_data_10m = download_tif(im_ee, inputs['polygon'], bands['10m'], filepaths[1])
-                        local_data_20m = download_tif(im_ee, inputs['polygon'], bands['20m'], filepaths[2])
-                        local_data_60m = download_tif(im_ee, inputs['polygon'], bands['60m'], filepaths[3])
+                        local_data_10m = download_tif_S2(im_ee, inputs['polygon'], bands['10m'], filepaths[1])
+                        local_data_20m = download_tif_S2(im_ee, inputs['polygon'], bands['20m'], filepaths[2])
+                        local_data_60m = download_tif_S2(im_ee, inputs['polygon'], bands['60m'], filepaths[3])
                         break
                     except:
                         continue
@@ -412,7 +412,6 @@ def get_metadata(inputs):
         pickle.dump(metadata, f)
 
     return metadata
-
 
 ###################################################################################################
 # AUXILIARY FUNCTIONS
@@ -716,8 +715,86 @@ def warp_image_to_target(fn_in,fn_out,fn_target,double_res=True,resampling_metho
         raise Exception('Size of pan and ms bands do not match for image %s'%fn_out)
 
 ###################################################################################################
-# Sentinel-2 ONLY
+# Sentinel-2 functions
 ###################################################################################################
+
+def download_tif_S2(image, polygon, bandsId, filepath):
+    """
+    Old function to download a .tif from EarthEngine (from CoastSat versions prior to 2.0)
+    This function is still used for Sentinel-2 imagery. Eventually, we shoud re-write the 
+    S2 workflow in a similar manner as the Landsat workflow (gdal_warp on the bands of different resolution).
+    The image is downloaded as a zip file then moved to the working directory, unzipped and stacked into a
+    single .TIF file.
+
+    Two different codes based on which version of the earth-engine-api is being
+    used.
+
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    image: ee.Image
+        Image object to be downloaded
+    polygon: list
+        polygon containing the lon/lat coordinates to be extracted
+        longitudes in the first column and latitudes in the second column
+    bandsId: list of dict
+        list of bands to be downloaded
+    filepath: location where the temporary file should be saved
+
+    Returns:
+    -----------
+    Downloads an image in a file named data.tif
+
+    """
+
+    # for the old version of ee only
+    if int(ee.__version__[-3:]) <= 201:
+        url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
+            'image': image.serialize(),
+            'region': polygon,
+            'bands': bandsId,
+            'filePerBand': 'false',
+            'name': 'data',
+            }))
+        local_zip, headers = urlretrieve(url)
+        with zipfile.ZipFile(local_zip) as local_zipfile:
+            return local_zipfile.extract('data.tif', filepath)
+    # for the newer versions of ee
+    else:
+        # crop image on the server and create url to download
+        url = ee.data.makeDownloadUrl(ee.data.getDownloadId({
+            'image': image,
+            'region': polygon,
+            'bands': bandsId,
+            'filePerBand': 'false',
+            'name': 'data',
+            }))
+        # download zipfile with the cropped bands
+        local_zip, headers = urlretrieve(url)
+        # move zipfile from temp folder to data folder
+        dest_file = os.path.join(filepath, 'imagezip')
+        shutil.move(local_zip,dest_file)
+        # unzip file
+        with zipfile.ZipFile(dest_file) as local_zipfile:
+            for fn in local_zipfile.namelist():
+                local_zipfile.extract(fn, filepath)
+            # filepath + filename to single bands
+            fn_tifs = [os.path.join(filepath,_) for _ in local_zipfile.namelist()]
+        # stack bands into single .tif
+        outds = gdal.BuildVRT(os.path.join(filepath,'stacked.vrt'), fn_tifs, separate=True)
+        outds = gdal.Translate(os.path.join(filepath,'data.tif'), outds)
+        # delete single-band files
+        for fn in fn_tifs: os.remove(fn)
+        # delete .vrt file
+        os.remove(os.path.join(filepath,'stacked.vrt'))
+        # delete zipfile
+        os.remove(dest_file)
+        # delete data.tif.aux (not sure why this is created)
+        if os.path.exists(os.path.join(filepath,'data.tif.aux')):
+            os.remove(os.path.join(filepath,'data.tif.aux'))
+        # return filepath to stacked file called data.tif
+        return os.path.join(filepath,'data.tif')
 
 def filter_S2_collection(im_list):
     """

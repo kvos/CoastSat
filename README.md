@@ -30,8 +30,15 @@ CoastSat is an open-source software toolkit written in Python that enables users
 :star: **If you like the repo put a star on it!** :star:
 
 ### Latest updates
+
+:arrow_forward: *(2022/08/01)*
+CoastSat 2.0 (major release):
++ new download function for Landsat images (better alignment between panchromatic and multispectral bands)
++ quality-control steps added for fully automated shoreline extraction
++ post-processing of the shorelne time-series, including despiking and computing seasonal-averages.
+
 :arrow_forward: *(2022/07/20)*
-Option to disable panchromatic sharpening on Landsat 7, 8 and 9 imagery. This setting is recommended for the time being as a bug has been reported with occasional misalignment between the panchromatic and multispectral bands downloaded from Google Earth Engine.
+Option to switch off panchromatic sharpening on Landsat 7, 8 and 9 imagery.
 
 :arrow_forward: *(2022/05/02)*
 Compatibility with Landsat 9 and Landsat Collection 2
@@ -42,10 +49,11 @@ Satellite remote sensing can provide low-cost long-term shoreline data capable o
 The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 The toolbox has four main functionalities:
-1. assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period
-2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique
-3. intersection of the 2D shorelines with user-defined shore-normal transects
-4. tidal correction using measured water levels and an estimate of the beach slope
+1. assisted retrieval from Google Earth Engine of all available satellite images spanning the user-defined region of interest and time period.
+2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique.
+3. intersection of the 2D shorelines with user-defined shore-normal transects.
+4. tidal correction using measured water levels and an estimate of the beach slope.
+5. post-processing of the shoreline time-series, despiking and seasonal averaging.
 
 ## 1. Installation
 
@@ -60,11 +68,7 @@ Create a new environment named `coastsat` with all the required packages by ente
 ```
 conda create -n coastsat python=3.8
 conda activate coastsat
-conda install -c conda-forge earthengine-api
-conda install gdal geopandas
-conda install scikit-image
-conda install -c conda-forge astropy
-conda install spyder notebook
+conda install -c conda-forge geopandas earthengine-api scikit-image matplotlib astropy notebook -y
 ```
 
 All the required packages have now been installed in an environment called `coastsat`. Always make sure that the environment is activated with:
@@ -139,17 +143,17 @@ The screenshot below shows an example of inputs that will retrieve all the image
 
 To map the shorelines, the following user-defined settings are needed:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation).
+- `dist_clouds`: buffer around cloud pixels where shoreline is not mapped (in metres)
 - `output_epsg`: epsg code defining the spatial reference system of the shoreline coordinates. It has to be a cartesian coordinate system (i.e. projected) and not a geographical coordinate system (in latitude and longitude angles). See http://spatialreference.org/ to find the EPSG number corresponding to your local coordinate system. If unsure, use 3857 which is the web-mercator.
 - `check_detection`: if set to `True` the user can quality control each shoreline detection interactively (recommended when mapping shorelines for the first time) and accept/reject each shoreline.
 - `adjust_detection`: in case users wants more control over the detected shorelines, they can set this parameter to `True`, then they will be able to manually adjust the threshold used to map the shoreline on each image.
 - `save_figure`: if set to `True` a figure of each mapped shoreline is saved under */filepath/sitename/jpg_files/detection*, even if the two previous parameters are set to `False`. Note that this may slow down the process.
-- `pan_off`: set to `True` to disable panchromatic sharpening of Landsat 7, 8, 9 images. Down-sampled images to 15 m are used instead.
 
-There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue` and `sand_color`) that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
+There are additional parameters (`min_beach_size`, `buffer_size`, `min_length_sl`, `cloud_mask_issue`, `sand_color` and `pan_off` that can be tuned to optimise the shoreline detection (for Advanced users only). For the moment leave these parameters set to their default values, we will see later how they can be modified.
 
 An example of settings is provided here:
 
-![Capture](https://user-images.githubusercontent.com/7217258/179879844-82f8ebea-0278-490f-9c79-111e5e363160.JPG)
+![image](https://user-images.githubusercontent.com/7217258/182158840-ef1c527c-6ddb-44ab-a6fc-f4b46c8b0127.png)
 
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
@@ -175,7 +179,7 @@ The figure below shows how the satellite-derived shorelines can be opened in a G
 
 #### Reference shoreline
 
-Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline.
+Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline. **It is highly recommended to use a reference shoreline**.
 
  The user can manually digitize one or several reference shorelines on one of the images by calling:
 ```
@@ -192,11 +196,10 @@ The maximum distance (in metres) allowed from the reference shoreline is defined
 
 As mentioned above, there are some additional parameters that can be modified to optimise the shoreline detection:
 - `min_beach_area`: minimum allowable object area (in metres^2) for the class 'sand'. During the image classification, some features (for example, building roofs) may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), try decreasing the value of this parameter.
-- `buffer_size`: radius (in metres) that defines the buffer around sandy pixels that is considered to calculate the sand/water threshold. The default value of `buffer_size` is 150 m. This parameter should be increased if you have a very wide (>150 m) surf zone or inter-tidal zone.
-- `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the actual shoreline. The default value is 200 m. If the shoreline that you are trying to map is shorter than 200 m, decrease the value of this parameter.
+- `min_length_sl`: minimum length (in metres) of shoreline perimeter to be valid. This can be used to discard small features that are detected but do not correspond to the actual shoreline. The default value is 500 m. If the shoreline that you are trying to map is shorter than 500 m, decrease the value of this parameter.
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds and appear as masked pixels on your images. If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features, as often these are beaches and not clouds. Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
-- `sand_color`: this parameter can take 3 values: `default`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. At this stage this option is only available for Landsat images (soon for Sentinel-2 as well).
-
+- `sand_color`: this parameter can take 3 values: `default`, `latest`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. The `latest` classifier contains all the training data and can pick up sand in most environments (but not as accurately). At this stage the different classifiers are only available for Landsat images (soon for Sentinel-2 as well).
+- `pan_off`: by default Landsat 7, 8 and 9 images are pan-sharpened using the panchromatic band and a PCA algorithm. If for any reason you prefer not to pan-sharpen the Landsat images, switch it off by setting `pan_off` to `True`.
 #### Re-training the classifier
 CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
 
@@ -232,6 +235,13 @@ An example is shown in the animation below:
 
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
+There is also the option to run `SDS_transects.compute_intersection_QA()`, this function provides more quality-control when computing the intersections between shorelines and transects (small loops, multiple intersections etc).
+
+It is recommended to use this function as it can provide cleaner shoreline time-series. See the [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/master/example_jupyter.ipynb) for a detailed description of the parameters. An example of parameters for the quality control are provided below:
+
+![image](https://user-images.githubusercontent.com/7217258/182160883-5edfb8f9-e668-440c-b55c-87e8697a2b64.png)
+
+
 ### 2.4 Tidal Correction
 
 Each satellite image is captured at a different stage of the tide, therefore a tidal correction is necessary to remove the apparent shoreline changes cause by tidal fluctuations.
@@ -242,6 +252,17 @@ In order to tidally-correct the time-series of shoreline change you will need th
 - An estimate of the beach-face slope along each transect. If you don't have this data you can obtain it using [CoastSat.slope](https://github.com/kvos/CoastSat.slope), see [Vos et al. 2020](https://doi.org/10.1029/2020GL088365) for more details (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
 
 Wave setup and runup corrections are not included in the toolbox, but for more information on these additional corrections see [Castelle et al. 2021](https://doi.org/10.1016/j.geomorph.2021.107707).
+
+### 2.5 Post-processing
+
+The tidally-corrected time-series can be post-processed to remove outliers with a despiking algorithm in `SDS_transects.reject_outliers()`.
+
+![image](https://user-images.githubusercontent.com/7217258/182162154-9d8da81d-a5fc-486e-baf6-55e2a5782096.png)
+
+Functions to compute seasonal and monthly averages on the shoreline time-series are also provided: `SDS_transects.seasonal_averages()` and `SDS_transects.monthly_averages()`.
+
+![NA1](https://user-images.githubusercontent.com/7217258/182162937-58bad8f1-35c7-4789-a03c-05799380bacf.jpg)
+
 
 ## Issues
 Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).

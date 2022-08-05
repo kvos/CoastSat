@@ -221,7 +221,12 @@ def retrieve_images(inputs):
             elif satname in ['L7', 'L8', 'L9']:
                 fp_ms = filepaths[1]
                 fp_pan = filepaths[2]
-                fp_mask = filepaths[3]  
+                fp_mask = filepaths[3] 
+                # if C01 is selected, for images after 2022 adjust the name of the QA band 
+                # as the name has changed for Collection 2 images (from BQA to QA_PIXEL)
+                if inputs['landsat_collection'] == 'C01':
+                    if not 'BQA' in [_['id'] for _ in im_bands]:
+                        bands_id[-1] = 'QA_PIXEL'
                 # select bands (multispectral and panchromatic)
                 bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id]
                 bands['pan'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in ['B8']]
@@ -590,7 +595,29 @@ def remove_cloudy_images(im_list, satname, prc_cloud_cover=95):
     return im_list_upt
 
 def adjust_polygon(polygon,proj):
-    
+    """
+    Adjust polygon of ROI to fit exactly with the pixels of the underlying tile
+
+    KV WRL 2022
+
+    Arguments:
+    -----------
+    polygon: list
+        polygon containing the lon/lat coordinates to be extracted,
+        longitudes in the first column and latitudes in the second column,
+        there are 5 pairs of lat/lon with the fifth point equal to the first point:
+        ```
+        polygon = [[[151.3, -33.7],[151.4, -33.7],[151.4, -33.8],[151.3, -33.8],
+        [151.3, -33.7]]]
+        ```
+    proj: ee.Proj
+        projection of the underlying tile
+
+    Returns:
+    -----------
+    ee_region: ee
+        updated list of images
+    """    
     # adjust polygon to match image coordinates so that there is no resampling
     polygon_ee = ee.Geometry.Polygon(polygon)    
     # convert polygon to image coordinates

@@ -31,11 +31,11 @@ polygon = [[[151.301454, -33.700754],
 polygon = SDS_tools.smallest_rectangle(polygon)
 
 # date range
-dates = ['1984-01-01', '2022-01-01']
+dates = ['2022-01-01', '2022-08-01']
 
 # satellite missions
-sat_list = ['L5','L7','L8']
-collection = 'C01' # choose Landsat collection 'C01' or 'C02'
+sat_list = ['L7','L8']
+collection = 'C02' # choose Landsat collection 'C01' or 'C02'
 # name of the site
 sitename = 'NARRA'
 
@@ -71,7 +71,7 @@ metadata = SDS_download.get_metadata(inputs)
 # settings for the shoreline extraction
 settings = { 
     # general parameters:
-    'cloud_thresh': 0.1,        # threshold on maximum cloud cover
+    'cloud_thresh': 0.99,        # threshold on maximum cloud cover
     'dist_clouds': 300,         # ditance around clouds where shoreline can't be mapped
     'output_epsg': 28356,       # epsg code of spatial reference system desired for the output
     # quality control:
@@ -89,7 +89,7 @@ settings = {
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
-# SDS_preprocess.save_jpg(metadata, settings)
+SDS_preprocess.save_jpg(metadata, settings)
 
 # [OPTIONAL] create a reference shoreline (helps to identify outliers and false detections)
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl(metadata, settings)

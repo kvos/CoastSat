@@ -35,7 +35,6 @@ from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 gdal.PushErrorHandler('CPLQuietErrorHandler')
 
-# Main function to download images from the EarthEngine server
 def retrieve_images(inputs):
     """
     Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2
@@ -356,7 +355,6 @@ def retrieve_images(inputs):
     print('Satellite images downloaded from GEE and save in %s'%im_folder)
     return metadata
 
-# function to load the metadata if images have already been downloaded
 def get_metadata(inputs):
     """
     Gets the metadata from the downloaded images by parsing .txt files located
@@ -705,7 +703,33 @@ def download_tif(image, polygon, bands, filepath):
             return fn_all[0]
 
 def warp_image_to_target(fn_in,fn_out,fn_target,double_res=True,resampling_method='bilinear'):
-    
+    """
+    Resample an image on a new pixel grid based on a target image using gdal_warp.
+    This is used to align the multispectral and panchromatic bands, as well as just downsample certain bands.
+
+    KV WRL 2022
+
+    Arguments:
+    -----------
+    fn_in: str
+        filepath of the input image (points to .tif file)
+    fn_out: str
+        filepath of the output image (will be created)
+    fn_target: str
+        filepath of the target image
+    double_res: boolean
+        this function can be used to downsample images by settings the input and target 
+        filepaths to the same imageif the input and target images are the same and settings
+        double_res = True to downsample by a factor of 2
+    resampling_method: str
+        method using to resample the image on the new pixel grid. See gdal_warp documentation
+        for options (https://gdal.org/programs/gdalwarp.html)
+
+    Returns:
+    -----------
+    Creates a new .tif file (fn_out)
+
+    """    
     # get output extent from target image
     im_target = gdal.Open(fn_target, gdal.GA_ReadOnly)
     georef_target = np.array(im_target.GetGeoTransform())
@@ -1101,7 +1125,7 @@ def merge_overlapping_images(metadata,inputs):
         else:
             for index in range(len(pair)):
                 # read image
-                im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False)
+                im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False, 'C01')
                 # in Sentinel2 images close to the edge of the image there are some artefacts,
                 # that are squares with constant pixel intensities. They need to be masked in the
                 # raster (GEOTIFF). It can be done using the image standard deviation, which

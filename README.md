@@ -98,6 +98,7 @@ earthengine authenticate
 ```
 
 A web browser will open, login with a gmail account and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.
+In the latest version of the `earthengine-api`, the authentication is done with `gcloud`. If an error is raised about `gcloud` missing, go to https://cloud.google.com/sdk/docs/install and install `gcloud`. After you have installed it, close the Anaconda Prompt and restart it, then activate the environenment before running `earthengine authenticate` again.
 
 Now you are ready to start using the CoastSat toolbox!
 

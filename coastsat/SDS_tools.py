@@ -16,6 +16,8 @@ import geopandas as gpd
 from shapely import geometry
 import skimage.transform as transform
 from astropy.convolution import convolve
+import pytz
+from datetime import datetime, timedelta
 
 # np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
@@ -272,7 +274,46 @@ def mask_raster(fn, mask):
 ###################################################################################################
 # UTILITIES
 ###################################################################################################
-    
+
+def create_folder_structure(im_folder, satname):
+    """
+    Create the structure of subfolders for each satellite mission
+
+    KV WRL 2018
+
+    Arguments:
+    -----------
+    im_folder: str
+        folder where the images are to be downloaded
+    satname:
+        name of the satellite mission
+
+    Returns:
+    -----------
+    filepaths: list of str
+        filepaths of the folders that were created
+    """
+
+    # one folder for the metadata (common to all satellites)
+    filepaths = [os.path.join(im_folder, satname, 'meta')]
+    # subfolders depending on satellite mission
+    if satname == 'L5':
+        filepaths.append(os.path.join(im_folder, satname, 'ms'))
+        filepaths.append(os.path.join(im_folder, satname, 'mask'))
+    elif satname in ['L7','L8','L9']:
+        filepaths.append(os.path.join(im_folder, satname, 'ms'))
+        filepaths.append(os.path.join(im_folder, satname, 'pan'))
+        filepaths.append(os.path.join(im_folder, satname, 'mask'))
+    elif satname in ['S2']:
+        filepaths.append(os.path.join(im_folder, satname, '10m'))
+        filepaths.append(os.path.join(im_folder, satname, '20m'))
+        filepaths.append(os.path.join(im_folder, satname, '60m'))
+    # create the subfolders if they don't exist already
+    for fp in filepaths:
+        if not os.path.exists(fp): os.makedirs(fp)
+
+    return filepaths
+
 def get_filepath(inputs,satname):
     """
     Create filepath to the different folders containing the satellite images.
@@ -303,7 +344,7 @@ def get_filepath(inputs,satname):
             ```
             sat_list = ['L5', 'L7', 'L8', 'L9', 'S2']
             ```
-        'filepath_data': str
+        'filepath': str
             filepath to the directory where the images are downloaded
     satname: str
         short name of the satellite mission ('L5','L7','L8','S2')
@@ -320,12 +361,15 @@ def get_filepath(inputs,satname):
     # access the images
     if satname == 'L5':
         # access downloaded Landsat 5 images
-        filepath = os.path.join(filepath_data, sitename, satname, '30m')
+        fp_ms = os.path.join(filepath_data, sitename, satname, 'ms')
+        fp_mask = os.path.join(filepath_data, sitename, satname, 'mask')
+        filepath = [fp_ms, fp_mask]
     elif satname in ['L7','L8','L9']:
         # access downloaded Landsat 7 images
-        filepath_pan = os.path.join(filepath_data, sitename, satname, 'pan')
-        filepath_ms = os.path.join(filepath_data, sitename, satname, 'ms')
-        filepath = [filepath_pan, filepath_ms]
+        fp_ms = os.path.join(filepath_data, sitename, satname, 'ms')
+        fp_pan = os.path.join(filepath_data, sitename, satname, 'pan')
+        fp_mask = os.path.join(filepath_data, sitename, satname, 'mask')
+        filepath = [fp_ms, fp_pan, fp_mask]
     elif satname == 'S2':
         # access downloaded Sentinel 2 images
         filepath10 = os.path.join(filepath_data, sitename, satname, '10m')
@@ -358,11 +402,15 @@ def get_filenames(filename, filepath, satname):
     """     
     
     if satname == 'L5':
-        fn = os.path.join(filepath, filename)
-    if satname in ['L7','L8','L9']:
-        filename_ms = filename.replace('pan','ms')
+        fn_mask = filename.replace('ms.tif','mask.tif')
         fn = [os.path.join(filepath[0], filename),
-              os.path.join(filepath[1], filename_ms)]
+              os.path.join(filepath[1], fn_mask)]
+    if satname in ['L7','L8','L9']:
+        fn_pan = filename.replace('ms.tif','pan.tif')
+        fn_mask = filename.replace('ms.tif','mask.tif')
+        fn = [os.path.join(filepath[0], filename),
+              os.path.join(filepath[1], fn_pan),
+              os.path.join(filepath[2], fn_mask)]
     if satname == 'S2':
         filename20 = filename.replace('10m','20m')
         filename60 = filename.replace('10m','60m')
@@ -410,51 +458,71 @@ def merge_output(output):
 
     return output_all
 
-
 def remove_duplicates(output):
     """
     Function to remove from the output dictionnary entries containing shorelines for 
-    the same date and satellite mission. This happens when there is an overlap between 
-    adjacent satellite images.
-
+    the same date and satellite mission. This happens when there is an overlap 
+    between adjacent satellite images.
+    
+    KV WRL 2020
+    
     Arguments:
     -----------
         output: dict
             contains output dict with shoreline and metadata
-
-    Returns:
+        
+    Returns:    
     -----------
         output_no_duplicates: dict
             contains the updated dict where duplicates have been removed
-
+        
     """
-
-    # nested function
-    def duplicates_dict(lst):
-        "return duplicates and indices"
-        def duplicates(lst, item):
-                return [i for i, x in enumerate(lst) if x == item]
-        return dict((x, duplicates(lst, x)) for x in set(lst) if lst.count(x) > 1)
-
-    dates = output['dates']
-    # make a list with year/month/day
-    dates_str = [_.strftime('%Y%m%d') for _ in dates]
-    # create a dictionnary with the duplicates
-    dupl = duplicates_dict(dates_str)
-    # if there are duplicates, only keep the first element
-    if dupl:
+    # remove duplicates
+    dates = output['dates'].copy()
+    # find the pairs of images that are within 5 minutes of each other
+    time_delta = 5*60 # 5 minutes in seconds
+    pairs = []
+    for i,date in enumerate(dates):
+        # dummy value so it does not match it again
+        dates[i] = pytz.utc.localize(datetime(1,1,1) + timedelta(days=i+1))
+        # calculate time difference
+        time_diff = np.array([np.abs((date - _).total_seconds()) for _ in dates])
+        # find the matching times and add to pairs list
+        boolvec = time_diff <= time_delta
+        if np.sum(boolvec) == 0:
+            continue
+        else:
+            idx_dup = np.where(boolvec)[0][0]
+            pairs.append([i,idx_dup])
+            
+    # if there are duplicates, only keep the longest shoreline
+    if len(pairs) > 0:
+        # initialise variables
         output_no_duplicates = dict([])
         idx_remove = []
-        for k,v in dupl.items():
-            idx_remove.append(v[0])
+        # for each pair
+        for pair in pairs:
+            # check if any of the shorelines are empty
+            empty_bool = [(len(output['shorelines'][_]) < 2) for _ in pair]
+            if np.all(empty_bool): # if both empty remove both
+                idx_remove.append(pair[0])
+                idx_remove.append(pair[1])
+            elif np.any(empty_bool): # if one empty remove that one
+                idx_remove.append(pair[np.where(empty_bool)[0][0]])
+            else: # remove the shorter shoreline and keep the longer one
+                sl0 = geometry.LineString(output['shorelines'][pair[0]]) 
+                sl1 = geometry.LineString(output['shorelines'][pair[1]])
+                if sl0.length >= sl1.length: idx_remove.append(pair[1])
+                else: idx_remove.append(pair[0])
+        # create a new output structure with all the duplicates removed
         idx_remove = sorted(idx_remove)
-        idx_all = np.linspace(0, len(dates_str)-1, len(dates_str))
-        idx_keep = list(np.where(~np.isin(idx_all,idx_remove))[0])
+        idx_all = np.linspace(0, len(dates)-1, len(dates)).astype(int)
+        idx_keep = list(np.where(~np.isin(idx_all,idx_remove))[0])        
         for key in output.keys():
             output_no_duplicates[key] = [output[key][i] for i in idx_keep]
         print('%d duplicates' % len(idx_remove))
-        return output_no_duplicates
-    else:
+        return output_no_duplicates 
+    else: 
         print('0 duplicates')
         return output
 
@@ -532,7 +600,7 @@ def get_closest_datapoint(dates, dates_ts, values_ts):
     return values
 
 ###################################################################################################
-# CONVERSIONS FROM DICT TO GEODATAFRAME AND READ/WRITE GEOJSON
+# GEODATAFRAMES AND READ/WRITE GEOJSON
 ###################################################################################################
     
 def polygon_from_kml(fn):

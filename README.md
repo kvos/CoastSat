@@ -54,6 +54,7 @@ The toolbox has four main functionalities:
 3. intersection of the 2D shorelines with user-defined shore-normal transects.
 4. tidal correction using measured water levels and an estimate of the beach slope.
 5. post-processing of the shoreline time-series, despiking and seasonal averaging.
+6. validation example at Narrabeen
 
 ## 1. Installation
 
@@ -264,6 +265,12 @@ The tidally-corrected time-series can be post-processed to remove outliers with 
 Functions to compute seasonal and monthly averages on the shoreline time-series are also provided: `SDS_transects.seasonal_averages()` and `SDS_transects.monthly_averages()`.
 
 ![NA1](https://user-images.githubusercontent.com/7217258/182162937-58bad8f1-35c7-4789-a03c-05799380bacf.jpg)
+
+### 2.6 Validation against survey data
+
+This section provides code to compare the satellite-derived shorelines against the survey data for Narrabeen, available at http://narrabeen.wrl.unsw.edu.au/.
+
+![comparison_transect_PF1](https://user-images.githubusercontent.com/7217258/183917858-d2fefdaf-f215-42d4-b103-3cbab636079e.jpg)
 
 
 ## Issues

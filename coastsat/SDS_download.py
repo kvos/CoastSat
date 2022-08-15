@@ -181,8 +181,19 @@ def retrieve_images(inputs):
                 proj = image_ee.select('B1').projection()
                 ee_region = adjust_polygon(inputs['polygon'],proj)
                 # download .tif from EE (one file with ms bands and one file with QA band)
-                fn_ms, fn_QA = download_tif(image_ee,ee_region,bands['ms'],fp_ms)
-                
+                count = 0
+                while True:
+                    try:    
+                        fn_ms, fn_QA = download_tif(image_ee,ee_region,bands['ms'],fp_ms) 
+                        break
+                    except:
+                        print('\nDownload failed, trying again...')
+                        count += 1
+                        if count > 100:
+                            raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
+                        else:
+                            continue
+                        
                 # create filename for image
                 for key in bands.keys():
                     im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
@@ -236,8 +247,19 @@ def retrieve_images(inputs):
                 ee_region_pan = adjust_polygon(inputs['polygon'],proj_pan)
 
                 # download both ms and pan bands from EE
-                fn_ms, fn_QA = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms)
-                fn_pan = download_tif(image_ee,ee_region_pan,bands['pan'],fp_pan)
+                count = 0
+                while True:
+                    try:    
+                        fn_ms, fn_QA = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms)
+                        fn_pan = download_tif(image_ee,ee_region_pan,bands['pan'],fp_pan)
+                        break
+                    except:
+                        print('\nDownload failed, trying again...')
+                        count += 1
+                        if count > 100:
+                            raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
+                        else:
+                            continue
                 
                 # create filename for both images (ms and pan)
                 for key in bands.keys():

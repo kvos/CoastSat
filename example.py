@@ -107,6 +107,8 @@ output = SDS_tools.remove_inaccurate_georef(output, 10)
 # for GIS applications, save output into a GEOJSON layer
 geomtype = 'points' # choose 'points' or 'lines' for the layer geometry
 gdf = SDS_tools.output_to_gdf(output, geomtype)
+if gdf is None:
+    raise Exception("Invalid GDF")
 gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])} # set layer projection
 # save GEOJSON layer to file
 gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.geojson'%(sitename,geomtype)),

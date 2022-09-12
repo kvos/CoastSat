@@ -679,6 +679,7 @@ def output_to_gdf(output, geomtype):
      
     # loop through the mapped shorelines
     counter = 0
+    gdf_all = None
     for i in range(len(output['shorelines'])):
         # skip if there shoreline is empty 
         if len(output['shorelines'][i]) == 0:

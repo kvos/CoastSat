@@ -320,6 +320,7 @@ def retrieve_images(inputs):
                 all_names.append(im_fn['10m'])
                 filenames.append(im_fn['10m'])
                 # download .tif from EE (multispectral bands at 3 different resolutions)
+                count = 0
                 while True:
                     try:
                         im_ee = ee.Image(im_meta['id'])
@@ -328,7 +329,17 @@ def retrieve_images(inputs):
                         local_data_60m = download_tif_S2(im_ee, inputs['polygon'], bands['60m'], filepaths[3])
                         break
                     except:
-                        continue
+                        print('\nDownload failed, trying again...')
+                        count += 1
+                        if count > 10:
+                            print('Too many attempts, crashed while downloading image %s'%im_meta['id'])
+                            im_ee = ee.Image(im_meta['id'])
+                            local_data_10m = download_tif_S2(im_ee, inputs['polygon'], bands['10m'], filepaths[1])
+                            local_data_20m = download_tif_S2(im_ee, inputs['polygon'], bands['20m'], filepaths[2])
+                            local_data_60m = download_tif_S2(im_ee, inputs['polygon'], bands['60m'], filepaths[3])  
+                            raise
+                        else:
+                            continue                    
                 # rename the files as the image is downloaded as 'data.tif'
                 try: # 10m
                     os.rename(local_data_10m, os.path.join(filepaths[1], im_fn['10m']))

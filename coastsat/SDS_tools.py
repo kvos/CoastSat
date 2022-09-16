@@ -301,9 +301,9 @@ def create_folder_structure(im_folder, satname):
         filepaths.append(os.path.join(im_folder, satname, 'pan'))
         filepaths.append(os.path.join(im_folder, satname, 'mask'))
     elif satname in ['S2']:
-        filepaths.append(os.path.join(im_folder, satname, '10m'))
-        filepaths.append(os.path.join(im_folder, satname, '20m'))
-        filepaths.append(os.path.join(im_folder, satname, '60m'))
+        filepaths.append(os.path.join(im_folder, satname, 'ms'))
+        filepaths.append(os.path.join(im_folder, satname, 'swir1'))
+        filepaths.append(os.path.join(im_folder, satname, 'mask'))
     # create the subfolders if they don't exist already
     for fp in filepaths:
         if not os.path.exists(fp): os.makedirs(fp)

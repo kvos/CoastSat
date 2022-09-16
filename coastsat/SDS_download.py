@@ -298,64 +298,74 @@ def retrieve_images(inputs):
                 metadict = {'filename':im_fn['ms'],'acc_georef':georef_accs[i],
                             'epsg':im_epsg[i]}
 
+            #=============================================================================================#
             # Sentinel-2 download
+            #=============================================================================================#
             elif satname in ['S2']:
-                bands['10m'] = [im_bands[1], im_bands[2], im_bands[3], im_bands[7]] # multispectral bands
-                bands['20m'] = [im_bands[11]] # SWIR band
-                bands['60m'] = [im_bands[15]] # QA band
-                for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
-                # if two images taken at the same date add 'dup' to the name (duplicate)
-                if any(im_fn['10m'] in _ for _ in all_names):
-                    for key in bands.keys():
-                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup2' + suffix
-                    # also check for triplicates (only on S2 imagery) and add 'tri' to the name
-                    if im_fn['10m'] in all_names:
-                        for key in bands.keys():
-                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup3' + suffix
-                        # also check for quadruplicates (only on S2 imagery) add 'qua' to the name
-                        if im_fn['10m'] in all_names:
-                            for key in bands.keys():
-                                im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup4' + suffix
-                all_names.append(im_fn['10m'])
-                filenames.append(im_fn['10m'])
-                # download .tif from EE (multispectral bands at 3 different resolutions)
+                fp_ms = filepaths[1]
+                fp_swir = filepaths[2]
+                fp_mask = filepaths[3]    
+                # select bands (10m ms RGB+NIR, 20m SWIR1, 60m QA band)
+                bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[:4]]
+                bands['swir'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[4:5]]
+                bands['mask'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[-1:]]
+                # adjust polygon for both ms and pan bands
+                proj_ms = image_ee.select('B1').projection()
+                proj_swir = image_ee.select('B11').projection()
+                proj_mask = image_ee.select('QA60').projection()
+                ee_region_ms = adjust_polygon(inputs['polygon'],proj_ms)
+                ee_region_swir = adjust_polygon(inputs['polygon'],proj_swir)
+                ee_region_mask = adjust_polygon(inputs['polygon'],proj_mask)
+                
+                # download the ms, swir and QA bands from EE
                 count = 0
                 while True:
-                    try:
-                        im_ee = ee.Image(im_meta['id'])
-                        local_data_10m = download_tif_S2(im_ee, inputs['polygon'], bands['10m'], filepaths[1])
-                        local_data_20m = download_tif_S2(im_ee, inputs['polygon'], bands['20m'], filepaths[2])
-                        local_data_60m = download_tif_S2(im_ee, inputs['polygon'], bands['60m'], filepaths[3])
+                    try:    
+                        fn_ms = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms)
+                        fn_swir = download_tif(image_ee,ee_region_swir,bands['swir'],fp_swir)
+                        temp, fn_QA = download_tif(image_ee,ee_region_mask,bands['mask'],fp_mask)
                         break
                     except:
                         print('\nDownload failed, trying again...')
                         count += 1
-                        if count > 10:
-                            print('Too many attempts, crashed while downloading image %s'%im_meta['id'])
-                            im_ee = ee.Image(im_meta['id'])
-                            local_data_10m = download_tif_S2(im_ee, inputs['polygon'], bands['10m'], filepaths[1])
-                            local_data_20m = download_tif_S2(im_ee, inputs['polygon'], bands['20m'], filepaths[2])
-                            local_data_60m = download_tif_S2(im_ee, inputs['polygon'], bands['60m'], filepaths[3])  
-                            raise
+                        if count > 100:
+                            raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
                         else:
-                            continue                    
-                # rename the files as the image is downloaded as 'data.tif'
-                try: # 10m
-                    os.rename(local_data_10m, os.path.join(filepaths[1], im_fn['10m']))
-                except: # overwrite if already exists
-                    os.remove(os.path.join(filepaths[1], im_fn['10m']))
-                    os.rename(local_data_10m, os.path.join(filepaths[1], im_fn['10m']))
-                try: # 20m
-                    os.rename(local_data_20m, os.path.join(filepaths[2], im_fn['20m']))
-                except: # overwrite if already exists
-                    os.remove(os.path.join(filepaths[2], im_fn['20m']))
-                    os.rename(local_data_20m, os.path.join(filepaths[2], im_fn['20m']))
-                try: # 60m
-                    os.rename(local_data_60m, os.path.join(filepaths[3], im_fn['60m']))
-                except: # overwrite if already exists
-                    os.remove(os.path.join(filepaths[3], im_fn['60m']))
-                    os.rename(local_data_60m, os.path.join(filepaths[3], im_fn['60m']))
+                            continue             
+                
+                # create filename for the three images (ms, swir and mask)
+                for key in bands.keys():
+                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
+                # if two images taken at the same date add 'dup' to the name (duplicate)
+                if any(im_fn['ms'] in _ for _ in all_names):
+                    for key in bands.keys():
+                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup2' + suffix
+                    # also check for triplicates (only on S2 imagery) and add '3' to the name
+                    if im_fn['ms'] in all_names:
+                        for key in bands.keys():
+                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup3' + suffix
+                        # also check for quadruplicates (only on S2 imagery) add 'qua' to the name
+                        if im_fn['ms'] in all_names:
+                            for key in bands.keys():
+                                im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup4' + suffix
+                all_names.append(im_fn['ms'])
+                filenames.append(im_fn['ms']) 
+                
+                # resample the 20m swir band to the 10m ms band with bilinear interpolation
+                fn_in = fn_swir
+                fn_target = fn_ms
+                fn_out = os.path.join(fp_swir, im_fn['swir'])
+                warp_image_to_target(fn_in,fn_out,fn_target,double_res=False,resampling_method='bilinear')             
+                
+                # resample 60m QA band to the 10m ms band with nearest-neighbour interpolation
+                fn_in = fn_QA
+                fn_target = fn_ms
+                fn_out = os.path.join(fp_mask, im_fn['mask'])
+                warp_image_to_target(fn_in,fn_out,fn_target,double_res=False,resampling_method='near')
+                
+                # delete original downloads
+                for _ in [fn_swir,fn_QA]: os.remove(_)  
+                
                 # metadata for .txt file
                 filename_txt = im_fn['10m'].replace('_10m','').replace('.tif','')
                 metadict = {'filename':im_fn['10m'],'acc_georef':georef_accs[i],
@@ -670,7 +680,7 @@ def download_tif(image, polygon, bands, filepath):
     """
     Downloads a .TIF image from the ee server. The image is downloaded as a
     zip file then moved to the working directory, unzipped and stacked into a
-    single .TIF file.
+    single .TIF file. Any QA band is saved separately.
 
     KV WRL 2018
 

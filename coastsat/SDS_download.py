@@ -184,7 +184,7 @@ def retrieve_images(inputs):
                 count = 0
                 while True:
                     try:    
-                        fn_ms, fn_QA = download_tif(image_ee,ee_region,bands['ms'],fp_ms) 
+                        fn_ms, fn_QA = download_tif(image_ee,ee_region,bands['ms'],fp_ms,satname) 
                         break
                     except:
                         print('\nDownload failed, trying again...')
@@ -250,8 +250,8 @@ def retrieve_images(inputs):
                 count = 0
                 while True:
                     try:    
-                        fn_ms, fn_QA = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms)
-                        fn_pan = download_tif(image_ee,ee_region_pan,bands['pan'],fp_pan)
+                        fn_ms, fn_QA = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms,satname)
+                        fn_pan = download_tif(image_ee,ee_region_pan,bands['pan'],fp_pan,satname)
                         break
                     except:
                         print('\nDownload failed, trying again...')
@@ -316,14 +316,13 @@ def retrieve_images(inputs):
                 ee_region_ms = adjust_polygon(inputs['polygon'],proj_ms)
                 ee_region_swir = adjust_polygon(inputs['polygon'],proj_swir)
                 ee_region_mask = adjust_polygon(inputs['polygon'],proj_mask)
-                
                 # download the ms, swir and QA bands from EE
                 count = 0
                 while True:
                     try:    
-                        fn_ms = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms)
-                        fn_swir = download_tif(image_ee,ee_region_swir,bands['swir'],fp_swir)
-                        temp, fn_QA = download_tif(image_ee,ee_region_mask,bands['mask'],fp_mask)
+                        fn_ms = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms,satname)
+                        fn_swir = download_tif(image_ee,ee_region_swir,bands['swir'],fp_swir,satname)
+                        fn_QA = download_tif(image_ee,ee_region_mask,bands['mask'],fp_mask,satname)
                         break
                     except:
                         print('\nDownload failed, trying again...')
@@ -365,10 +364,12 @@ def retrieve_images(inputs):
                 
                 # delete original downloads
                 for _ in [fn_swir,fn_QA]: os.remove(_)  
-                
+                # rename the multispectral band file
+                os.rename(fn_ms,os.path.join(fp_ms, im_fn['ms']))
+                                
                 # metadata for .txt file
-                filename_txt = im_fn['10m'].replace('_10m','').replace('.tif','')
-                metadict = {'filename':im_fn['10m'],'acc_georef':georef_accs[i],
+                filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
+                metadict = {'filename':im_fn['ms'],'acc_georef':georef_accs[i],
                             'epsg':im_epsg[i]}
 
             # write metadata
@@ -383,14 +384,14 @@ def retrieve_images(inputs):
     # once all images have been downloaded, load metadata from .txt files
     metadata = get_metadata(inputs)
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
-    if 'S2' in metadata.keys():
-        print("\n Called merge_overlapping_images\n")
-        try:
-            metadata = merge_overlapping_images(metadata,inputs)
-        except:
-            print('WARNING: there was an error while merging overlapping S2 images,'+
-                  ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
-                  ' and include your script so we can find out what happened.')
+    # if 'S2' in metadata.keys():
+    #     print("\n Called merge_overlapping_images\n")
+    #     try:
+    #         metadata = merge_overlapping_images(metadata,inputs)
+    #     except:
+    #         print('WARNING: there was an error while merging overlapping S2 images,'+
+    #               ' please open an issue on Github at https://github.com/kvos/CoastSat/issues'+
+    #               ' and include your script so we can find out what happened.')
 
     # save metadata dict
     with open(os.path.join(im_folder, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:
@@ -676,7 +677,7 @@ def adjust_polygon(polygon,proj):
     
     return ee_region
     
-def download_tif(image, polygon, bands, filepath):
+def download_tif(image, polygon, bands, filepath, satname):
     """
     Downloads a .TIF image from the ee server. The image is downloaded as a
     zip file then moved to the working directory, unzipped and stacked into a
@@ -717,33 +718,61 @@ def download_tif(image, polygon, bands, filepath):
         fp_zip = os.path.join(filepath,'temp.zip')
         with open(fp_zip, 'wb') as fd:
           fd.write(response.content) 
-        # unzip
+        # unzip the individual bands
         with zipfile.ZipFile(fp_zip) as local_zipfile:
             for fn in local_zipfile.namelist():
                 local_zipfile.extract(fn, filepath)
             fn_all = [os.path.join(filepath,_) for _ in local_zipfile.namelist()]
         os.remove(fp_zip)
-        # if there are multiple bands, it's the multispectral
-        if len(fn_all) > 1:
-            # select all ms bands except the QA band (which is processed separately)
-            fn_tifs = [_ for _ in fn_all if not 'QA' in _]
-            filename = 'ms_bands.tif'
-            # build a VRT and merge the bands (works the same with pan band)
-            outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
-                                  fn_tifs, separate=True)
-            outds = gdal.Translate(os.path.join(filepath,filename), outds) 
-            # remove temporary files
-            os.remove(os.path.join(filepath,'temp.vrt'))
-            for _ in fn_tifs: os.remove(_)
-            if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
-                os.remove(os.path.join(filepath,filename+'.aux.xml'))
-            # return file names (ms and QA bands separately)
-            fn_image = os.path.join(filepath,filename)
-            fn_QA = [_ for _ in fn_all if 'QA' in _][0]
-            return fn_image, fn_QA
-        # otherwise it's the panchromatic band
-        else:
-            return fn_all[0]
+        # now process the individual bands:
+        # - for Landsat
+        if satname in ['L5','L7','L8','L9']:
+            # if there is only one band, it's the panchromatic
+            if len(fn_all) == 1:
+                # return the filename of the .tif
+                return fn_all[0]
+            # otherwise there are multiple multispectral bands so we have to merge them into one .tif
+            else:
+                # select all ms bands except the QA band (which is processed separately)
+                fn_tifs = [_ for _ in fn_all if not 'QA' in _]
+                filename = 'ms_bands.tif'
+                # build a VRT and merge the bands (works the same with pan band)
+                outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
+                                      fn_tifs, separate=True)
+                outds = gdal.Translate(os.path.join(filepath,filename), outds) 
+                # remove temporary files
+                os.remove(os.path.join(filepath,'temp.vrt'))
+                for _ in fn_tifs: os.remove(_)
+                if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
+                    os.remove(os.path.join(filepath,filename+'.aux.xml'))
+                # return file names (ms and QA bands separately)
+                fn_image = os.path.join(filepath,filename)
+                fn_QA = [_ for _ in fn_all if 'QA' in _][0]
+                return fn_image, fn_QA
+        # - for Sentinel-2
+        if satname in ['S2']:
+            # if there is only one band, it's either the SWIR1 or QA60
+            if len(fn_all) == 1:
+                # return the filename of the .tif
+                return fn_all[0]
+            # otherwise there are multiple multispectral bands so we have to merge them into one .tif
+            else:
+                # select all ms bands except the QA band (which is processed separately)
+                fn_tifs = fn_all
+                filename = 'ms_bands.tif'
+                # build a VRT and merge the bands (works the same with pan band)
+                outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
+                                      fn_tifs, separate=True)
+                outds = gdal.Translate(os.path.join(filepath,filename), outds) 
+                # remove temporary files
+                os.remove(os.path.join(filepath,'temp.vrt'))
+                for _ in fn_tifs: os.remove(_)
+                if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
+                    os.remove(os.path.join(filepath,filename+'.aux.xml'))
+                # return filename of the merge .tif file
+                fn_image = os.path.join(filepath,filename)
+                return fn_image           
+
 
 def warp_image_to_target(fn_in,fn_out,fn_target,double_res=True,resampling_method='bilinear'):
     """

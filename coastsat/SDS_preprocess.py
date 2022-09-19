@@ -203,7 +203,6 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
     # S2 images
     #=============================================================================================#
     if satname == 'S2':
-
         # read 10m bands (R,G,B,NIR)
         fn_ms = fn[0]
         data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
@@ -220,7 +219,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
             im_ms = []
             georef = []
             # skip the image by giving it a full cloud_mask
-            cloud_mask = np.ones((im_ms.shape[0],im_ms.shape[1])).astype('bool')
+            cloud_mask = np.ones((nrows,ncols)).astype('bool')
             return im_ms, georef, cloud_mask, [], [], []
 
         # read 20m band (SWIR1)
@@ -229,7 +228,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_swir = bands[0]
         im_swir = im_swir/10000 # TOA scaled to 10000
-        # im_swir = np.expand_dims(im_swir, axis=2)
+        im_swir = np.expand_dims(im_swir, axis=2)
 
         # append down-sampled SWIR1 band to the other 10m bands
         im_ms = np.append(im_ms, im_swir, axis=2)

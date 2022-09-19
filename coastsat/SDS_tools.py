@@ -408,8 +408,8 @@ def get_filenames(filename, filepath, satname):
               os.path.join(filepath[1], fn_pan),
               os.path.join(filepath[2], fn_mask)]
     if satname == 'S2':
-        fn_swir = filename.replace('ms.tif','swir.tif')
-        fn_mask = filename.replace('ms.tif','mask.tif')
+        fn_swir = filename.replace('_ms','_swir')
+        fn_mask = filename.replace('_ms','_mask')
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], fn_swir),
               os.path.join(filepath[2], fn_mask)]

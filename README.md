@@ -32,8 +32,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 ### Latest updates
 
 :arrow_forward: *(2022/09/21)*
-CoastSat 2.1:
-+ new download function for Sentinel-2 images (better alignment between 10m RGB & NIR bands, 20 m SWIR band and 60 m QA band)
+CoastSat 2.1: new download function for Sentinel-2 images (better alignment between 10m RGB & NIR bands, 20 m SWIR band and 60 m QA band)
 
 :arrow_forward: *(2022/08/01)*
 CoastSat 2.0 (major release):

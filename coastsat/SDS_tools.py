@@ -301,9 +301,9 @@ def create_folder_structure(im_folder, satname):
         filepaths.append(os.path.join(im_folder, satname, 'pan'))
         filepaths.append(os.path.join(im_folder, satname, 'mask'))
     elif satname in ['S2']:
-        filepaths.append(os.path.join(im_folder, satname, '10m'))
-        filepaths.append(os.path.join(im_folder, satname, '20m'))
-        filepaths.append(os.path.join(im_folder, satname, '60m'))
+        filepaths.append(os.path.join(im_folder, satname, 'ms'))
+        filepaths.append(os.path.join(im_folder, satname, 'swir'))
+        filepaths.append(os.path.join(im_folder, satname, 'mask'))
     # create the subfolders if they don't exist already
     for fp in filepaths:
         if not os.path.exists(fp): os.makedirs(fp)
@@ -368,10 +368,10 @@ def get_filepath(inputs,satname):
         filepath = [fp_ms, fp_pan, fp_mask]
     elif satname == 'S2':
         # access downloaded Sentinel 2 images
-        filepath10 = os.path.join(filepath_data, sitename, satname, '10m')
-        filepath20 = os.path.join(filepath_data, sitename, satname, '20m')
-        filepath60 = os.path.join(filepath_data, sitename, satname, '60m')
-        filepath = [filepath10, filepath20, filepath60]
+        fp_ms = os.path.join(filepath_data, sitename, satname, 'ms')
+        fp_swir = os.path.join(filepath_data, sitename, satname, 'swir')
+        fp_mask = os.path.join(filepath_data, sitename, satname, 'mask')
+        filepath = [fp_ms, fp_swir, fp_mask]
             
     return filepath
     
@@ -408,11 +408,11 @@ def get_filenames(filename, filepath, satname):
               os.path.join(filepath[1], fn_pan),
               os.path.join(filepath[2], fn_mask)]
     if satname == 'S2':
-        filename20 = filename.replace('10m','20m')
-        filename60 = filename.replace('10m','60m')
+        fn_swir = filename.replace('_ms','_swir')
+        fn_mask = filename.replace('_ms','_mask')
         fn = [os.path.join(filepath[0], filename),
-              os.path.join(filepath[1], filename20),
-              os.path.join(filepath[2], filename60)]
+              os.path.join(filepath[1], fn_swir),
+              os.path.join(filepath[2], fn_mask)]
         
     return fn
 

@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 plt.ion()
 import pandas as pd
+from scipy import interpolate
+from scipy import stats
+from datetime import datetime, timedelta
+import pytz
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
 # region of interest (longitude, latitude in WGS84)
@@ -35,7 +39,7 @@ dates = ['1984-01-01', '2022-01-01']
 
 # satellite missions
 sat_list = ['L5','L7','L8']
-collection = 'C01' # choose Landsat collection 'C01' or 'C02'
+collection = 'C02' # choose Landsat collection 'C01' or 'C02'
 # name of the site
 sitename = 'NARRA'
 
@@ -194,8 +198,8 @@ cross_distance = SDS_transects.compute_intersection_QC(output, transects, settin
 
 #%% Option 2: Conpute intersection in a simple way (no quality-control)
 
-settings['along_dist'] = 25
-cross_distance = SDS_transects.compute_intersection(output, transects, settings)
+# settings['along_dist'] = 25
+# cross_distance = SDS_transects.compute_intersection(output, transects, settings)
 
 #%% Plot the time-series of cross-shore shoreline change
 
@@ -250,7 +254,7 @@ ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Water l
 ax.legend()
 
 # tidal correction along each transect
-reference_elevation = 0 # elevation at which you would like the shoreline time-series to be
+reference_elevation = 0.7 # elevation at which you would like the shoreline time-series to be
 beach_slope = 0.1
 cross_distance_tidally_corrected = {}
 for key in cross_distance.keys():
@@ -287,7 +291,7 @@ ax.legend()
 
 #%% 5. Time-series post-processing
 
-# load mapped shorelines from 1984
+# load mapped shorelines from 1984 (mapped with the previous code)
 filename_output = os.path.join(os.getcwd(),'examples','NARRA_output.pkl')
 with open(filename_output, 'rb') as f:
     output = pickle.load(f)
@@ -392,11 +396,8 @@ for key in cross_distance.keys():
 #%% 6. Validation against survey data
 # In this section we provide a comparison against in situ data at Narrabeen.
 # See the Jupyter Notebook for information on hopw to downlaod the Narrabeen data from http://narrabeen.wrl.unsw.edu.au/
-from scipy import interpolate
-from scipy import stats
-from datetime import timedelta
-import pytz
-#%% 6.1. Read and preprocess downloaded csv file Narrabeen_Profiles.csv
+
+# 6.1. Read and preprocess downloaded csv file Narrabeen_Profiles.csv
 # read the csv file
 fp_datasets = os.path.join(os.getcwd(),'examples','Narrabeen_Profiles.csv')
 df = pd.read_csv(fp_datasets)

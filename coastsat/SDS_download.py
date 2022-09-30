@@ -197,10 +197,14 @@ def retrieve_images(inputs):
                 # create filename for image
                 for key in bands.keys():
                     im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
-                # if two images taken at the same date add 'dup' to the name (duplicate)
-                if any(im_fn['ms'] in _ for _ in all_names):
+                # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
+                duplicate_counter = 0
+                while im_fn['ms'] in all_names:
+                    duplicate_counter += 1
                     for key in bands.keys():
-                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup' + suffix
+                        im_fn[key] = im_date + '_' + satname + '_' \
+                            + inputs['sitename'] + '_' + key \
+                            + '_dup%d'%duplicate_counter + suffix
                 im_fn['mask'] = im_fn['ms'].replace('_ms','_mask')
                 all_names.append(im_fn['ms'])
                 filenames.append(im_fn['ms'])
@@ -264,10 +268,14 @@ def retrieve_images(inputs):
                 # create filename for both images (ms and pan)
                 for key in bands.keys():
                     im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
-                # if two images taken at the same date add 'dup' to the name (duplicate)
-                if any(im_fn['ms'] in _ for _ in all_names):
+                # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
+                duplicate_counter = 0
+                while im_fn['ms'] in all_names:
+                    duplicate_counter += 1
                     for key in bands.keys():
-                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup' + suffix
+                        im_fn[key] = im_date + '_' + satname + '_' \
+                            + inputs['sitename'] + '_' + key \
+                            + '_dup%d'%duplicate_counter + suffix
                 im_fn['mask'] = im_fn['ms'].replace('_ms','_mask')
                 all_names.append(im_fn['ms'])
                 filenames.append(im_fn['ms'])  

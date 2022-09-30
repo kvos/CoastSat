@@ -334,19 +334,16 @@ def retrieve_images(inputs):
                 
                 # create filename for the three images (ms, swir and mask)
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
-                # if two images taken at the same date add 'dup' to the name (duplicate)
-                if any(im_fn['ms'] in _ for _ in all_names):
+                    im_fn[key] = im_date + '_' + satname + '_' \
+                        + inputs['sitename'] + '_' + key + suffix
+                # if multiple images taken at the same date add 'dupX' to the name (duplicate)
+                duplicate_counter = 0
+                while im_fn['ms'] in all_names:
+                    duplicate_counter += 1
                     for key in bands.keys():
-                        im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup2' + suffix
-                    # also check for triplicates (only on S2 imagery) and add '3' to the name
-                    if im_fn['ms'] in all_names:
-                        for key in bands.keys():
-                            im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup3' + suffix
-                        # also check for quadruplicates (only on S2 imagery) add 'qua' to the name
-                        if im_fn['ms'] in all_names:
-                            for key in bands.keys():
-                                im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + '_dup4' + suffix
+                        im_fn[key] = im_date + '_' + satname + '_' \
+                            + inputs['sitename'] + '_' + key \
+                            + '_dup%d'%duplicate_counter + suffix
                 all_names.append(im_fn['ms'])
                 filenames.append(im_fn['ms']) 
                 

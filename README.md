@@ -1,6 +1,6 @@
 # CoastSat
 [![Last Commit](https://img.shields.io/github/last-commit/kvos/CoastSat)](
-https://github.com/kvos/CoastSat/commits/main)
+https://github.com/kvos/CoastSat/commits/)
 [![GitHub release](https://img.shields.io/github/release/kvos/CoastSat)](https://GitHub.com/kvos/CoastSat/releases/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779293.svg)](https://doi.org/10.5281/zenodo.2779293)
 [![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)

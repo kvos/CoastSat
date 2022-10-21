@@ -1,9 +1,10 @@
 # CoastSat
-
+[![Last Commit](https://img.shields.io/github/last-commit/kvos/CoastSat)](
+https://github.com/kvos/CoastSat/commits/)
+[![GitHub release](https://img.shields.io/github/release/kvos/CoastSat)](https://GitHub.com/kvos/CoastSat/releases/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779293.svg)](https://doi.org/10.5281/zenodo.2779293)
 [![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![GitHub release](https://img.shields.io/github/release/kvos/CoastSat)](https://GitHub.com/kvos/CoastSat/releases/)
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 
@@ -18,6 +19,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
 :point_right: Other repositories and addons related to this toolbox:
+- [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms.
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
@@ -32,8 +34,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 ### Latest updates
 
 :arrow_forward: *(2022/09/21)*
-CoastSat 2.1:
-+ new download function for Sentinel-2 images (better alignment between 10m RGB & NIR bands, 20 m SWIR band and 60 m QA band)
+CoastSat 2.1: new download function for Sentinel-2 images (better alignment between 10m RGB & NIR bands, 20 m SWIR band and 60 m QA band)
 
 :arrow_forward: *(2022/08/01)*
 CoastSat 2.0 (major release):

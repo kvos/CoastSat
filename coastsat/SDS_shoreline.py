@@ -1104,7 +1104,7 @@ def adjust_detection(im_ms, cloud_mask, im_nodata, im_labels, im_ref_buffer, ima
             # remove contours that contain NaNs (due to cloud pixels in the contour)
             contours = process_contours(contours) 
             # process the water contours into a shoreline
-            shoreline = process_shoreline(contours, cloud_mask, georef, image_epsg, settings)
+            shoreline = process_shoreline(contours, cloud_mask, im_nodata, georef, image_epsg, settings)
             # convert shoreline to pixels
             if len(shoreline) > 0:
                 sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,

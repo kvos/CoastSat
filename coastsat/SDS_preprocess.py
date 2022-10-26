@@ -530,11 +530,11 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
         # location to save image ex. rgb image would be in sitename/RGB/sitename.jpg
         fname=os.path.join(ext_filepath, date + '_'+ext+'_' + satname + '.jpg')
         if ext == "RGB":
-            imsave(fname, im_RGB)
+            imsave(fname, im_RGB,dpi=(150,150))
         if ext == "SWIR":
-            imsave(fname, im_SWIR)
+            imsave(fname, im_SWIR,dpi=(150,150))
         if ext == "NIR":
-            imsave(fname, im_NIR)
+            imsave(fname, im_NIR,dpi=(150,150))
 
 def save_jpg(metadata, settings, **kwargs):
     """

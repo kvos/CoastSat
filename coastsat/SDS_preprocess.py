@@ -17,6 +17,8 @@ import skimage.transform as transform
 import skimage.morphology as morphology
 import sklearn.decomposition as decomposition
 import skimage.exposure as exposure
+from skimage.io import imsave
+from skimage import img_as_ubyte
 
 # other modules
 from osgeo import gdal
@@ -510,45 +512,29 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath):
         Saves a .jpg image corresponding to the preprocessed satellite image
 
     """
-
     # rescale image intensity for display purposes
     im_RGB = rescale_image_intensity(im_ms[:,:,[2,1,0]], cloud_mask, 99.9)
-#    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
-#    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
-
-    # make figure (just RGB)
-    fig = plt.figure()
-    fig.set_size_inches([18,9])
-    fig.set_tight_layout(True)
-    ax1 = fig.add_subplot(111)
-    ax1.axis('off')
-    ax1.imshow(im_RGB)
-    ax1.set_title(date + '   ' + satname, fontsize=16)
-
-#    if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-#        ax1 = fig.add_subplot(311)
-#        ax2 = fig.add_subplot(312)
-#        ax3 = fig.add_subplot(313)
-#    else:
-#        ax1 = fig.add_subplot(131)
-#        ax2 = fig.add_subplot(132)
-#        ax3 = fig.add_subplot(133)
-#    # RGB
-#    ax1.axis('off')
-#    ax1.imshow(im_RGB)
-#    ax1.set_title(date + '   ' + satname, fontsize=16)
-#    # NIR
-#    ax2.axis('off')
-#    ax2.imshow(im_NIR, cmap='seismic')
-#    ax2.set_title('Near Infrared', fontsize=16)
-#    # SWIR
-#    ax3.axis('off')
-#    ax3.imshow(im_SWIR, cmap='seismic')
-#    ax3.set_title('Short-wave Infrared', fontsize=16)
-
-    # save figure
-    fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
-    plt.close()
+    im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
+    im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
+    # convert images to bytes so they can be saved
+    im_RGB = img_as_ubyte(im_RGB)
+    im_NIR = img_as_ubyte(im_NIR)
+    im_SWIR = img_as_ubyte(im_SWIR)
+    # Save each kind of image with skimage.io
+    file_types=["RGB","SWIR","NIR"]
+    # create folders RGB, SWIR, and NIR to hold each type of image
+    for ext in file_types:
+        ext_filepath=filepath+os.sep+ext
+        if not os.path.exists(ext_filepath):
+            os.mkdir(ext_filepath)
+        # location to save image ex. rgb image would be in sitename/RGB/sitename.jpg
+        fname=os.path.join(ext_filepath, date + '_'+ext+'_' + satname + '.jpg')
+        if ext == "RGB":
+            imsave(fname, im_RGB)
+        if ext == "SWIR":
+            imsave(fname, im_SWIR)
+        if ext == "NIR":
+            imsave(fname, im_NIR)
 
 def save_jpg(metadata, settings, **kwargs):
     """

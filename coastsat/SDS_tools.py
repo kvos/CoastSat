@@ -8,6 +8,7 @@ Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import pdb
 
 # other modules
@@ -18,6 +19,7 @@ import skimage.transform as transform
 from astropy.convolution import convolve
 import pytz
 from datetime import datetime, timedelta
+from scipy import stats, interpolate
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -817,3 +819,120 @@ def smallest_rectangle(polygon):
     coords_polygon = np.array(polygon_geom.exterior.coords)
     polygon_rect = [[[_[0], _[1]] for _ in coords_polygon]]
     return polygon_rect
+
+def compare_timeseries(ts,gt,key,settings):
+    if key not in gt.keys():
+        raise Exception('transect name %s does not exist in grountruth file'%key)
+    # remove nans
+    chainage = np.array(ts[key])
+    idx_nan = np.isnan(chainage)
+    dates_nonans = [ts['dates'][k].to_pydatetime() for k in np.where(~idx_nan)[0]]
+    satnames_nonans = [ts['satname'][k] for k in np.where(~idx_nan)[0]]
+    chain_nonans = chainage[~idx_nan]
+    # define satellite and survey time-series
+    chain_sat_dm = chain_nonans
+    chain_sur_dm = gt[key]['chainages']
+    # plot the time-series
+    fig= plt.figure(figsize=[15,8], tight_layout=True)
+    gs = gridspec.GridSpec(2,3)
+    ax0 = fig.add_subplot(gs[0,:])
+    ax0.grid(which='major',linestyle=':',color='0.5')
+    ax0.plot(gt[key]['dates'], chain_sur_dm,'-o',mfc='w',ms=3,label='in situ')
+    ax0.plot(dates_nonans, chain_sat_dm,'-o',mfc='w',ms=3,label='satellite')
+    ax0.set(title= 'Transect ' + key, xlim=[dates_nonans[0]-timedelta(days=30),
+                                            dates_nonans[-1]+timedelta(days=30)])#,ylim=sett['lims'])
+    ax0.legend(loc='upper left')
+    
+    # interpolate surveyed data around satellite data based on the parameters (min_days and max_days)
+    chain_int = np.nan*np.ones(len(dates_nonans))
+    for k,date in enumerate(dates_nonans):
+        # compute the days distance for each satellite date
+        days_diff = np.array([ (_ - date).days for _ in gt[key]['dates']])
+        # if nothing within max_days put a nan
+        if np.min(np.abs(days_diff)) > settings['max_days']:
+            chain_int[k] = np.nan
+        else:
+            # if a point within min_days, take that point (no interpolation)
+            if np.min(np.abs(days_diff)) < settings['min_days']:
+                idx_closest = np.where(np.abs(days_diff) == np.min(np.abs(days_diff)))
+                chain_int[k] = float(gt[key]['chainages'][idx_closest[0][0]])
+            else: # otherwise, between min_days and max_days, interpolate between the 2 closest points
+                if sum(days_diff > 0) == 0:
+                    break
+                idx_after = np.where(days_diff > 0)[0][0]
+                idx_before = idx_after - 1
+                x = [gt[key]['dates'][idx_before].toordinal() , gt[key]['dates'][idx_after].toordinal()]
+                y = [gt[key]['chainages'][idx_before], gt[key]['chainages'][idx_after]]
+                f = interpolate.interp1d(x, y,bounds_error=True)
+                try:
+                    chain_int[k] = float(f(date.toordinal()))
+                except:
+                    chain_int[k] = np.nan
+    # remove nans again
+    idx_nan = np.isnan(chain_int)
+    chain_sat = chain_nonans[~idx_nan]
+    chain_sur = chain_int[~idx_nan]
+    dates_sat = [dates_nonans[k] for k in np.where(~idx_nan)[0]]
+    satnames = [satnames_nonans[k] for k in np.where(~idx_nan)[0]]
+    if len(chain_sat) < 8 or len(chain_sur) < 8: 
+        return  chain_sat, chain_sur, satnames, fig
+    # error statistics
+    slope, intercept, rvalue, pvalue, std_err = stats.linregress(chain_sur, chain_sat)
+    R2 = rvalue**2
+    ax0.text(0,1,'R2 = %.2f'%R2,bbox=dict(boxstyle='square', facecolor='w', alpha=1),transform=ax0.transAxes)
+    chain_error = chain_sat - chain_sur
+    rmse = np.sqrt(np.mean((chain_error)**2))
+    mean = np.mean(chain_error)
+    std = np.std(chain_error)
+    q90 = np.percentile(np.abs(chain_error), 90)   
+    
+    # 1:1 plot
+    ax1 = fig.add_subplot(gs[1,0])
+    ax1.axis('equal')
+    ax1.grid(which='major',linestyle=':',color='0.5')
+    for k,sat in enumerate(list(np.unique(satnames))):
+        idx = np.where([_ == sat for _ in satnames])[0]
+        ax1.plot(chain_sur[idx], chain_sat[idx], 'o', ms=4, mfc='C'+str(k),mec='C'+str(k), alpha=0.7, label=sat)
+    ax1.legend(loc=4)
+    ax1.plot([ax1.get_xlim()[0], ax1.get_ylim()[1]],[ax1.get_xlim()[0], ax1.get_ylim()[1]],'k--',lw=2)
+    ax1.set(xlabel='survey [m]', ylabel='satellite [m]')   
+
+    # boxplots
+    ax2 = fig.add_subplot(gs[1,1])
+    data = []
+    median_data = []
+    n_data = []
+    ax2.yaxis.grid()
+    for k,sat in enumerate(list(np.unique(satnames))):
+        idx = np.where([_ == sat for _ in satnames])[0]
+        data.append(chain_error[idx])
+        median_data.append(np.median(chain_error[idx]))
+        n_data.append(len(chain_error[idx]))
+    bp = ax2.boxplot(data,0,'k.', labels=list(np.unique(satnames)), patch_artist=True)
+    for median in bp['medians']:
+        median.set(color='k', linewidth=1.5)
+    for j,boxes in enumerate(bp['boxes']):
+        boxes.set(facecolor='C'+str(j))
+        ax2.text(j+1,median_data[j]+1, '%.1f' % median_data[j], horizontalalignment='center', fontsize=12)
+        ax2.text(j+1+0.35,median_data[j]+1, ('n=%.d' % int(n_data[j])), ha='center', va='center', fontsize=12,
+                 rotation='vertical')
+    ax2.set(ylabel='error [m]', ylim=settings['lims'])
+    
+    # histogram
+    ax3 = fig.add_subplot(gs[1,2])
+    ax3.grid(which='major',linestyle=':',color='0.5')
+    ax3.axvline(x=0, ls='--', lw=1.5, color='k')
+    binwidth = settings['binwidth']
+    bins = np.arange(min(chain_error), max(chain_error) + binwidth, binwidth)
+    density = plt.hist(chain_error, bins=bins, density=True, color='0.6', edgecolor='k', alpha=0.5)
+    mu, std = stats.norm.fit(chain_error)
+    pval = stats.normaltest(chain_error)[1]
+    xlims = ax3.get_xlim()
+    x = np.linspace(xlims[0], xlims[1], 100)
+    p = stats.norm.pdf(x, mu, std)
+    ax3.plot(x, p, 'r-', linewidth=1)
+    ax3.set(xlabel='error [m]', ylabel='pdf', xlim=settings['lims'])
+    str_stats = ' rmse = %.1f\n mean = %.1f\n std = %.1f\n q90 = %.1f' % (rmse, mean, std, q90)
+    ax3.text(0, 0.98, str_stats,va='top', transform=ax3.transAxes)    
+    
+    return chain_sat, chain_sur, satnames, fig

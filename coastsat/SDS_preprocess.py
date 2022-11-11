@@ -22,6 +22,7 @@ from skimage import img_as_ubyte
 
 # other modules
 from osgeo import gdal
+from pyproj import CRS
 from pylab import ginput
 import pickle
 import geopandas as gpd
@@ -648,13 +649,13 @@ def get_reference_sl(metadata, settings):
     collection = settings['inputs']['landsat_collection']
     pts_coords = []
     # check if reference shoreline already exists in the corresponding folder
-    filepath = os.path.join(filepath_data, sitename)
-    filename = sitename + '_reference_shoreline.pkl'
-    # if it exist, load it and return it
-    if filename in os.listdir(filepath):
+    fp_ref_shoreline = os.path.join(filepath_data, sitename, sitename + '_reference_shoreline.geojson')
+    # if it exist, load it and load the geojson file
+    if os.path.exists(fp_ref_shoreline):
         print('Reference shoreline already exists and was loaded')
-        with open(os.path.join(filepath, sitename + '_reference_shoreline.pkl'), 'rb') as f:
-            refsl = pickle.load(f)
+        refsl_geojson = gpd.read_file(fp_ref_shoreline,driver='GeoJSON')
+        refsl = np.array(refsl_geojson.iloc[0]['geometry'].coords)
+        print('Reference shoreline coordinates are in epsg:%d'%refsl_geojson.crs.to_epsg())
         return refsl
 
     # otherwise get the user to manually digitise a shoreline on 
@@ -845,9 +846,9 @@ def get_reference_sl(metadata, settings):
                     gdf_all = gdf
                 else:
                     gdf_all = gdf_all.append(gdf)
-            gdf_all.crs = {'init':'epsg:'+str(image_epsg)}
+            gdf_all.crs = CRS(image_epsg)
             # convert from image_epsg to user-defined coordinate system
-            gdf_all = gdf_all.to_crs({'init': 'epsg:'+str(settings['output_epsg'])})
+            gdf_all = gdf_all.to_crs(epsg=settings['output_epsg'])
             # save as geojson
             gdf_all.to_file(os.path.join(filepath, sitename + '_reference_shoreline.geojson'),
                             driver='GeoJSON', encoding='utf-8')

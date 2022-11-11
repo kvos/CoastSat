@@ -649,12 +649,12 @@ def transects_from_geojson(filename):
         
     """  
     
-    gdf = gpd.read_file(filename)
+    gdf = gpd.read_file(filename,driver='GeoJSON')
     transects = dict([])
     for i in gdf.index:
         transects[gdf.loc[i,'name']] = np.array(gdf.loc[i,'geometry'].coords)
-        
-    print('%d transects have been loaded' % len(transects.keys()))
+    print('%d transects have been loaded'%len(transects.keys()), end=' ')
+    print('coordinates are in epsg:%d'%gdf.crs.to_epsg())
 
     return transects
 

@@ -618,7 +618,7 @@ def evaluate_classifier(classifier, metadata, settings):
             try:
                 sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
                                                                             settings['output_epsg'],
-                                                                            image_epsg)[:,[0,1]], georef)
+                                                                            image_epsg), georef)
             except:
                 # if try fails, just add nan into the shoreline vector so the next parts can still run
                 sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])

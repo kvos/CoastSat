@@ -20,6 +20,7 @@ from astropy.convolution import convolve
 import pytz
 from datetime import datetime, timedelta
 from scipy import stats, interpolate
+import pyproj
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -138,22 +139,20 @@ def convert_epsg(points, epsg_in, epsg_out):
         
     """
     
-    # define input and output spatial references
-    inSpatialRef = osr.SpatialReference()
-    inSpatialRef.ImportFromEPSG(epsg_in)
-    outSpatialRef = osr.SpatialReference()
-    outSpatialRef.ImportFromEPSG(epsg_out)
-    # create a coordinates transform
-    coordTransform = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
-    # if list of arrays
+    # define transformer
+    proj = pyproj.Transformer.from_crs(epsg_in, epsg_out, always_xy=True)
+    
+    # transform points
     if type(points) is list:
         points_converted = []
         # iterate over the list
         for i, arr in enumerate(points): 
-            points_converted.append(np.array(coordTransform.TransformPoints(arr)))
-    # if single array
+            x,y = proj.transform(arr[:,0], arr[:,1])
+            arr_converted = np.transpose(np.array([x,y]))
+            points_converted.append(arr_converted)
     elif type(points) is np.ndarray:
-        points_converted = np.array(coordTransform.TransformPoints(points))  
+        x,y = proj.transform(points[:,0], points[:,1])
+        points_converted = np.transpose(np.array([x,y]))
     else:
         raise Exception('invalid input type')
 

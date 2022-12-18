@@ -100,7 +100,7 @@ First, you need to request access to Google Earth Engine at https://signup.earth
 Once your request has been approved, with the `coastsat` environment activated, run the following command on the Anaconda Prompt to link your environment to the GEE server:
 
 ```
-earthengine authenticate
+earthengine authenticate --auth_mode=notebook
 ```
 
 A web browser will open, login with a gmail account and accept the terms and conditions. Then copy the authorization code into the Anaconda terminal.

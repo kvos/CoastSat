@@ -697,7 +697,7 @@ def process_shoreline(contours, cloud_mask, im_nodata, georef, image_epsg, setti
         idx_cloud = np.array([(idx_cloud[0][k], idx_cloud[1][k]) for k in range(len(idx_cloud[0]))])
         # convert to world coordinates and same epsg as the shoreline points
         coords_cloud = SDS_tools.convert_epsg(SDS_tools.convert_pix2world(idx_cloud, georef),
-                                               image_epsg, settings['output_epsg'])[:,:-1]
+                                               image_epsg, settings['output_epsg'])
         # only keep the shoreline points that are at least 30m from any nodata pixel
         idx_keep = np.ones(len(shoreline)).astype(bool)
         for k in range(len(shoreline)):

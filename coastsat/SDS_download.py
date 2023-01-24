@@ -527,7 +527,10 @@ def check_images_available(inputs):
     im_dict_T1 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:
-        im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
+        if 'S2tile' not in inputs.keys():
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
+        else :
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile = inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list
@@ -582,7 +585,7 @@ def check_images_available(inputs):
 
     return im_dict_T1, im_dict_T2
 
-def get_image_info(collection,satname,polygon,dates):
+def get_image_info(collection,satname,polygon,dates,**kwargs):
     """
     Reads info about EE images for the specified collection, satellite and dates
 
@@ -608,9 +611,14 @@ def get_image_info(collection,satname,polygon,dates):
         try:
             # get info about images
             ee_col = ee.ImageCollection(collection)
-            col = ee_col.filterBounds(ee.Geometry.Polygon(polygon))\
-                        .filterDate(dates[0],dates[1])
+            if 'S2tile' in kwargs: # if user defined a S2 tile, keep images only for that tile
+                col = ee_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1]).filterMetadata('MGRS_TILE','equals',kwargs['S2tile']) #58GGP
+                print('Only keeping user-defined S2tile : %s' % kwargs['S2tile'])
+            else: # original code          
+                col = ee_col.filterBounds(ee.Geometry.Polygon(polygon))\
+                            .filterDate(dates[0],dates[1])
             im_list = col.getInfo().get('features')
+
             break
         except:
             continue

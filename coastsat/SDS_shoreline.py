@@ -559,7 +559,7 @@ def create_shoreline_buffer(im_shape, georef, image_epsg, pixel_size, settings):
 
         # convert reference shoreline to pixel coordinates
         ref_sl = settings['reference_shoreline']
-        ref_sl_conv = SDS_tools.convert_epsg(ref_sl, settings['output_epsg'],image_epsg)[:,:-1]
+        ref_sl_conv = SDS_tools.convert_epsg(ref_sl, settings['output_epsg'],image_epsg)
         ref_sl_pix = SDS_tools.convert_world2pix(ref_sl_conv, georef)
         ref_sl_pix_rounded = np.round(ref_sl_pix).astype(int)
 
@@ -682,7 +682,7 @@ def process_shoreline(contours, cloud_mask, im_nodata, georef, image_epsg, setti
         idx_cloud = np.array([(idx_cloud[0][k], idx_cloud[1][k]) for k in range(len(idx_cloud[0]))])
         # convert to world coordinates and same epsg as the shoreline points
         coords_cloud = SDS_tools.convert_epsg(SDS_tools.convert_pix2world(idx_cloud, georef),
-                                               image_epsg, settings['output_epsg'])[:,:-1]
+                                               image_epsg, settings['output_epsg'])
         # only keep the shoreline points that are at least 30m from any cloud pixel
         idx_keep = np.ones(len(shoreline)).astype(bool)
         for k in range(len(shoreline)):
@@ -697,7 +697,7 @@ def process_shoreline(contours, cloud_mask, im_nodata, georef, image_epsg, setti
         idx_cloud = np.array([(idx_cloud[0][k], idx_cloud[1][k]) for k in range(len(idx_cloud[0]))])
         # convert to world coordinates and same epsg as the shoreline points
         coords_cloud = SDS_tools.convert_epsg(SDS_tools.convert_pix2world(idx_cloud, georef),
-                                               image_epsg, settings['output_epsg'])[:,:-1]
+                                               image_epsg, settings['output_epsg'])
         # only keep the shoreline points that are at least 30m from any nodata pixel
         idx_keep = np.ones(len(shoreline)).astype(bool)
         for k in range(len(shoreline)):
@@ -783,7 +783,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     try:
         sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
                                                                     settings['output_epsg'],
-                                                                    image_epsg)[:,[0,1]], georef)
+                                                                    image_epsg), georef)
     except:
         # if try fails, just add nan into the shoreline vector so the next parts can still run
         sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
@@ -1093,7 +1093,7 @@ def adjust_detection(im_ms, cloud_mask, im_nodata, im_labels, im_ref_buffer, ima
     if len(shoreline) > 0:
         sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
                                                                     settings['output_epsg'],
-                                                                    image_epsg)[:,[0,1]], georef)
+                                                                    image_epsg), georef)
     else: sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
     # plot the shoreline on the images
     sl_plot1 = ax1.plot(sl_pix[:,0], sl_pix[:,1], 'k.', markersize=3)
@@ -1125,7 +1125,7 @@ def adjust_detection(im_ms, cloud_mask, im_nodata, im_labels, im_ref_buffer, ima
             if len(shoreline) > 0:
                 sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
                                                                             settings['output_epsg'],
-                                                                            image_epsg)[:,[0,1]], georef)
+                                                                            image_epsg), georef)
             else: sl_pix = np.array([[np.nan, np.nan],[np.nan, np.nan]])
             # update the plotted shorelines
             sl_plot1[0].set_data([sl_pix[:,0], sl_pix[:,1]])

@@ -830,7 +830,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     ax4.set(xlim=[date_start-timedelta(days=30),date_end+timedelta(days=30)],ylim=[-0.1,0.1])
     for k in range(date_start.year,date_end.year):
         ax4.plot(datetime(k,1,1),0,'ko',ms=6)
-        ax4.text(datetime(k,1,1),-0.05,str(k),ha='center',va='center')
+        ax4.text(datetime(k,1,1),-0.05,str(k)[-2:],ha='center',va='center')
     ax4.plot(datetime.strptime(date[:10],'%Y-%m-%d'),0,'rs',ms=10,mec='k')
     # change the color of nans to either black (0.0) or white (1.0) or somewhere in between
     nan_color = 1.0

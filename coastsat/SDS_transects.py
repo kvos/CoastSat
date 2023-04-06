@@ -451,7 +451,8 @@ def reject_outliers(cross_distance, output, settings):
         chainage[~np.array(idx_kept)] = np.nan
         # store in chain_dict
         chain_dict[key] = chainage
-                
+        
+        print('%s  - outliers removed: %d'%(key, len(dates1) - len(dates3)))
         # figure for QA
         if settings['plot_fig']:
             fig,ax=plt.subplots(2,1,figsize=[12,6], sharex=True)
@@ -472,7 +473,6 @@ def reject_outliers(cross_distance, output, settings):
             ax[1].plot(dates3, chainage3-mean_cross_dist, 'C0-o', ms=4, mfc='w', mec='C0')
             ax[1].set(ylabel='distance [m]',
                       title= 'Post-processed time-series - %d points' % (len(chainage3)))
-            print('%s  - outliers removed: %d'%(key, len(dates1) - len(dates3)))
 
     return chain_dict
 

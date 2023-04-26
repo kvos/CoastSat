@@ -21,6 +21,7 @@ import pytz
 from datetime import datetime, timedelta
 from scipy import stats, interpolate
 import pyproj
+import pandas as pd
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -710,7 +711,8 @@ def output_to_gdf(output, geomtype):
             if counter == 0:
                 gdf_all = gdf
             else:
-                gdf_all = gdf_all.append(gdf)
+                res = pd.concat([gdf_all, gdf])
+                type(res)
             counter = counter + 1
             
     return gdf_all

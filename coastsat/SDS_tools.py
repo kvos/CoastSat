@@ -711,8 +711,7 @@ def output_to_gdf(output, geomtype):
             if counter == 0:
                 gdf_all = gdf
             else:
-                res = pd.concat([gdf_all, gdf])
-                type(res)
+                gdf_all = pd.concat([gdf_all, gdf])
             counter = counter + 1
             
     return gdf_all

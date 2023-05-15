@@ -828,7 +828,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
     ax4.axis('off')
     ax4.axhline(y=0,ls='-',lw=2,c='k')
     ax4.set(xlim=[date_start-timedelta(days=30),date_end+timedelta(days=30)],ylim=[-0.1,0.1])
-    for k in range(date_start.year,date_end.year):
+    for k in range(date_start.year,date_end.year+1):
         ax4.plot(datetime(k,1,1),0,'ko',ms=6)
         ax4.text(datetime(k,1,1),-0.05,str(k),ha='center',va='center')
     ax4.plot(datetime.strptime(date[:10],'%Y-%m-%d'),0,'rs',ms=10,mec='k')

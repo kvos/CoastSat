@@ -333,8 +333,8 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
         if cloud_mask_issue:
             elem = morphology.square(6) # use a square of width 6 pixels
             cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
-            # remove objects with less than 25 connected pixels
-            morphology.remove_small_objects(cloud_mask, min_size=100, connectivity=1, in_place=True)
+            # remove objects with less than min_size connected pixels
+            cloud_mask = morphology.remove_small_objects(cloud_mask, min_size=100, connectivity=1)
 
     return cloud_mask
 

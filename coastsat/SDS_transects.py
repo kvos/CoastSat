@@ -267,7 +267,7 @@ def compute_intersection_QC(output, transects, settings):
                     furthest landward of the transect origin that an intersection is 
                     accepted, beyond this point a NaN is returned
                 'multiple_inter': mode for removing outliers ('auto', 'nan', 'max')
-                'prc_multiple': percentage to use in 'auto' mode to switch from 'nan' to 'max'
+                'auto_prc': percentage to use in 'auto' mode to switch from 'nan' to 'max'
                         
     Returns:    
     -----------
@@ -353,7 +353,7 @@ def compute_intersection_QC(output, transects, settings):
             # compute the percentage of data points where the std is larger than the user-defined max
             prc_over = np.sum(std_intersect > settings['max_std'])/len(std_intersect)
             # if more than a certain percentage is above, use the maximum intersection
-            if prc_over > settings['prc_multiple']:
+            if prc_over > settings['auto_prc']:
                 med_intersect[~idx_good] = max_intersect[~idx_good]
                 med_intersect[~condition3] = np.nan
             # otherwise put a nan

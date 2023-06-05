@@ -595,6 +595,8 @@ def save_jpg(metadata, settings, use_matplotlib=False):
         'cloud_mask_issue': boolean
             True if there is an issue with the cloud mask and sand pixels
             are erroneously being masked on the images
+        'use_matplotlib': boolean
+            False to save a .jpg and True to save as matplotlib plots
 
     Returns:
     -----------

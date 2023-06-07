@@ -7,7 +7,6 @@ https://github.com/kvos/CoastSat/commits/)
 [![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)
 ![GitHub issues](https://img.shields.io/github/issues/kvos/CoastSat)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/y/kvos/CoastSat)
-![Lines of code](https://img.shields.io/tokei/lines/github/kvos/CoastSat)
 
 CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 30+ years (and growing) of publicly available satellite imagery.
 

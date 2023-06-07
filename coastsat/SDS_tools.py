@@ -21,6 +21,7 @@ import pytz
 from datetime import datetime, timedelta
 from scipy import stats, interpolate
 import pyproj
+import pandas as pd
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -507,10 +508,15 @@ def remove_duplicates(output):
             elif np.any(empty_bool): # if one empty remove that one
                 idx_remove.append(pair[np.where(empty_bool)[0][0]])
             else: # remove the shorter shoreline and keep the longer one
-                sl0 = geometry.LineString(output['shorelines'][pair[0]]) 
-                sl1 = geometry.LineString(output['shorelines'][pair[1]])
-                if sl0.length >= sl1.length: idx_remove.append(pair[1])
-                else: idx_remove.append(pair[0])
+                satnames = [output['satname'][_] for _ in pair]
+                # keep Landsat 9 if it duplicates Landsat 7
+                if 'L9' in satnames and 'L7' in satnames: 
+                    idx_remove.append(pair[np.where([_ == 'L7' for _ in satnames])[0][0]])
+                else: # keep the longest shorelines
+                    sl0 = geometry.LineString(output['shorelines'][pair[0]]) 
+                    sl1 = geometry.LineString(output['shorelines'][pair[1]])
+                    if sl0.length >= sl1.length: idx_remove.append(pair[1])
+                    else: idx_remove.append(pair[0])
         # create a new output structure with all the duplicates removed
         idx_remove = sorted(idx_remove)
         idx_all = np.linspace(0, len(dates)-1, len(dates)).astype(int)
@@ -683,7 +689,7 @@ def output_to_gdf(output, geomtype):
     gdf_all = None
     for i in range(len(output['shorelines'])):
         # skip if there shoreline is empty 
-        if len(output['shorelines'][i]) == 0:
+        if len(output['shorelines'][i]) < 2:
             continue
         else:
             # save the geometry depending on the linestyle
@@ -705,7 +711,7 @@ def output_to_gdf(output, geomtype):
             if counter == 0:
                 gdf_all = gdf
             else:
-                gdf_all = gdf_all.append(gdf)
+                gdf_all = pd.concat([gdf_all, gdf])
             counter = counter + 1
             
     return gdf_all

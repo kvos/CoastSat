@@ -593,10 +593,10 @@ def evaluate_classifier(classifier, metadata, settings):
                 continue
             # calculate a buffer around the reference shoreline (if any has been digitised)
             im_ref_buffer = SDS_shoreline.create_shoreline_buffer(cloud_mask.shape, georef, image_epsg,
-                                                    pixel_size, settings)
+                                                                  pixel_size, settings)
             # classify image in 4 classes (sand, whitewater, water, other) with NN classifier
-            im_classif, im_labels = SDS_shoreline.classify_image_NN(im_ms, im_extra, cloud_mask,
-                                    min_beach_area_pixels, classifier)
+            im_classif, im_labels = SDS_shoreline.classify_image_NN(im_ms, cloud_mask,
+                                                                    min_beach_area_pixels, classifier)
             # there are two options to map the contours:
             # if there are pixels in the 'sand' class --> use find_wl_contours2 (enhanced)
             # otherwise use find_wl_contours2 (traditional)
@@ -609,12 +609,12 @@ def evaluate_classifier(classifier, metadata, settings):
                 else:
                     # use classification to refine threshold and extract the sand/water interface
                     contours_mwi, t_mndwi = SDS_shoreline.find_wl_contours2(im_ms, im_labels,
-                                                cloud_mask, buffer_size_pixels, im_ref_buffer)
+                                                                            cloud_mask, im_ref_buffer)
             except:
                 print('Could not map shoreline for this image: ' + filenames[i])
                 continue
             # process the water contours into a shoreline
-            shoreline = SDS_shoreline.process_shoreline(contours_mwi, cloud_mask, georef, image_epsg, settings)
+            shoreline = SDS_shoreline.process_shoreline(contours_mwi, cloud_mask_adv, im_nodata, georef, image_epsg, settings)
             try:
                 sl_pix = SDS_tools.convert_world2pix(SDS_tools.convert_epsg(shoreline,
                                                                             settings['output_epsg'],

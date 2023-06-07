@@ -17,9 +17,14 @@ import pdb
 # other modules
 import skimage.transform as transform
 from pylab import ginput
+from scipy import stats
 
 # CoastSat modules
 from coastsat import SDS_tools
+
+# Global variables
+DAYS_IN_YEAR = 365.2425
+SECONDS_IN_DAY = 24*3600
 
 ###################################################################################################
 # DRAW/LOAD TRANSECTS
@@ -267,7 +272,7 @@ def compute_intersection_QC(output, transects, settings):
                     furthest landward of the transect origin that an intersection is 
                     accepted, beyond this point a NaN is returned
                 'multiple_inter': mode for removing outliers ('auto', 'nan', 'max')
-                'prc_multiple': percentage to use in 'auto' mode to switch from 'nan' to 'max'
+                'auto_prc': percentage to use in 'auto' mode to switch from 'nan' to 'max'
                         
     Returns:    
     -----------
@@ -353,7 +358,7 @@ def compute_intersection_QC(output, transects, settings):
             # compute the percentage of data points where the std is larger than the user-defined max
             prc_over = np.sum(std_intersect > settings['max_std'])/len(std_intersect)
             # if more than a certain percentage is above, use the maximum intersection
-            if prc_over > settings['prc_multiple']:
+            if prc_over > settings['auto_prc']:
                 med_intersect[~idx_good] = max_intersect[~idx_good]
                 med_intersect[~condition3] = np.nan
             # otherwise put a nan
@@ -451,7 +456,8 @@ def reject_outliers(cross_distance, output, settings):
         chainage[~np.array(idx_kept)] = np.nan
         # store in chain_dict
         chain_dict[key] = chainage
-                
+        
+        print('%s  - outliers removed: %d'%(key, len(dates1) - len(dates3)))
         # figure for QA
         if settings['plot_fig']:
             fig,ax=plt.subplots(2,1,figsize=[12,6], sharex=True)
@@ -472,7 +478,6 @@ def reject_outliers(cross_distance, output, settings):
             ax[1].plot(dates3, chainage3-mean_cross_dist, 'C0-o', ms=4, mfc='w', mec='C0')
             ax[1].set(ylabel='distance [m]',
                       title= 'Post-processed time-series - %d points' % (len(chainage3)))
-            print('%s  - outliers removed: %d'%(key, len(dates1) - len(dates3)))
 
     return chain_dict
 
@@ -671,3 +676,11 @@ def monthly_average(dates, chainages):
          dict_seasonal[seas]['chainages'] = np.array(dict_seasonal[seas]['chainages'])
                 
     return dict_seasonal, dates_seasonal, np.array(chainage_seasonal), np.array(season_ts)
+
+def calculate_trend(dates,chainage):
+    "calculate long-term trend"
+    dates_ord = np.array([_.toordinal() for _ in dates])
+    dates_ord = (dates_ord - np.min(dates_ord))/DAYS_IN_YEAR   
+    trend, intercept, rvalue, pvalue, std_err = stats.linregress(dates_ord, chainage)
+    y = dates_ord*trend+intercept
+    return trend, y

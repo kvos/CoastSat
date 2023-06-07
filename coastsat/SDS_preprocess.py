@@ -26,6 +26,7 @@ from pyproj import CRS
 from pylab import ginput
 import pickle
 import geopandas as gpd
+import pandas as pd
 from shapely import geometry
 import re
 
@@ -886,7 +887,7 @@ def get_reference_sl(metadata, settings):
                 if k == 0:
                     gdf_all = gdf
                 else:
-                    gdf_all = gdf_all.append(gdf)
+                    gdf_all = pd.concat([gdf_all, gdf])
             gdf_all.crs = CRS(image_epsg)
             # convert from image_epsg to user-defined coordinate system
             gdf_all = gdf_all.to_crs(epsg=settings['output_epsg'])

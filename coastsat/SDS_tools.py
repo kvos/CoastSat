@@ -745,7 +745,7 @@ def transects_to_gdf(transects):
         if i == 0:
             gdf_all = gdf
         else:
-            gdf_all = gdf_all.append(gdf)
+            gdf_all = pd.concat([gdf_all, gdf])
             
     return gdf_all
 

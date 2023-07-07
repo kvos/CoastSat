@@ -37,7 +37,7 @@ gdal.PushErrorHandler('CPLQuietErrorHandler')
 
 def retrieve_images(inputs):
     """
-    Downloads all images from Landsat 5, Landsat 7, Landsat 8 and Sentinel-2
+    Downloads all images from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2
     covering the area of interest and acquired between the specified dates.
     The downloaded images are in .TIF format and organised in subfolders, divided
     by satellite mission. The bands are also subdivided by pixel resolution.
@@ -94,24 +94,30 @@ def retrieve_images(inputs):
     # remove UTM duplicates in S2 collections (they provide several projections for same images)
     if 'S2' in inputs['sat_list'] and len(im_dict_T1['S2'])>0:
         im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
-
+        # get s2cloudless collection
+        im_dict_s2cloudless = get_s2cloudless(im_dict_T1['S2'], inputs)
+        # get cloud shadows
+        ######################################################################
+        
     # create a new directory for this site with the name of the site
     im_folder = os.path.join(inputs['filepath'],inputs['sitename'])
     if not os.path.exists(im_folder): os.makedirs(im_folder)
 
     # bands for each mission
     if inputs['landsat_collection'] == 'C01':
-        qa_band = 'BQA'
+        qa_band_Landsat = 'BQA'
     elif inputs['landsat_collection'] == 'C02':
-        qa_band = 'QA_PIXEL'
+        qa_band_Landsat = 'QA_PIXEL'
     else:
         raise Exception('Landsat collection %s does not exist, '%inputs['landsat_collection'] + \
                         'choose C01 or C02.')
-    bands_dict = {'L5':['B1','B2','B3','B4','B5',qa_band],
-                  'L7':['B1','B2','B3','B4','B5',qa_band],
-                  'L8':['B2','B3','B4','B5','B6',qa_band],
-                  'L9':['B2','B3','B4','B5','B6',qa_band],
-                  'S2':['B2','B3','B4','B8','B11','QA60']}
+    qa_band_S2 = 'QA60'
+    # the cloud mask band for Sentinel-2 images is the s2cloudless probability
+    bands_dict = {'L5':['B1','B2','B3','B4','B5',qa_band_Landsat],
+                  'L7':['B1','B2','B3','B4','B5',qa_band_Landsat],
+                  'L8':['B2','B3','B4','B5','B6',qa_band_Landsat],
+                  'L9':['B2','B3','B4','B5','B6',qa_band_Landsat],
+                  'S2':['B2','B3','B4','B8','s2cloudless','B11',qa_band_S2]}
     
     # main loop to download the images for each satellite mission
     print('\nDownloading images:')
@@ -122,10 +128,9 @@ def retrieve_images(inputs):
         
         # create subfolder structure to store the different bands
         filepaths = SDS_tools.create_folder_structure(im_folder, satname)
-        # initialise variables and loop through images
-        georef_accs = []; filenames = []; all_names = []; im_epsg = []; im_quality = [];
-        bands_id = bands_dict[satname]
         
+        bands_id = bands_dict[satname]
+        all_names = [] # list for detecting duplicates
         # loop through each image
         for i in range(len(im_dict_T1[satname])):
             
@@ -138,48 +143,66 @@ def retrieve_images(inputs):
             im_date = im_timestamp.strftime('%Y-%m-%d-%H-%M-%S')
 
             # get epsg code
-            im_epsg.append(int(im_meta['bands'][0]['crs'][5:]))
+            im_epsg = int(im_meta['bands'][0]['crs'][5:])
 
-            # get geometric accuracy
+            # get quality flags (geometric and radiometric quality)
             if satname in ['L5','L7','L8','L9']:
                 if 'GEOMETRIC_RMSE_MODEL' in im_meta['properties'].keys():
                     acc_georef = im_meta['properties']['GEOMETRIC_RMSE_MODEL']
                 else:
-                    acc_georef = 12 # default value of accuracy (RMSE = 12m)
-                # add additional metadata for Sharon's Sniffer [image_quality 1-9 for Landsat]
+                    acc_georef = 12 # average georefencing error across Landsat collection (RMSE = 12m)
+                # add radiometric quality [image_quality 1-9 for Landsat]
                 if satname in ['L5','L7']:
-                    im_quality.append(im_meta['properties']['IMAGE_QUALITY'])
+                    rad_quality = im_meta['properties']['IMAGE_QUALITY']
                 elif satname in ['L8','L9']:
-                    im_quality.append(im_meta['properties']['IMAGE_QUALITY_OLI'])
+                    rad_quality = im_meta['properties']['IMAGE_QUALITY_OLI']
             elif satname in ['S2']:
                 # Sentinel-2 products don't provide a georeferencing accuracy (RMSE as in Landsat)
-                # but they have a flag indicating if the geometric quality control was passed or failed
+                # but they have a flag indicating if the geometric quality control was PASSED or FAILED
                 # if passed a value of 1 is stored if failed a value of -1 is stored in the metadata
-                # the name of the property containing the flag changes across the S2 archive
-                # check which flag name is used for the image and store the 1/-1 for acc_georef
+                # check which flag name is used for the image as it changes for some reason in the archive
                 flag_names = ['GEOMETRIC_QUALITY_FLAG', 'GEOMETRIC_QUALITY', 'quality_check', 'GENERAL_QUALITY_FLAG']
+                key = []
                 for key in flag_names: 
-                    if key in im_meta['properties'].keys(): break
-                if im_meta['properties'][key] == 'PASSED': 
-                    acc_georef = 1
-                else: 
-                    acc_georef = -1
-                # add additional metadata for Sharon's Sniffer ['PASSED' or 'FAILED']
+                    if key in im_meta['properties'].keys(): 
+                        break # use the first flag that is found
+                if len(key) > 0:
+                    acc_georef = im_meta['properties'][key]
+                else:
+                    print('WARNING: could not find Sentinel-2 geometric quality flag,'+ 
+                          ' raise an issue at https://github.com/kvos/CoastSat/issues'+
+                          ' and add you inputs in text (not a screenshot pls).')
+                    acc_georef = 'PASSED'
+                # add the radiometric image quality ['PASSED' or 'FAILED']
                 flag_names = ['RADIOMETRIC_QUALITY', 'RADIOMETRIC_QUALITY_FLAG']
+                key = []
                 for key in flag_names: 
-                    if key in im_meta['properties'].keys(): break
-                im_quality.append(im_meta['properties'][key])
-            georef_accs.append(acc_georef)
-
+                    if key in im_meta['properties'].keys(): 
+                        break # use the first flag that is found
+                if len(key) > 0:
+                    rad_quality = im_meta['properties'][key]
+                else:
+                    print('WARNING: could not find Sentinel-2 geometric quality flag,'+ 
+                          ' raise an issue at https://github.com/kvos/CoastSat/issues'+
+                          ' and add you inputs in text (not a screenshot pls).')
+                    rad_quality = 'PASSED'
+            
+            # select image by id
+            image_ee = ee.Image(im_meta['id'])
+            
+            # for S2 add s2cloudless probability band
+            if satname == 'S2':
+                im_cloud = ee.Image(im_dict_s2cloudless[i]['id'])
+                cloud_prob = im_cloud.select('probability').rename('s2cloudless')
+                image_ee = image_ee.addBands(cloud_prob)
+            
             # download the images as .tif files
             bands = dict([])
             im_fn = dict([])
             # first delete dimensions key from dictionnary
             # otherwise the entire image is extracted (don't know why)
-            im_bands = im_meta['bands']
+            im_bands = image_ee.getInfo()['bands']
             for j in range(len(im_bands)): del im_bands[j]['dimensions']
-            # get image id
-            image_ee = ee.Image(im_meta['id'])
             
             #=============================================================================================#
             # Landsat 5 download
@@ -218,8 +241,8 @@ def retrieve_images(inputs):
                             + inputs['sitename'] + '_' + key \
                             + '_dup%d'%duplicate_counter + suffix
                 im_fn['mask'] = im_fn['ms'].replace('_ms','_mask')
+                filename_ms = im_fn['ms']
                 all_names.append(im_fn['ms'])
-                filenames.append(im_fn['ms'])
                 
                 # resample ms bands to 15m with bilinear interpolation
                 fn_in = fn_ms
@@ -235,11 +258,6 @@ def retrieve_images(inputs):
                 
                 # delete original downloads
                 for _ in [fn_ms,fn_QA]: os.remove(_)
-                
-                # add metadata in .txt file (save at the end of the loop)
-                filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
-                metadict = {'filename':im_fn['ms'],'acc_georef':georef_accs[i],
-                            'epsg':im_epsg[i],'image_quality':im_quality[i]}
 
             #=============================================================================================#
             # Landsat 7, 8 and 9 download
@@ -289,8 +307,8 @@ def retrieve_images(inputs):
                             + inputs['sitename'] + '_' + key \
                             + '_dup%d'%duplicate_counter + suffix
                 im_fn['mask'] = im_fn['ms'].replace('_ms','_mask')
-                all_names.append(im_fn['ms'])
-                filenames.append(im_fn['ms'])  
+                filename_ms = im_fn['ms']
+                all_names.append(im_fn['ms']) 
                 
                 # resample the ms bands to the pan band with bilinear interpolation (for pan-sharpening later)
                 fn_in = fn_ms
@@ -312,22 +330,17 @@ def retrieve_images(inputs):
                     os.rename(fn_pan,os.path.join(fp_pan,im_fn['pan']))  
                 # delete original downloads
                 for _ in [fn_ms,fn_QA]: os.remove(_)
-                
-                # metadata for .txt file
-                filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
-                metadict = {'filename':im_fn['ms'],'acc_georef':georef_accs[i],
-                            'epsg':im_epsg[i],'image_quality':im_quality[i]}
 
             #=============================================================================================#
             # Sentinel-2 download
             #=============================================================================================#
-            elif satname in ['S2']:
+            elif satname in ['S2']:                
                 fp_ms = filepaths[1]
                 fp_swir = filepaths[2]
                 fp_mask = filepaths[3]    
-                # select bands (10m ms RGB+NIR, 20m SWIR1, 60m QA band)
-                bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[:4]]
-                bands['swir'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[4:5]]
+                # select bands (10m ms RGB+NIR+s2cloudless, 20m SWIR1, 60m QA band)
+                bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[:5]]
+                bands['swir'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[5:6]]
                 bands['mask'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[-1:]]
                 # adjust polygon for both ms and pan bands
                 proj_ms = image_ee.select('B1').projection()
@@ -364,8 +377,8 @@ def retrieve_images(inputs):
                         im_fn[key] = im_date + '_' + satname + '_' \
                             + inputs['sitename'] + '_' + key \
                             + '_dup%d'%duplicate_counter + suffix
-                all_names.append(im_fn['ms'])
-                filenames.append(im_fn['ms']) 
+                filename_ms = im_fn['ms']
+                all_names.append(im_fn['ms']) 
                 
                 # resample the 20m swir band to the 10m ms band with bilinear interpolation
                 fn_in = fn_swir
@@ -383,13 +396,15 @@ def retrieve_images(inputs):
                 for _ in [fn_swir,fn_QA]: os.remove(_)  
                 # rename the multispectral band file
                 os.rename(fn_ms,os.path.join(fp_ms, im_fn['ms']))
-                                
-                # metadata for .txt file
-                filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
-                metadict = {'filename':im_fn['ms'],'acc_georef':georef_accs[i],
-                            'epsg':im_epsg[i],'image_quality':im_quality[i]}
-
-            # write metadata
+              
+            # get image dimensions (width and height)
+            image_path = os.path.join(fp_ms,im_fn['ms'])
+            width, height = SDS_tools.get_image_dimensions(image_path)
+            # write metadata in a text file for easy access
+            filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
+            metadict = {'filename':filename_ms,'epsg':im_epsg,
+                        'acc_georef':acc_georef,'image_quality':rad_quality,
+                        'im_width':width,'im_height':height}
             with open(os.path.join(filepaths[0],filename_txt + '.txt'), 'w') as f:
                 for key in metadict.keys():
                     f.write('%s\t%s\n'%(key,metadict[key]))
@@ -400,6 +415,7 @@ def retrieve_images(inputs):
 
     # once all images have been downloaded, load metadata from .txt files
     metadata = get_metadata(inputs)
+    
     # merge overlapping images (necessary only if the polygon is at the boundary of an image)
     # if 'S2' in metadata.keys():
     #     print("\n Called merge_overlapping_images\n")
@@ -447,7 +463,8 @@ def get_metadata(inputs):
         # if a folder has been created for the given satellite mission
         if satname in os.listdir(filepath):
             # update the metadata dict
-            metadata[satname] = {'filenames':[], 'acc_georef':[], 'epsg':[], 'dates':[]}
+            metadata[satname] = {'filenames':[],'dates':[],'epsg':[],'acc_georef':[],
+                                 'im_quality':[],'im_dimensions':[]}
             # directory where the metadata .txt files are stored
             filepath_meta = os.path.join(filepath, satname, 'meta')
             # get the list of filenames and sort it chronologically
@@ -455,21 +472,30 @@ def get_metadata(inputs):
             filenames_meta.sort()
             # loop through the .txt files
             for im_meta in filenames_meta:
-                # read them and extract the metadata info: filename, georeferencing accuracy
-                # epsg code and date
+                # read them and extract the metadata info
                 with open(os.path.join(filepath_meta, im_meta), 'r') as f:
                     filename = f.readline().split('\t')[1].replace('\n','')
-                    acc_georef = float(f.readline().split('\t')[1].replace('\n',''))
                     epsg = int(f.readline().split('\t')[1].replace('\n',''))
+                    acc_georef = f.readline().split('\t')[1].replace('\n','')
+                    im_quality = f.readline().split('\t')[1].replace('\n','')
+                    im_width = int(f.readline().split('\t')[1].replace('\n',''))
+                    im_height = int(f.readline().split('\t')[1].replace('\n',''))
                 date_str = filename[0:19]
                 date = pytz.utc.localize(datetime(int(date_str[:4]),int(date_str[5:7]),
                                                   int(date_str[8:10]),int(date_str[11:13]),
                                                   int(date_str[14:16]),int(date_str[17:19])))
+                # check if they are quantitative values (Landsat) or Pass/Fail flags (Sentinel-2)
+                try: acc_georef = float(acc_georef)
+                except: acc_georef = str(acc_georef)
+                try: im_quality = float(im_quality)
+                except: im_quality = str(im_quality)
                 # store the information in the metadata dict
                 metadata[satname]['filenames'].append(filename)
-                metadata[satname]['acc_georef'].append(acc_georef)
-                metadata[satname]['epsg'].append(epsg)
                 metadata[satname]['dates'].append(date)
+                metadata[satname]['epsg'].append(epsg)
+                metadata[satname]['acc_georef'].append(acc_georef)
+                metadata[satname]['im_quality'].append(im_quality)
+                metadata[satname]['im_dimensions'].append([im_height,im_width])
 
     # save a .pkl file containing the metadata dict
     with open(os.path.join(filepath, inputs['sitename'] + '_metadata' + '.pkl'), 'wb') as f:
@@ -921,6 +947,28 @@ def filter_S2_collection(im_list):
         im_list_flt = [x for k,x in enumerate(im_list) if k not in idx_delete]
 
     return im_list_flt
+
+def get_s2cloudless(im_list, inputs):
+    "Match the list of S2 images with the corresponding s2cloudless images"
+    # get s2cloudless collection
+    dates = [datetime.strptime(_,'%Y-%m-%d') for _ in inputs['dates']]
+    polygon = inputs['polygon']
+    collection = 'COPERNICUS/S2_CLOUD_PROBABILITY'
+    s2cloudless_col = ee.ImageCollection(collection).filterBounds(ee.Geometry.Polygon(polygon))\
+                                                    .filterDate(dates[0],dates[1])
+    im_list_cloud = s2cloudless_col.getInfo().get('features')
+    # get image ids
+    indices_cloud = [_['properties']['system:index'] for _ in im_list_cloud]
+    # match with S2 images
+    im_list_cloud_matched = []
+    for i in range(len(im_list)):
+        index = im_list[i]['properties']['system:index'] 
+        if index in indices_cloud:
+            k = np.where([_ == index for _ in indices_cloud])[0][0]
+            im_list_cloud_matched.append(im_list_cloud[k])
+        else: # put an empty list if no match
+            im_list_cloud_matched.append([])
+    return im_list_cloud_matched
 
 def merge_overlapping_images(metadata,inputs):
     """

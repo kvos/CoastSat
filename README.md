@@ -60,7 +60,7 @@ The toolbox has the following functionalities:
    - [Shoreline detection](#detection)
    - [Shoreline change time-series](#analysis)
    - [Tidal correction](#correction)
-   - [Time-series post-processing (seasonal averages and linear trends)](#postprocessing)
+   - [Post-processing (seasonal averages and linear trends)](#postprocessing)
    - [Validation against survey data](#validation)
 - [Contributing and Issues](#issues)
 - [References](#references)

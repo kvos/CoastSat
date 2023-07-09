@@ -14,14 +14,14 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 :point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat in different regions (Pacific Rim, US Atlantic coast).
 
-:point_right: Relevant publications on the toolbox:
+:point_right: Useful publications describing the toolbox:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
-- Accuracy assessment and applications: https://doi.org/10.1016/j.coastaleng.2019.04.004
-- Satellite-derived shorelines along meso-macrotidal beaches: https://doi.org/10.1016/j.geomorph.2021.107707
-- Shoreline changes controlled by ENSO in the Pacific: https://www.nature.com/articles/s41561-022-01117-8 (The Conversation article [here](https://theconversation.com/millions-of-satellite-images-reveal-how-beaches-around-the-pacific-vanish-or-replenish-in-el-nino-and-la-nina-years-198505))
-- Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
+- Accuracy assessment: https://doi.org/10.1016/j.coastaleng.2019.04.004
+- Challenges in meso-macrotidal environments: https://doi.org/10.1016/j.geomorph.2021.107707
+- Basin-scale shoreline mapping (Paficic): https://www.nature.com/articles/s41561-022-01117-8 (The Conversation article [here](https://theconversation.com/millions-of-satellite-images-reveal-how-beaches-around-the-pacific-vanish-or-replenish-in-el-nino-and-la-nina-years-198505))
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+- Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
 :point_right: Other repositories and extensions related to the toolbox:
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms.
@@ -45,14 +45,27 @@ Satellite remote sensing can provide low-cost long-term shoreline data capable o
 The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
 
 The toolbox has the following functionalities:
-1. easy retrieval of all available satellite images spanning the user-defined region of interest and time period from Google Earth Engine and state-of-the-art pre-processing steps (re-projecting the different bands, pansharpening, advanced cloud masking).
+1. easy retrieval of satellite imagery spanning the user-defined region of interest and time period from Google Earth Engine, including state-of-the-art pre-processing steps (re-projecting the different bands, pansharpening, advanced cloud masking).
 2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique.
 3. intersection of the 2D shorelines with user-defined shore-normal transects.
 4. tidal correction using tide/water levels and an estimate of the beach slope.
 5. post-processing of the shoreline time-series, despiking and seasonal averaging.
-6. validation example at Narrabeen
+6. validation example at Narrabeen-Collaroy beach, Sydney.
 
-## 1. Installation
+### Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+   - [Retrieval of the satellite images](#retrieval)
+   - [Shoreline detection](#detection)
+   - [Shoreline change time-series](#analysis)
+   - [Tidal correction](#correction)
+   - [Time-series post-processing (seasonal averages and linear trends)](#postprocessing)
+   - [Validation against survey data](#validation)
+- [Contributing and Issues](#issues)
+- [References](#references)
+
+## 1. Installation<a name="introduction"></a>
 
 ### 1.1 Create an environment with Anaconda
 
@@ -96,9 +109,9 @@ earthengine authenticate --auth_mode=notebook
 
 Now you are ready to start using the CoastSat toolbox!
 
-**Note**: remember to always activate the environment with `conda activate coastsat` each time you are preparing to use the toolbox.
+:warning: remember to always activate the environment with `conda activate coastsat` each time you are preparing to use the toolbox.
 
-## 2. Usage
+## 2. Usage<a name="usage"></a>
 
 An example of how to run the software in a Jupyter Notebook is provided in the repository (`example_jupyter.ipynb`). To run this, first activate your `coastsat` environment with `conda activate coastsat` (if not already active), and then type:
 
@@ -106,18 +119,15 @@ An example of how to run the software in a Jupyter Notebook is provided in the r
 jupyter notebook
 ```
 
-A web browser window will open. Point to the directory where you downloaded this repository and click on `example_jupyter.ipynb`.
-
-The following sections guide the reader through the different functionalities of CoastSat with an example at Narrabeen-Collaroy beach (Australia). If you prefer to use **Spyder**, **PyCharm** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository.
-
-If using `example.py` on **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
-
-A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
+A web browser window will open. Point to the directory where you downloaded this repository and click on `example_jupyter.ipynb`. A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
 
 ![image](https://user-images.githubusercontent.com/7217258/165960239-e8870f7e-0dab-416e-bbdd-089b136b7d20.png)
 
+If you prefer to use **Spyder** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository. If using **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
-### 2.1 Retrieval of the satellite images
+The following sections show an example of how to use the toolbox at Narrabeen-Collaroy beach (Australia).
+
+### 2.1 Retrieval of the satellite images<a name="retrieval"></a>
 
 To retrieve from the GEE server the available satellite images cropped around the user-defined region of coastline for the particular time period of interest, the following variables are required:
 - `polygon`: the coordinates of the region of interest (longitude/latitude pairs in WGS84)
@@ -133,9 +143,9 @@ The screenshot below shows an example of inputs that will retrieve all the image
 
 ![doc1](https://user-images.githubusercontent.com/7217258/166197244-9f41de17-f387-40a6-945e-8a78b581c4b1.png)
 
-**Note:** The area of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
+:warning: The area of the polygon should not exceed 100 km2, so for very long beaches split it into multiple smaller polygons.
 
-### 2.2 Shoreline detection
+### 2.2 Shoreline detection<a name="detection"></a>
 
 To map the shorelines, the following user-defined settings are needed:
 - `cloud_thresh`: threshold on maximum cloud cover that is acceptable on the images (value between 0 and 1 - this may require some initial experimentation).
@@ -200,7 +210,7 @@ As mentioned above, there are some additional parameters that can be modified to
 #### 2.2.3 Re-training the classifier
 CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
 
-### 2.3 Shoreline change analysis
+### 2.3 Shoreline change time-series<a name="analysis"></a>
 
 This section shows how to obtain time-series of shoreline change along shore-normal transects. Each transect is defined by two points, its origin and a second point that defines its length and orientation. The origin is always defined first and located landwards, the second point is located seawards. There are 3 options to define the coordinates of the transects:
 1. Interactively draw shore-normal transects along the mapped shorelines:
@@ -219,7 +229,7 @@ transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
 transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
 ```
 
-**Note:** if you choose option 2 or 3, make sure that the points that you are providing are in the spatial reference system defined by `settings['output_epsg']`.
+:warning: if you choose option 2 or 3, make sure that the points that you are providing are in the spatial reference system defined by `settings['output_epsg']`.
 
 Once the shore-normal transects have been defined, the intersection between the 2D shorelines and the transects is computed with the following function:
 ```
@@ -232,11 +242,7 @@ An example is shown in the animation below:
 
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
-There is also the option to run `SDS_transects.compute_intersection_QA()`, this function provides more quality-control when computing the intersections between shorelines and transects (small loops, multiple intersections, false detections etc).
-
-
-It is recommended to use this function as it can provide cleaner shoreline time-series. See the [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/master/example_jupyter.ipynb) for an example of how this function is used. An example of parameters for the quality control are provided below, the default parameters should work in most cases (leave as it is if unsure).
-
+There is also a more advanced function to compute the intersections `SDS_transects.compute_intersection_QA()`, which provides more quality-control and can deal with small loops, multiple intersections, false detections etc. It is recommended to use this function as it can provide cleaner shoreline time-series. See the [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/master/example_jupyter.ipynb) for an example of how to use it. An example of parameter values fare provided below, the default parameters should work in most cases (leave as it is if unsure).
 
 ![image](https://user-images.githubusercontent.com/7217258/182160883-5edfb8f9-e668-440c-b55c-87e8697a2b64.png)
 
@@ -259,7 +265,7 @@ The `multiple_inter` setting helps to deal with multiple shoreline intersections
 - `'auto'`: let the function decide transect by transect, and if it thinks there are two water bodies, take the max.
 If `'auto'` is chosen, the `auto_prc` parameter will define when to use the max, by default it is set to 0.1, which means that the function thinks there are two water bodies if 10% of the time-series show multiple intersections.
 
-### 2.4 Tidal Correction
+### 2.4 Tidal Correction<a name="correction"></a>
 
 Each satellite image is captured at a different stage of the tide, therefore a tidal correction is necessary to remove the apparent shoreline changes cause by tidal fluctuations.
 
@@ -270,9 +276,9 @@ In order to tidally-correct the time-series of shoreline change you will need th
 
 Wave setup and runup corrections are not included in the toolbox, but for more information on these additional corrections see [Castelle et al. 2021](https://doi.org/10.1016/j.geomorph.2021.107707).
 
-### 2.5 Post-processing
+### 2.5 Post-processing (seasonal averages and linear trends)<a name="postprocessing"></a>
 
-The tidally-corrected time-series can be post-processed to remove outliers with a despiking algorithm in `SDS_transects.reject_outliers()`. This function was developed to remove obvious outliers in the time-series by removing the points that do not make physical sense in a shoreline change setting. For example, the shoreline can experience rapid erosion after a large storm, but it will then take time to recover and return to its previous state. Therefore, if the shoreline erodes/accretes suddenly of a significant amount (`max_cross_change`) and then immediately returns to its previous state, this spike does not make any physical sense and can be considered an outlier.
+The tidally-corrected time-series can be post-processed to remove outliers with a despiking algorithm `SDS_transects.reject_outliers()`. This function was developed to remove obvious outliers in the time-series by removing the points that do not make physical sense in a shoreline change setting. For example, the shoreline can experience rapid erosion after a large storm, but it will then take time to recover and return to its previous state. Therefore, if the shoreline erodes/accretes suddenly of a significant amount (`max_cross_change`) and then immediately returns to its previous state, this spike does not make any physical sense and can be considered an outlier.
 
 ![image](https://user-images.githubusercontent.com/7217258/182162154-9d8da81d-a5fc-486e-baf6-55e2a5782096.png)
 
@@ -280,21 +286,27 @@ Additionally, this function also checks that the Otsu thresholds used to map the
 
 ![otsu_threhsolds](https://github.com/kvos/CoastSat/assets/7217258/86ffa18b-206d-418c-84df-fbd369c28757)
 
+Additionally, a set of functions to compute seasonal averages, monthly averages and linear trends on the shoreline time-series are provided.
 
-Functions to compute seasonal and monthly averages on the shoreline time-series are also provided: `SDS_transects.seasonal_averages()` and `SDS_transects.monthly_averages()`.
+`SDS_transects.seasonal_averages()`
 
-![NA1](https://user-images.githubusercontent.com/7217258/182162937-58bad8f1-35c7-4789-a03c-05799380bacf.jpg)
+![NA1_seasonally](https://github.com/kvos/CoastSat/assets/7217258/c98cfb7e-b6c6-45d6-9168-86b3c7cb5ed9)
 
-### 2.6 Validation against survey data
+`SDS_transects.monthly_averages()`
+
+![NA1_monthly](https://github.com/kvos/CoastSat/assets/7217258/6bc3fd62-47d7-4e5f-bdec-a04e5a8b4142)
+
+:warning: given that the shoreline time-series are not uniformly sampled and there is more density of datapoints towards the end of the record (more satellite in orbit), it is best to estimate the long-term trends on the seasonally-averaged shoreline time-series as the trend estimated on the raw time-series may be biased towards the end of the record.
+
+### 2.6 Validation against survey data<a name="validation"></a>
 
 This section provides code to compare the satellite-derived shorelines against the survey data for Narrabeen, available at http://narrabeen.wrl.unsw.edu.au/.
 
 ![comparison_transect_PF1](https://user-images.githubusercontent.com/7217258/183917858-d2fefdaf-f215-42d4-b103-3cbab636079e.jpg)
 
-## Issues
+## Contributing and Issues<a name="issues"></a>
 Having a problem? Post an issue in the [Issues page](https://github.com/kvos/coastsat/issues) (please do not email).
 
-## Contributing
 If you are willing to contribute, check out our todo list in the [Projects page](https://github.com/kvos/CoastSat/projects/1).
 1. Fork the repository (https://github.com/kvos/coastsat/fork).
 A fork is a copy on which you can make your changes.
@@ -302,22 +314,36 @@ A fork is a copy on which you can make your changes.
 3. Commit your changes and push them to your branch
 4. When the branch is ready to be merged, create a Pull Request (how to make a clean pull request explained [here](https://gist.github.com/MarcDiethelm/7303312))
 
-## References using CoastSat
+## References and Datasets<a name="references"></a>
 
-1. Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
+This section provides a list of references that use the CoastSat toolbox as well as existing shoreline datasets extracted with CoastSat.
 
-2. Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
+### Publications
 
-3. Vos K., Harley M.D., Splinter K.D., Walker A., Turner I.L. (2020). Beach slopes from satellite-derived shorelines. *Geophysical Research Letters*. 47(14). https://doi.org/10.1029/2020GL088365 (Open Access preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
+- Vos K., Splinter K.D., Harley M.D., Simmons J.A., Turner I.L. (2019). CoastSat: a Google Earth Engine-enabled Python toolkit to extract shorelines from publicly available satellite imagery. *Environmental Modelling and Software*. 122, 104528. https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 
-4. Vos, K. and Deng, W. and Harley, M. D. and Turner, I. L. and Splinter, K. D. M. (2022). Beach-face slope dataset for Australia. *Earth System Science Data*. volume 14, 3, p. 1345--1357. https://doi.org/10.5194/essd-14-1345-2022
+- Vos K., Harley M.D., Splinter K.D., Simmons J.A., Turner I.L. (2019). Sub-annual to multi-decadal shoreline variability from publicly available satellite imagery. *Coastal Engineering*. 150, 160–174. https://doi.org/10.1016/j.coastaleng.2019.04.004
 
-5. Vos, K., Harley, M.D., Turner, I.L. et al. Pacific shoreline erosion and accretion patterns controlled by El Niño/Southern Oscillation. *Nature Geosciences*. 16, 140–146 (2023). https://doi.org/10.1038/s41561-022-01117-8
+- Vos K., Harley M.D., Splinter K.D., Walker A., Turner I.L. (2020). Beach slopes from satellite-derived shorelines. *Geophysical Research Letters*. 47(14). https://doi.org/10.1029/2020GL088365 (Open Access preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 
-6. Castelle B., Masselink G., Scott T., Stokes C., Konstantinou A., Marieu V., Bujan S. (2021). Satellite-derived shoreline detection at a high-energy meso-macrotidal beach. *Geomorphology*. volume 383, 107707. https://doi.org/10.1016/j.geomorph.2021.107707
+- Vos, K. and Deng, W. and Harley, M. D. and Turner, I. L. and Splinter, K. D. M. (2022). Beach-face slope dataset for Australia. *Earth System Science Data*. volume 14, 3, p. 1345--1357. https://doi.org/10.5194/essd-14-1345-2022
 
-7. Castelle, B., Ritz, A., Marieu, V., Lerma, A. N., & Vandenhove, M. (2022). Primary drivers of multidecadal spatial and temporal patterns of shoreline change derived from optical satellite imagery. Geomorphology, 413, 108360. https://doi.org/10.1016/j.geomorph.2022.10836
+- Vos, K., Harley, M.D., Turner, I.L. et al. Pacific shoreline erosion and accretion patterns controlled by El Niño/Southern Oscillation. *Nature Geosciences*. 16, 140–146 (2023). https://doi.org/10.1038/s41561-022-01117-8
 
-8. Konstantinou, A., Scott, T., Masselink, G., Stokes, K., Conley, D., & Castelle, B. (2023). Satellite-based shoreline detection along high-energy macrotidal coasts and influence of beach state. Marine Geology, 107082. https://doi.org/10.1016/j.margeo.2023.107082
+- Castelle B., Masselink G., Scott T., Stokes C., Konstantinou A., Marieu V., Bujan S. (2021). Satellite-derived shoreline detection at a high-energy meso-macrotidal beach. *Geomorphology*. volume 383, 107707. https://doi.org/10.1016/j.geomorph.2021.107707
 
-9. Training dataset used for pixel-wise classification in CoastSat (initial version): https://doi.org/10.5281/zenodo.3334147
+- Castelle, B., Ritz, A., Marieu, V., Lerma, A. N., & Vandenhove, M. (2022). Primary drivers of multidecadal spatial and temporal patterns of shoreline change derived from optical satellite imagery. Geomorphology, 413, 108360. https://doi.org/10.1016/j.geomorph.2022.10836
+
+- Konstantinou, A., Scott, T., Masselink, G., Stokes, K., Conley, D., & Castelle, B. (2023). Satellite-based shoreline detection along high-energy macrotidal coasts and influence of beach state. Marine Geology, 107082. https://doi.org/10.1016/j.margeo.2023.107082
+
+### Datasets
+
+- Time-series of shoreline change along the Pacific Rim (v1.4) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7758183
+
+- Time-series of shoreline change along the U.S. Atlantic coast: U.S. Geological Survey data release, https://doi.org/10.5066/P9BQQTCI.
+
+- Time-series of shoreline change for the Klamath River Littoral Cell (California) (1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7641757
+
+- Beach-face slope dataset for Australia (Version 2) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7272538
+
+- Training dataset used for pixel-wise classification in CoastSat (initial version): https://doi.org/10.5281/zenodo.3334147

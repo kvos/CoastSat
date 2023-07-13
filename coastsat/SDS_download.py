@@ -96,9 +96,7 @@ def retrieve_images(inputs):
         im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
         # get s2cloudless collection
         im_dict_s2cloudless = get_s2cloudless(im_dict_T1['S2'], inputs)
-        # get cloud shadows
-        ######################################################################
-        
+
     # create a new directory for this site with the name of the site
     im_folder = os.path.join(inputs['filepath'],inputs['sitename'])
     if not os.path.exists(im_folder): os.makedirs(im_folder)
@@ -192,6 +190,9 @@ def retrieve_images(inputs):
             
             # for S2 add s2cloudless probability band
             if satname == 'S2':
+                if len(im_dict_s2cloudless[i]) == 0:
+                    raise Exception('could not find matching s2cloudless image, raise issue on Github at'+
+                                    'https://github.com/kvos/CoastSat/issues and provide your inputs.')
                 im_cloud = ee.Image(im_dict_s2cloudless[i]['id'])
                 cloud_prob = im_cloud.select('probability').rename('s2cloudless')
                 image_ee = image_ee.addBands(cloud_prob)

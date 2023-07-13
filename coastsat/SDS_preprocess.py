@@ -247,7 +247,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         # compute cloud mask using QA60 band
         cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
         # compute cloud mask using s2cloudless probability band
-        cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob,30)
+        cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob,60)
         # combine both cloud masks
         cloud_mask = np.logical_or(cloud_mask_QA60,cloud_mask_s2cloudless)
         
@@ -347,7 +347,7 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
 
     return cloud_mask
 
-def create_s2cloudless_mask(cloud_prob,threshold=50):
+def create_s2cloudless_mask(cloud_prob,threshold=60):
     """
     Creates a cloud mask using the s2cloudless band.
 

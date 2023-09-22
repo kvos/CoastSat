@@ -660,7 +660,7 @@ def monthly_average(dates, chainages):
             if date_seas > dates[-1] - timedelta(days=30):
                 break
             try:
-                chain_seas = np.array(df[str(year) + months[k]]['chainage'])
+                chain_seas = np.array(df[str(year)+months[k]:str(year)+months[k]]['chainage'])
             except:
                 continue
             if len(chain_seas) == 0:

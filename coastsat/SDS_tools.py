@@ -269,6 +269,67 @@ def mask_raster(fn, mask):
     # close dataset and flush cache
     raster = None
 
+def get_image_bounds(fn):
+    """
+    Returns a polygon with the bounds of the image in the .tif file
+     
+    KV WRL 2020
+
+    Arguments:
+    -----------
+    fn: str
+        path to the image (.tif file)         
+                
+    Returns:    
+    -----------
+    bounds_polygon: shapely.geometry.Polygon
+        polygon with the image bounds
+        
+    """
+    
+    # nested functions to get the extent 
+    # copied from https://gis.stackexchange.com/questions/57834/how-to-get-raster-corner-coordinates-using-python-gdal-bindings
+    def GetExtent(gt,cols,rows):
+        'Return list of corner coordinates from a geotransform'
+        ext=[]
+        xarr=[0,cols]
+        yarr=[0,rows]
+        for px in xarr:
+            for py in yarr:
+                x=gt[0]+(px*gt[1])+(py*gt[2])
+                y=gt[3]+(px*gt[4])+(py*gt[5])
+                ext.append([x,y])
+            yarr.reverse()
+        return ext
+    
+    # load .tif file and get bounds
+    if not os.path.exists(fn):
+        raise FileNotFoundError(f"{fn}")
+    data = gdal.Open(fn, gdal.GA_ReadOnly)
+    # Check if data is null meaning the open failed
+    if data is None:
+        print("TIF file: ",fn, "cannot be opened" )
+        os.remove(fn)
+        raise AttributeError
+    else:
+        gt = data.GetGeoTransform()
+        cols = data.RasterXSize
+        rows = data.RasterYSize
+        ext = GetExtent(gt,cols,rows)
+    
+    return geometry.Polygon(ext)
+
+def get_image_dimensions(image_path):
+    "function to get image dimensions with GDAL"
+    dataset = gdal.Open(image_path, gdal.GA_ReadOnly)
+    if dataset is None:
+        raise Exception("Failed to open the image file %s"%image_path)
+    width = dataset.RasterXSize
+    height = dataset.RasterYSize
+    dataset = None
+
+    return width, height
+
 ###################################################################################################
 # UTILITIES
 ###################################################################################################
@@ -551,8 +612,15 @@ def remove_inaccurate_georef(output, accuracy):
     """
 
     # find indices of shorelines to be removed
-    idx = np.where(~np.logical_or(np.array(output['geoaccuracy']) == -1,
-                                  np.array(output['geoaccuracy']) >= accuracy))[0]
+    idx = []
+    for i in range(len(output['geoaccuracy'])):
+        geoacc = output['geoaccuracy'][i]
+        if geoacc in ['PASSED','FAILED']:
+            if geoacc == 'PASSED':
+                idx.append(i)
+        else:
+            if geoacc <= accuracy:
+                idx.append(i)
     # idx = np.where(~(np.array(output['geoaccuracy']) >= accuracy))[0]
     output_filtered = dict([])
     for key in output.keys():
@@ -745,59 +813,9 @@ def transects_to_gdf(transects):
         if i == 0:
             gdf_all = gdf
         else:
-            gdf_all = gdf_all.append(gdf)
+            gdf_all = pd.concat([gdf_all, gdf])
             
     return gdf_all
-
-def get_image_bounds(fn):
-    """
-    Returns a polygon with the bounds of the image in the .tif file
-     
-    KV WRL 2020
-
-    Arguments:
-    -----------
-    fn: str
-        path to the image (.tif file)         
-                
-    Returns:    
-    -----------
-    bounds_polygon: shapely.geometry.Polygon
-        polygon with the image bounds
-        
-    """
-    
-    # nested functions to get the extent 
-    # copied from https://gis.stackexchange.com/questions/57834/how-to-get-raster-corner-coordinates-using-python-gdal-bindings
-    def GetExtent(gt,cols,rows):
-        'Return list of corner coordinates from a geotransform'
-        ext=[]
-        xarr=[0,cols]
-        yarr=[0,rows]
-        for px in xarr:
-            for py in yarr:
-                x=gt[0]+(px*gt[1])+(py*gt[2])
-                y=gt[3]+(px*gt[4])+(py*gt[5])
-                ext.append([x,y])
-            yarr.reverse()
-        return ext
-    
-    # load .tif file and get bounds
-    if not os.path.exists(fn):
-        raise FileNotFoundError(f"{fn}")
-    data = gdal.Open(fn, gdal.GA_ReadOnly)
-    # Check if data is null meaning the open failed
-    if data is None:
-        print("TIF file: ",fn, "cannot be opened" )
-        os.remove(fn)
-        raise AttributeError
-    else:
-        gt = data.GetGeoTransform()
-        cols = data.RasterXSize
-        rows = data.RasterYSize
-        ext = GetExtent(gt,cols,rows)
-    
-    return geometry.Polygon(ext)
 
 def smallest_rectangle(polygon):
     """

@@ -1,6 +1,6 @@
 """
 This module contains all the functions needed to preprocess the satellite images
- before the shorelines can be extracted. This includes creating a cloud mask and
+before the shorelines can be extracted. This includes creating a cloud mask and
 pansharpening/downsampling the multispectral bands.
 
 Author: Kilian Vos, Water Research Laboratory, University of New South Wales
@@ -211,9 +211,11 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         fn_ms = fn[0]
         data = gdal.Open(fn_ms, gdal.GA_ReadOnly)
         georef = np.array(data.GetGeoTransform())
-        bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
+        bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount-1)]
         im_ms = np.stack(bands, 2)
         im_ms = im_ms/10000 # TOA scaled to 10000
+        # read s2cloudless cloud probability (last band in ms image)
+        cloud_prob = data.GetRasterBand(data.RasterCount).ReadAsArray()
 
         # image size
         nrows = im_ms.shape[0]
@@ -242,7 +244,13 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_QA = bands[0]
-        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
+        # compute cloud mask using QA60 band
+        cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
+        # compute cloud mask using s2cloudless probability band
+        cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob,60)
+        # combine both cloud masks
+        cloud_mask = np.logical_or(cloud_mask_QA60,cloud_mask_s2cloudless)
+        
         # check if -inf or nan values on any band and create nodata image
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
@@ -336,6 +344,31 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
             cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
             # remove objects with less than min_size connected pixels
             cloud_mask = morphology.remove_small_objects(cloud_mask, min_size=100, connectivity=1)
+
+    return cloud_mask
+
+def create_s2cloudless_mask(cloud_prob,threshold=60):
+    """
+    Creates a cloud mask using the s2cloudless band.
+
+    KV WRL 2023
+
+    Arguments:
+    -----------
+    cloud_prob: np.array
+        Image containing the s2cloudless cloud probability
+        
+    Returns:
+    -----------
+    cloud_mask : np.array
+        boolean array with True if a pixel is cloudy and False otherwise
+
+    """
+    # find which pixels have bits corresponding to cloud values
+    cloud_mask = cloud_prob > threshold
+    # dilate cloud mask
+    elem = morphology.square(6) # use a square of width 6 pixels
+    cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
 
     return cloud_mask
 

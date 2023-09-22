@@ -14,3 +14,5 @@
 *.csv
 *.xml
 /deprecated
+/worked_example
+/.virtual_documents

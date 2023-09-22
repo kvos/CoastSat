@@ -192,7 +192,7 @@ settings_transects = { # parameters for computing intersections
                       'max_range':           30,        # max range for points around transect
                       'min_chainage':        -100,      # largest negative value along transect (landwards of transect origin)
                       'multiple_inter':      'auto',    # mode for removing outliers ('auto', 'nan', 'max')
-                      'prc_multiple':         0.1,      # percentage to use in 'auto' mode to switch from 'nan' to 'max'
+                      'auto_prc':            0.1,      # percentage to use in 'auto' mode to switch from 'nan' to 'max'
                      }
 cross_distance = SDS_transects.compute_intersection_QC(output, transects, settings_transects)
 
@@ -238,7 +238,7 @@ print('Time-series of the shoreline change along the transects saved as:\n%s'%fn
 # load the measured tide data
 filepath = os.path.join(os.getcwd(),'examples','NARRA_tides.csv')
 tide_data = pd.read_csv(filepath, parse_dates=['dates'])
-dates_ts = [_.to_pydatetime() for _ in tide_data['dates']]
+dates_ts = [pd.to_datetime(_).to_pydatetime() for _ in tide_data['dates']]
 tides_ts = np.array(tide_data['tide'])
 
 # get tide levels corresponding to the time of image acquisition
@@ -357,7 +357,7 @@ for key in cross_distance.keys():
 
     # plot seasonal averages
     fig,ax=plt.subplots(1,1,figsize=[14,4],tight_layout=True)
-    ax.grid(b=True,which='major', linestyle=':', color='0.5')
+    ax.grid(which='major', linestyle=':', color='0.5')
     ax.set_title('Time-series at %s'%key, x=0, ha='left')
     ax.set(ylabel='distance [m]')
     ax.plot(dates_nonan, chainage,'+', lw=1, color='k', mfc='w', ms=4, alpha=0.5,label='raw datapoints')
@@ -383,7 +383,7 @@ for key in cross_distance.keys():
 
     # plot seasonal averages
     fig,ax=plt.subplots(1,1,figsize=[14,4],tight_layout=True)
-    ax.grid(b=True,which='major', linestyle=':', color='0.5')
+    ax.grid(which='major', linestyle=':', color='0.5')
     ax.set_title('Time-series at %s'%key, x=0, ha='left')
     ax.set(ylabel='distance [m]')
     ax.plot(dates_nonan, chainage,'+', lw=1, color='k', mfc='w', ms=4, alpha=0.5,label='raw datapoints')

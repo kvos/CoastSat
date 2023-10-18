@@ -920,7 +920,8 @@ def filter_S2_collection(im_list):
     if len(np.unique(utm_zones)) == 1:
         return im_list
     else:
-        utm_zone_selected =  np.max(np.unique(utm_zones))
+        idx_max = np.argmax([np.sum(utm_zones == _) for _ in np.unique(utm_zones)])
+        utm_zone_selected =  np.unique(utm_zones)[idx_max]
         # find the images that were acquired at the same time but have different utm zones
         idx_all = np.arange(0,len(im_list),1)
         idx_covered = np.ones(len(im_list)).astype(bool)

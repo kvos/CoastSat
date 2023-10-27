@@ -674,6 +674,30 @@ def get_closest_datapoint(dates, dates_ts, values_ts):
 # GEODATAFRAMES AND READ/WRITE GEOJSON
 ###################################################################################################
     
+def polygon_from_geojson(fn):
+    """
+    Extracts coordinates from a .kml file.
+    
+    KV WRL 2023
+
+    Arguments:
+    -----------
+    fn: str
+        filepath + filename of the geojson file to be read          
+                
+    Returns:    
+    -----------
+    polygon: list
+        coordinates extracted from the .geojson file
+        
+    """    
+    
+    # read .geojson file
+    gdf = gpd.read_file(fn,driver='GeoJSON')
+    coords = np.array(gdf.iloc[0]['geometry'].exterior.coords)
+    polygon = [[[_[0], _[1]] for _ in coords]]
+    return polygon
+
 def polygon_from_kml(fn):
     """
     Extracts coordinates from a .kml file.

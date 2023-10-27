@@ -8,9 +8,14 @@ https://github.com/kvos/CoastSat/commits/)
 ![GitHub issues](https://img.shields.io/github/issues/kvos/CoastSat)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/y/kvos/CoastSat)
 
-CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 38+ years (and growing) of publicly available satellite imagery.
+CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 39 years (and growing) of publicly available satellite imagery.
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
+
+
+:star: **If you like the repo put a star on it!** :star:
+
+#### Additional resources
 
 :point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat in different regions (Pacific Rim, US Atlantic coast).
 
@@ -21,20 +26,18 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - Challenges in meso-macrotidal environments: https://doi.org/10.1016/j.geomorph.2021.107707
 - Basin-scale shoreline mapping (Paficic): https://www.nature.com/articles/s41561-022-01117-8 (The Conversation article [here](https://theconversation.com/millions-of-satellite-images-reveal-how-beaches-around-the-pacific-vanish-or-replenish-in-el-nino-and-la-nina-years-198505))
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
-- Beach-face slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
+- Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
 :point_right: Other repositories and extensions related to the toolbox:
-- [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms.
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+- [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
-- [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 - [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
+- [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
+- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 
-:star: **If you like the repo put a star on it!** :star:
-
-### Latest updates
+#### Latest toolbox updates
 
 :arrow_forward: *(2023/07/07)*
 CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
@@ -46,32 +49,31 @@ The shoreline detection algorithm implemented in CoastSat is optimised for sandy
 
 The toolbox has the following functionalities:
 1. easy retrieval of satellite imagery spanning the user-defined region of interest and time period from Google Earth Engine, including state-of-the-art pre-processing steps (re-projecting the different bands, pansharpening, advanced cloud masking).
-2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique.
+2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique and options for quality-control.
 3. intersection of the 2D shorelines with user-defined shore-normal transects.
 4. tidal correction using tide/water levels and an estimate of the beach slope.
 5. post-processing of the shoreline time-series, despiking and seasonal averaging.
-6. validation example at Narrabeen-Collaroy beach, Sydney.
 
 ### Table of Contents
 
 - [Installation](#installation)
 - [Usage](#usage)
-   - [Retrieval of the satellite images](#retrieval)
+   - [Retrieval of the satellite images in GEE](#retrieval)
    - [Shoreline detection](#detection)
-   - [Shoreline change time-series](#analysis)
+   - [Shoreline change time-series along transects](#analysis)
    - [Tidal correction](#correction)
    - [Post-processing (seasonal averages and linear trends)](#postprocessing)
-   - [Validation against survey data](#validation)
+   - [Validation against survey data at Narrabeen-Collaroy](#validation)
 - [Contributing and Issues](#issues)
-- [References](#references)
+- [References and Datasets](#references)
 
 ## 1. Installation<a name="introduction"></a>
 
 ### 1.1 Create an environment with Anaconda
 
-To run the toolbox you first need to install the required Python packages in an environment. To do this we will use **Anaconda**, which can be downloaded freely [here](https://www.anaconda.com/download/). If you are a more advanced user and have **Mamba** installed, use Mamba as it will install everything faster and without problems.
+To run the toolbox you first need to install the required Python packages in an environment. To do this we will use **Anaconda**, which can be downloaded freely [here](https://www.anaconda.com/download/). If you are a more advanced user and have **Mamba** installed, use Mamba as it will install everything faster and without problems (highly recommended if you know about python environments).
 
-Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linux, open a terminal window) and use the `cd` command (change directory) to go the folder where you have downloaded this repository.
+Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linux, open a terminal window) and use the `cd` command (change directory) to go the folder where you have downloaded this repository (e.g., `cd C:\Users\kilian\Documents\Github\CoastSat`).
 
 Create a new environment named `coastsat` with all the required packages by entering these commands in succession:
 
@@ -82,7 +84,7 @@ conda install -c conda-forge geopandas earthengine-api scikit-image matplotlib a
 pip install pyqt5
 ```
 
-All the required packages have now been installed in an environment called `coastsat`. Always make sure that the environment is activated with:
+All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:
 
 ```
 conda activate coastsat
@@ -99,13 +101,7 @@ You can also install the packages with the **Anaconda Navigator**, in the *Envir
 
 ### 1.2 Activate Google Earth Engine Python API
 
-First, you need to request access to Google Earth Engine at https://signup.earthengine.google.com/. Then install `gcloud`, go to https://cloud.google.com/sdk/docs/install and install gcloud CLI. After you have installed it, close the Anaconda Prompt and restart it.
-
-With the `coastsat` environment activated, run the following command on the Anaconda Prompt to link your environment to the GEE server:
-
-```
-earthengine authenticate --auth_mode=notebook
-```
+First, you need to request access to Google Earth Engine at https://signup.earthengine.google.com/. Then install `gcloud`, go to https://cloud.google.com/sdk/docs/install and install gcloud CLI. After you have installed gcloud CLI it will automatically launch and let you authenticate with your GEE account (or gmail). Then close the Anaconda Prompt and restart it.
 
 Now you are ready to start using the CoastSat toolbox!
 
@@ -125,17 +121,18 @@ A web browser window will open. Point to the directory where you downloaded this
 
 If you prefer to use **Spyder** or other integrated development environments (IDEs), a Python script named `example.py` is also included in the repository. If using **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
-The following sections show an example of how to use the toolbox at Narrabeen-Collaroy beach (Australia).
+The following sections show an example of how to run the full CoastSat workflow at Narrabeen-Collaroy beach (Australia).
 
 ### 2.1 Retrieval of the satellite images<a name="retrieval"></a>
 
 To retrieve from the GEE server the available satellite images cropped around the user-defined region of coastline for the particular time period of interest, the following variables are required:
-- `polygon`: the coordinates of the region of interest (longitude/latitude pairs in WGS84)
+- `polygon`: the coordinates of the region of interest (longitude/latitude pairs in WGS84), do not exceed 100 sqkm.
 - `dates`: dates over which the images will be retrieved (e.g., `dates = ['2017-12-01', '2018-01-01']`)
 - `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'L9', 'S2']` for Landsat 5, 7, 8, 9 and Sentinel-2 collections)
 - `sitename`: name of the site (this is the name of the subfolder where the images and other accompanying files will be stored)
 - `filepath`: filepath to the directory where the data will be stored
 - `landsat_collection`: whether to use Collection 1 (`C01`) or Collection 2 (`C02`). Note that after 2022/01/01, Landsat images are only available in Collection 2. Landsat 9 is therefore only available as Collection 2. So if the user has selected `C01`, images prior to 2022/01/01 will be downloaded from Collection 1, while images captured after that date will be automatically taken from `C02`.
+- (optional) `S2tile`: for Sentinel-2 only, this parameter let's you specify the tile from which you'd like to crop your ROI, this avoids having many duplicates in the Sentinel-2 collection. For example `inputs['S2tile'] = '56HLH'` is the S2 tile for Sydney, check [this website](https://eatlas.org.au/data/uuid/f7468d15-12be-4e3f-a246-b2882a324f59) to view all tiles and find the one covering your ROI.
 
 The call `metadata = SDS_download.retrieve_images(inputs)` will launch the retrieval of the images and store them as .TIF files (under */filepath/sitename*). The metadata contains the exact time of acquisition (in UTC time) of each image, its projection and its geometric accuracy. If the images have already been downloaded previously and the user only wants to run the shoreline detection, the metadata can be loaded directly by running `metadata = SDS_download.get_metadata(inputs)`.
 
@@ -161,6 +158,23 @@ An example of settings is provided here:
 
 ![image](https://user-images.githubusercontent.com/7217258/182158840-ef1c527c-6ddb-44ab-a6fc-f4b46c8b0127.png)
 
+#### Reference shoreline [HIGHLY RECOMMENDED]
+
+Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline (defined by `settings['max_dist_ref']`).
+
+ The user can manually digitize one or several reference shorelines on one of the images by calling:
+```
+settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
+settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the reference shoreline
+```
+This function allows the user to click points along the shoreline on cloud-free satellite images, as shown in the animation below.
+
+![ref_shoreline](https://user-images.githubusercontent.com/7217258/70408922-063c6e00-1a9e-11ea-8775-fc62e9855774.gif)
+
+The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
+
+#### Batch shoreline detection
+
 Once all the settings have been defined, the batch shoreline detection can be launched by calling:
 ```
 output = SDS_shoreline.extract_shorelines(metadata, settings)
@@ -183,22 +197,7 @@ The figure below shows how the satellite-derived shorelines can be opened in a G
   <img width="500" height="300" src="https://user-images.githubusercontent.com/7217258/49361401-15bd0480-f730-11e8-88a8-a127f87ca64a.jpeg">
 </p>
 
-#### 2.2.1 Reference shoreline
-
-Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline. **It is highly recommended to use a reference shoreline**.
-
- The user can manually digitize one or several reference shorelines on one of the images by calling:
-```
-settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)
-settings['max_dist_ref'] = 100 # max distance (in meters) allowed from the reference shoreline
-```
-This function allows the user to click points along the shoreline on cloud-free satellite images, as shown in the animation below.
-
-![ref_shoreline](https://user-images.githubusercontent.com/7217258/70408922-063c6e00-1a9e-11ea-8775-fc62e9855774.gif)
-
-The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
-
-#### 2.2.2 Advanced shoreline detection parameters
+#### Advanced shoreline detection parameters
 
 As mentioned above, there are some additional parameters that can be modified to optimise the shoreline detection:
 - `min_beach_area`: minimum allowable object area (in metres^2) for the class 'sand'. During the image classification, some features (for example, building roofs) may be incorrectly labelled as sand. To correct this, all the objects classified as sand containing less than a certain number of connected pixels are removed from the sand class. The default value is 4500 m^2, which corresponds to 20 connected pixels of 15 m^2. If you are looking at a very small beach (<20 connected pixels on the images), try decreasing the value of this parameter.
@@ -206,11 +205,12 @@ As mentioned above, there are some additional parameters that can be modified to
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds and appear as masked pixels on your images. If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features, as often these are beaches and not clouds. Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
 - `sand_color`: this parameter can take 3 values: `default`, `latest`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. The `latest` classifier contains all the training data and can pick up sand in most environments (but not as accurately). At this stage the different classifiers are only available for Landsat images (soon for Sentinel-2 as well).
 - `pan_off`: by default Landsat 7, 8 and 9 images are pan-sharpened using the panchromatic band and a PCA algorithm. If for any reason you prefer not to pan-sharpen the Landsat images, switch it off by setting `pan_off` to `True`.
+- `s2cloudless_thresh``: by default set to 40, this is the threshold to identify cloudy pixels in the s2cloudless probability mask. If you see that too many cloudy pixels appear on the image lower the threshold, if too many cloudy pixels are missed increase the threshold (reasonable range between 20 and 60).
 
-#### 2.2.3 Re-training the classifier
-CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can train a new classifier with site-specific training data in a few minutes by following the Jupyter notebook in [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
+#### Re-training the classifier
+CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can try the different classifiers already available by changing the `settings['sand_color']` parameter to `dark` or `bright`, but if none of those fit your data you can train a new classifier for your site. This process is described in another Jupyter notebook in this repo [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
 
-### 2.3 Shoreline change time-series<a name="analysis"></a>
+### 2.3 Shoreline change time-series along cross-shore transects<a name="analysis"></a>
 
 This section shows how to obtain time-series of shoreline change along shore-normal transects. Each transect is defined by two points, its origin and a second point that defines its length and orientation. The origin is always defined first and located landwards, the second point is located seawards. There are 3 options to define the coordinates of the transects:
 1. Interactively draw shore-normal transects along the mapped shorelines:
@@ -229,8 +229,9 @@ transects['Transect 2'] = np.array([[342482, 6268466], [342958, 6268310]])
 transects['Transect 3'] = np.array([[342185, 6267650], [342685, 6267641]])
 ```
 
-:warning: if you choose option 2 or 3, make sure that the points that you are providing are in the spatial reference system defined by `settings['output_epsg']`.
+:warning: if you choose option 2 or 3, make sure that the points that you are providing are in the spatial reference system defined by `settings['output_epsg']`, otherwise they won't match the shorelines.
 
+#### Computing the intersections (normal mode)
 Once the shore-normal transects have been defined, the intersection between the 2D shorelines and the transects is computed with the following function:
 ```
 settings['along_dist'] = 25
@@ -242,9 +243,11 @@ An example is shown in the animation below:
 
 ![transects](https://user-images.githubusercontent.com/7217258/49990925-8b985a00-ffd3-11e8-8c54-57e4bf8082dd.gif)
 
-There is also a more advanced function to compute the intersections `SDS_transects.compute_intersection_QA()`, which provides more quality-control and can deal with small loops, multiple intersections, false detections etc. It is recommended to use this function as it can provide cleaner shoreline time-series. See the [Jupyter Notebook](https://github.com/kvos/CoastSat/blob/master/example_jupyter.ipynb) for an example of how to use it. An example of parameter values fare provided below, the default parameters should work in most cases (leave as it is if unsure).
+#### Computing the intersections (quality-controlled mode)
 
-![image](https://user-images.githubusercontent.com/7217258/182160883-5edfb8f9-e668-440c-b55c-87e8697a2b64.png)
+There is also a more advanced function to compute the intersections `SDS_transects.compute_intersection_QA()`, which provides more quality-control and can deal with small loops, multiple intersections, false detections etc. It is recommended to use this function as it can provide cleaner shoreline time-series. An example of parameter values is provided below, the default parameters should work in most cases (leave as it is if unsure).
+
+<img width="800" alt="Capture" src="https://github.com/kvos/CoastSat/assets/7217258/b2cf1ff7-a4f7-4c5a-b4eb-c2bed7b06c33">
 
 - `along_dist`: (in metres),
     alongshore distance to caluclate the intersection (median of points

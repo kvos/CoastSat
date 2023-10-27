@@ -557,7 +557,7 @@ def check_images_available(inputs):
         if 'S2tile' not in inputs.keys():
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
         else :
-            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile = inputs['S2tile'])
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list

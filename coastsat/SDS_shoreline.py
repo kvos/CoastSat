@@ -75,6 +75,9 @@ def extract_shorelines(metadata, settings):
             if True, allows user to manually adjust the detected shoreline
         'pan_off': bool
             if True, no pan-sharpening is performed on Landsat 7,8 and 9 imagery
+            are erroneously being masked on the images
+        's2cloudless_prob': float [0,100)
+            threshold to identify cloud pixels in the s2cloudless probability mask
             
     Returns:
     -----------
@@ -150,7 +153,8 @@ def extract_shorelines(metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'], 
                                                                                                      settings['pan_off'],
-                                                                                                     collection)
+                                                                                                     collection,
+                                                                                                     settings['s2cloudless_prob'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]
             

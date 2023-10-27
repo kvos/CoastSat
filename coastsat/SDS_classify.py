@@ -123,7 +123,8 @@ def label_images(metadata,settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'],
                                                                                                      settings['pan_off'],
-                                                                                                     collection)
+                                                                                                     collection,
+                                                                                                     settings['s2cloudless_prob'])
 
             # compute cloud_cover percentage (with no data pixels)
             cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
@@ -574,7 +575,8 @@ def evaluate_classifier(classifier, metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'],
                                                                                                      settings['pan_off'],
-                                                                                                     collection)
+                                                                                                     collection,
+                                                                                                     settings['s2cloudless_prob'])
             image_epsg = metadata[satname]['epsg'][i]
 
             # compute cloud_cover percentage (with no data pixels)

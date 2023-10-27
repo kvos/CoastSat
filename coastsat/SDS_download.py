@@ -557,7 +557,7 @@ def check_images_available(inputs):
         if 'S2tile' not in inputs.keys():
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
         else :
-            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile = inputs['S2tile'])
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list
@@ -920,7 +920,8 @@ def filter_S2_collection(im_list):
     if len(np.unique(utm_zones)) == 1:
         return im_list
     else:
-        utm_zone_selected =  np.max(np.unique(utm_zones))
+        idx_max = np.argmax([np.sum(utm_zones == _) for _ in np.unique(utm_zones)])
+        utm_zone_selected =  np.unique(utm_zones)[idx_max]
         # find the images that were acquired at the same time but have different utm zones
         idx_all = np.arange(0,len(im_list),1)
         idx_covered = np.ones(len(im_list)).astype(bool)

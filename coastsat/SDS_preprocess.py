@@ -36,7 +36,7 @@ from coastsat import SDS_tools
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 # Main function to preprocess a satellite image (L5, L7, L8, L9 or S2)
-def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
+def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2cloudless_prob=40):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands,
     the georeferencing vector of the image (coordinates of the upper left pixel),
@@ -60,6 +60,8 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         if True, disable panchromatic sharpening and ignore pan band
     collection: str
         Landsat collection ,'C01' or 'C02'
+    s2cloudless_prob: float [0,100)
+        threshold to identify cloud pixels in the s2cloudless probability mask
         
     Returns:
     -----------
@@ -247,7 +249,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection):
         # compute cloud mask using QA60 band
         cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
         # compute cloud mask using s2cloudless probability band
-        cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob,60)
+        cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob, s2cloudless_prob)
         # combine both cloud masks
         cloud_mask = np.logical_or(cloud_mask_QA60,cloud_mask_s2cloudless)
         
@@ -347,7 +349,7 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
 
     return cloud_mask
 
-def create_s2cloudless_mask(cloud_prob,threshold=60):
+def create_s2cloudless_mask(cloud_prob, s2cloudless_prob):
     """
     Creates a cloud mask using the s2cloudless band.
 
@@ -365,7 +367,7 @@ def create_s2cloudless_mask(cloud_prob,threshold=60):
 
     """
     # find which pixels have bits corresponding to cloud values
-    cloud_mask = cloud_prob > threshold
+    cloud_mask = cloud_prob > s2cloudless_prob
     # dilate cloud mask
     elem = morphology.square(6) # use a square of width 6 pixels
     cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
@@ -523,7 +525,7 @@ def rescale_image_intensity(im, cloud_mask, prob_high):
 
     return im_adj
 
-def create_jpg(im_ms, cloud_mask, date, satname, filepath, use_matplotlib=False):
+def create_jpg(im_ms, cloud_mask, date, satname, filepath, use_matplotlib=True):
     """
     Saves a .jpg file with the RGB image as well as the NIR and SWIR1 grayscale images.
     This functions can be modified to obtain different visualisations of the
@@ -556,6 +558,7 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath, use_matplotlib=False)
     im_NIR = rescale_image_intensity(im_ms[:,:,3], cloud_mask, 99.9)
     im_SWIR = rescale_image_intensity(im_ms[:,:,4], cloud_mask, 99.9)
     
+    # creates raw jpg files that can be used for ML applications
     if not use_matplotlib:
         # convert images to bytes so they can be saved
         im_RGB = img_as_ubyte(im_RGB)
@@ -576,36 +579,38 @@ def create_jpg(im_ms, cloud_mask, date, satname, filepath, use_matplotlib=False)
                 imsave(fname, im_SWIR, quality=100)
             if ext == "NIR":
                 imsave(fname, im_NIR, quality=100)
-    # if using matplotlib
+                
+    # if use_matplotlib=True, creates a nicer plot
     else:
         fig = plt.figure()
         fig.set_size_inches([18,9])
         fig.set_tight_layout(True)
-        # ax1 = fig.add_subplot(111)
-        # ax1.axis('off')
-        # ax1.imshow(im_RGB)
-        # ax1.set_title(date + '   ' + satname, fontsize=16)
-        # choose vertical or horizontal based on image size
-        if im_RGB.shape[1] > 2*im_RGB.shape[0]:
-            ax1 = fig.add_subplot(311)
-            ax2 = fig.add_subplot(312)
-            ax3 = fig.add_subplot(313)
-        else:
-            ax1 = fig.add_subplot(131)
-            ax2 = fig.add_subplot(132)
-            ax3 = fig.add_subplot(133)
-        # RGB
+        ax1 = fig.add_subplot(111)
         ax1.axis('off')
         ax1.imshow(im_RGB)
         ax1.set_title(date + '   ' + satname, fontsize=16)
-        # NIR
-        ax2.axis('off')
-        ax2.imshow(im_NIR, cmap='seismic')
-        ax2.set_title('Near Infrared', fontsize=16)
-        # SWIR
-        ax3.axis('off')
-        ax3.imshow(im_SWIR, cmap='seismic')
-        ax3.set_title('Short-wave Infrared', fontsize=16)
+        
+        # choose vertical or horizontal based on image size
+        # if im_RGB.shape[1] > 2.5*im_RGB.shape[0]:
+        #     ax1 = fig.add_subplot(311)
+        #     ax2 = fig.add_subplot(312)
+        #     ax3 = fig.add_subplot(313)
+        # else:
+        #     ax1 = fig.add_subplot(131)
+        #     ax2 = fig.add_subplot(132)
+        #     ax3 = fig.add_subplot(133)
+        # # RGB
+        # ax1.axis('off')
+        # ax1.imshow(im_RGB)
+        # ax1.set_title(date + '   ' + satname, fontsize=16)
+        # # NIR
+        # ax2.axis('off')
+        # ax2.imshow(im_NIR, cmap='seismic')
+        # ax2.set_title('Near Infrared', fontsize=16)
+        # # SWIR
+        # ax3.axis('off')
+        # ax3.imshow(im_SWIR, cmap='seismic')
+        # ax3.set_title('Short-wave Infrared', fontsize=16)
     
         # save figure
         fig.savefig(os.path.join(filepath, date + '_' + satname + '.jpg'), dpi=150)
@@ -629,6 +634,8 @@ def save_jpg(metadata, settings, use_matplotlib=False):
         'cloud_mask_issue': boolean
             True if there is an issue with the cloud mask and sand pixels
             are erroneously being masked on the images
+        's2cloudless_prob': float [0,100)
+            threshold to identify cloud pixels in the s2cloudless probability mask
         'use_matplotlib': boolean
             False to save a .jpg and True to save as matplotlib plots
 
@@ -640,9 +647,10 @@ def save_jpg(metadata, settings, use_matplotlib=False):
 
     sitename = settings['inputs']['sitename']
     cloud_thresh = settings['cloud_thresh']
+    s2cloudless_prob = settings['s2cloudless_prob']
     filepath_data = settings['inputs']['filepath']
     collection = settings['inputs']['landsat_collection']
-
+    
     # create subfolder to store the jpg files
     filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'preprocessed')
     if not os.path.exists(filepath_jpg):
@@ -662,7 +670,8 @@ def save_jpg(metadata, settings, use_matplotlib=False):
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'],
-                                                                                      settings['pan_off'], collection)
+                                                                                      settings['pan_off'], collection, 
+                                                                                      s2cloudless_prob)
 
             # compute cloud_cover percentage (with no data pixels)
             cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
@@ -757,7 +766,8 @@ def get_reference_sl(metadata, settings):
         # read image
         fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
         im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'],
-                                                                                  settings['pan_off'], collection)
+                                                                                  settings['pan_off'], collection,
+                                                                                  settings['s2cloudless_prob'])
 
         # compute cloud_cover percentage (with no data pixels)
         cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),

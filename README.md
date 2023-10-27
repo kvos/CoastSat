@@ -81,7 +81,7 @@ Create a new environment named `coastsat` with all the required packages by ente
 conda create -n coastsat
 conda activate coastsat
 conda install -c conda-forge geopandas earthengine-api scikit-image matplotlib astropy notebook -y
-pip install pyqt5
+pip install pyqt5, imageio-ffmpeg
 ```
 
 All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:
@@ -158,6 +158,13 @@ An example of settings is provided here:
 
 ![image](https://user-images.githubusercontent.com/7217258/182158840-ef1c527c-6ddb-44ab-a6fc-f4b46c8b0127.png)
 
+#### Timelapse animation in MP4
+
+Once the images have been downloaded you can visualise them and create an MP4 animation using `SDS_preprocess.save_jpg(metadata, settings)` and `SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)` as shown in the Jupyter Notebook.
+
+![image](https://github.com/kvos/CoastSat/assets/7217258/5e45fa2d-221f-4c00-8ee9-e235e90a2ab8)
+
+
 #### Reference shoreline [HIGHLY RECOMMENDED]
 
 Before running the batch shoreline detection, there is the option to manually digitize a reference shoreline on one cloud-free image. This reference shoreline helps to reject outliers and false detections when mapping shorelines as it only considers as valid shorelines the points that are within a defined distance from this reference shoreline (defined by `settings['max_dist_ref']`).
@@ -205,10 +212,10 @@ As mentioned above, there are some additional parameters that can be modified to
 - `cloud_mask_issue`: the cloud mask algorithm applied to Landsat images by USGS, namely CFMASK, does have difficulties sometimes with very bright features such as beaches or white-water in the ocean. This may result in pixels corresponding to a beach being identified as clouds and appear as masked pixels on your images. If this issue seems to be present in a large proportion of images from your local beach, you can switch this parameter to `True` and CoastSat will remove from the cloud mask the pixels that form very thin linear features, as often these are beaches and not clouds. Only activate this parameter if you observe this very specific cloud mask issue, otherwise leave to the default value of `False`.
 - `sand_color`: this parameter can take 3 values: `default`, `latest`, `dark` or `bright`. Only change this parameter if you are seing that with the `default` the sand pixels are not being classified as sand (in orange). If your beach has dark sand (grey/black sand beaches), you can set this parameter to `dark` and the classifier will be able to pick up the dark sand. On the other hand, if your beach has white sand and the `default` classifier is not picking it up, switch this parameter to `bright`. The `latest` classifier contains all the training data and can pick up sand in most environments (but not as accurately). At this stage the different classifiers are only available for Landsat images (soon for Sentinel-2 as well).
 - `pan_off`: by default Landsat 7, 8 and 9 images are pan-sharpened using the panchromatic band and a PCA algorithm. If for any reason you prefer not to pan-sharpen the Landsat images, switch it off by setting `pan_off` to `True`.
-- `s2cloudless_thresh``: by default set to 40, this is the threshold to identify cloudy pixels in the s2cloudless probability mask. If you see that too many cloudy pixels appear on the image lower the threshold, if too many cloudy pixels are missed increase the threshold (reasonable range between 20 and 60).
+- `s2cloudless_prob`: by default set to 60, this is the threshold to identify cloudy pixels in the s2cloudless probability mask. If you see that too many cloudy pixels appear on the image increase the threshold, if too many cloudy pixels are missed lower the threshold (reasonable range between 20 and 80).
 
 #### Re-training the classifier
-CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can try the different classifiers already available by changing the `settings['sand_color']` parameter to `dark` or `bright`, but if none of those fit your data you can train a new classifier for your site. This process is described in another Jupyter notebook in this repo [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md).
+CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can try the different classifiers already available in the `/classification` folder by changing the `settings['sand_color']` parameter to `dark` or `bright`, but if none of those fit your data you can train a new classifier for your site. This process is described in another Jupyter notebook called [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md) and located in the /classification folder.
 
 ### 2.3 Shoreline change time-series along cross-shore transects<a name="analysis"></a>
 

@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from scipy import stats, interpolate
 import pyproj
 import pandas as pd
+import imageio
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -866,6 +867,22 @@ def smallest_rectangle(polygon):
     coords_polygon = np.array(polygon_geom.exterior.coords)
     polygon_rect = [[[_[0], _[1]] for _ in coords_polygon]]
     return polygon_rect
+
+###################################################################################################
+# MAKE ANIMATIONS
+###################################################################################################
+
+def make_animation_mp4(filepath_images, fps, fn_out):
+    with imageio.get_writer(fn_out, mode='I', fps=fps) as writer:
+        filenames = os.listdir(filepath_images)
+        for i in range(len(filenames)):
+            image = imageio.imread(os.path.join(filepath_images,filenames[i]))
+            writer.append_data(image)
+    print('Animation has been generated (using %d frames per second) and saved at %s'%(fps,fn_out))
+    
+###################################################################################################
+# VALIDATION
+###################################################################################################
 
 def compare_timeseries(ts,gt,key,settings):
     if key not in gt.keys():

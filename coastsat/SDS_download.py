@@ -28,6 +28,7 @@ import pytz
 import pickle
 from skimage import morphology, transform
 from scipy import ndimage
+import time
 
 # CoastSat modules
 from coastsat import SDS_preprocess, SDS_tools, gdal_merge
@@ -91,10 +92,8 @@ def retrieve_images(inputs):
             if key == 'S2': continue
             else: im_dict_T1[key] += im_dict_T2[key]
 
-    # remove UTM duplicates in S2 collections (they provide several projections for same images)
+    # for S2 get s2cloudless collection for advanced cloud masking
     if 'S2' in inputs['sat_list'] and len(im_dict_T1['S2'])>0:
-        im_dict_T1['S2'] = filter_S2_collection(im_dict_T1['S2'])
-        # get s2cloudless collection
         im_dict_s2cloudless = get_s2cloudless(im_dict_T1['S2'], inputs)
 
     # create a new directory for this site with the name of the site
@@ -120,14 +119,30 @@ def retrieve_images(inputs):
     # main loop to download the images for each satellite mission
     print('\nDownloading images:')
     suffix = '.tif'
+    
+    # check if images already exist in the data folders
+    metadata_existing = get_metadata(inputs)
+    
     for satname in im_dict_T1.keys():
+          
+        # remove from download list the images that are already existing
+        if satname in metadata_existing:
+            if len(metadata_existing[satname]['dates']) > 0:
+                last_date = metadata_existing[satname]['dates'][-1]
+                date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
+                idx_new = np.where([_ > last_date for _ in date_list])[0]
+                # only keep images corresponding to dates that are not already existing
+                im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
         
+        # print how many images will be downloaded for the users
         print('%s: %d images'%(satname,len(im_dict_T1[satname])))
-        
+
         # create subfolder structure to store the different bands
         filepaths = SDS_tools.create_folder_structure(im_folder, satname)
         
+        # select bands for satellite sensor
         bands_id = bands_dict[satname]
+        
         all_names = [] # list for detecting duplicates
         # loop through each image
         for i in range(len(im_dict_T1[satname])):
@@ -224,6 +239,7 @@ def retrieve_images(inputs):
                         break
                     except:
                         print('\nDownload failed, trying again...')
+                        time.sleep(60)
                         count += 1
                         if count > 100:
                             raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
@@ -290,6 +306,7 @@ def retrieve_images(inputs):
                         break
                     except:
                         print('\nDownload failed, trying again...')
+                        time.sleep(60)
                         count += 1
                         if count > 100:
                             raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
@@ -360,6 +377,7 @@ def retrieve_images(inputs):
                         break
                     except:
                         print('\nDownload failed, trying again...')
+                        time.sleep(60)
                         count += 1
                         if count > 100:
                             raise Exception('Too many attempts, crashed while downloading image %s'%im_meta['id'])
@@ -556,7 +574,10 @@ def check_images_available(inputs):
     for satname in inputs['sat_list']:
         if 'S2tile' not in inputs.keys():
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
-        else :
+            # for S2, filter collection to only keep images with same UTM Zone projection (there can be a lot of duplicates)
+            if satname == 'S2': 
+                im_list = filter_S2_collection(im_list)
+        else : # if user specifies the S2 tile
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
@@ -947,7 +968,7 @@ def filter_S2_collection(im_list):
         # update the collection by deleting all those images that have same timestamp
         # and different utm projection
         im_list_flt = [x for k,x in enumerate(im_list) if k not in idx_delete]
-
+        # print('%d S2 duplicates removed'%(len(idx_delete)))
     return im_list_flt
 
 def get_s2cloudless(im_list, inputs):
@@ -972,6 +993,8 @@ def get_s2cloudless(im_list, inputs):
             im_list_cloud_matched.append([])
     return im_list_cloud_matched
 
+
+## WORK IN PROGRESS FUNCTION
 def merge_overlapping_images(metadata,inputs):
     """
     Merge simultaneous overlapping images that cover the area of interest.

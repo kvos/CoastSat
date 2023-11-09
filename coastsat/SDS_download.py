@@ -568,7 +568,7 @@ def check_images_available(inputs):
                     'L7':'LANDSAT/LE07/%s/T1_TOA'%inputs['landsat_collection'],
                     'L8':'LANDSAT/LC08/%s/T1_TOA'%inputs['landsat_collection'],
                     'L9':'LANDSAT/LC09/C02/T1_TOA', # only C02 for Landsat 9
-                    'S2':'COPERNICUS/S2'}
+                    'S2':'COPERNICUS/S2_HARMONIZED'}
     im_dict_T1 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:

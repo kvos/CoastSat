@@ -39,6 +39,9 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 #### Latest toolbox updates
 
+:arrow_forward: *(2023/11/09)*
+CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
+
 :arrow_forward: *(2023/07/07)*
 CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
 

@@ -592,7 +592,7 @@ def check_images_available(inputs):
         # remove from download list the images that are already existing
         if satname in metadata_existing:
             if len(metadata_existing[satname]['dates']) > 0:
-                last_date = metadata_existing[satname]['dates'][-1]
+                last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
                 date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
                 idx_new = np.where([_ > last_date for _ in date_list])[0]
                 # only keep images corresponding to dates that are not already existing

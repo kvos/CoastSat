@@ -586,18 +586,19 @@ def check_images_available(inputs):
     print('  Total to download: %d images'%sum_img)
 
     # check if images already exist  
-    print('\nLooking for existing imagery...')
-    metadata_existing = get_metadata(inputs)
-    for satname in inputs['sat_list']:
-        # remove from download list the images that are already existing
-        if satname in metadata_existing:
-            if len(metadata_existing[satname]['dates']) > 0:
-                last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
-                date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
-                idx_new = np.where([_ > last_date for _ in date_list])[0]
-                # only keep images corresponding to dates that are not already existing
-                im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
-                print('%s: %d images already exist, %s to download'%(satname, len(date_list)-len(idx_new), len(idx_new)))
+    # print('\nLooking for existing imagery...')
+    if os.path.exists(os.path.join(inputs['filepath'], inputs['sitename'])):
+        metadata_existing = get_metadata(inputs)
+        for satname in inputs['sat_list']:
+            # remove from download list the images that are already existing
+            if satname in metadata_existing:
+                if len(metadata_existing[satname]['dates']) > 0:
+                    last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
+                    date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
+                    idx_new = np.where([_ > last_date for _ in date_list])[0]
+                    # only keep images corresponding to dates that are not already existing
+                    im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
+                    print('%s: %d images already exist, %s to download'%(satname, len(date_list)-len(idx_new), len(idx_new)))
 
     # if only S2 is in sat_list, stop here as no Tier 2 for Sentinel
     if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':

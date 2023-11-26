@@ -89,7 +89,7 @@ def retrieve_images(inputs):
     # if user also wants to download T2 images, merge both lists
     if 'include_T2' in inputs.keys():
         for key in inputs['sat_list']:
-            if key == 'S2': continue
+            if key in ['S2','L9']: continue
             else: im_dict_T1[key] += im_dict_T2[key]
 
     # for S2 get s2cloudless collection for advanced cloud masking

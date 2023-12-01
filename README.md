@@ -84,7 +84,7 @@ Create a new environment named `coastsat` with all the required packages by ente
 conda create -n coastsat
 conda activate coastsat
 conda install -c conda-forge geopandas -y
-conda install -c earthengine-api scikit-image matplotlib astropy notebook -y
+conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
 pip install pyqt5 imageio-ffmpeg
 ```
 

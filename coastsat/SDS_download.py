@@ -205,9 +205,9 @@ def retrieve_images(inputs):
             # first delete dimensions key from dictionnary
             # otherwise the entire image is extracted (don't know why)
             im_bands = image_ee.getInfo()['bands']
-            # remove some additional masks provided with S2
-            im_bands = [_ for _ in im_bands if 'MSK_CLASSI' not in _['id']]
-            for j in range(len(im_bands)): del im_bands[j]['dimensions']
+            for j in range(len(im_bands)):
+                if 'dimensions' in im_bands[j].keys():
+                    del im_bands[j]['dimensions']
             
             #=============================================================================================#
             # Landsat 5 download

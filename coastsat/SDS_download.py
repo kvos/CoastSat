@@ -561,17 +561,13 @@ def check_images_available(inputs):
     im_dict_T1 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:
-        if not satname == 'S2':
+        if 'S2tile' not in inputs.keys():
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
-        else:
-            # if user specifies the S2 tile
-            if 'S2tile' in inputs.keys():
-                im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
-            else:
-                im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
-                # for S2, filter collection to only keep images with same UTM Zone projection (there can be a lot of duplicates)
-                if satname == 'S2': 
-                    im_list = filter_S2_collection(im_list)       
+            # for S2, filter collection to only keep images with same UTM Zone projection (there can be a lot of duplicates)
+            if satname == 'S2': 
+                im_list = filter_S2_collection(im_list)
+        else : # if user specifies the S2 tile
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list

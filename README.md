@@ -13,11 +13,9 @@ CoastSat is an open-source software toolkit written in Python that enables users
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
 
-:star: **If you like the repo put a star on it!** :star:
-
 #### Additional resources
 
-:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat in different regions (Pacific Rim, US Atlantic coast).
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing datasets of satellite-derived shorelines and beach slopes generated with CoastSat in the Pacific and Atlantic basins.
 
 :point_right: Useful publications describing the toolbox:
 
@@ -29,14 +27,14 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
 :point_right: Other repositories and extensions related to the toolbox:
-- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
+- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
 - [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
-- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
-
+- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+ 
 #### Latest toolbox updates
 
 :arrow_forward: *(2023/11/09)*

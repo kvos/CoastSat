@@ -39,6 +39,9 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 #### Latest toolbox updates
 
+:arrow_forward: *(2023/11/09)*
+CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
+
 :arrow_forward: *(2023/07/07)*
 CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
 
@@ -80,8 +83,9 @@ Create a new environment named `coastsat` with all the required packages by ente
 ```
 conda create -n coastsat
 conda activate coastsat
-conda install -c conda-forge geopandas earthengine-api scikit-image matplotlib astropy notebook -y
-pip install pyqt5, imageio-ffmpeg
+conda install -c conda-forge geopandas -y
+conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
+pip install pyqt5 imageio-ffmpeg
 ```
 
 All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:

@@ -259,6 +259,9 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
             im_inf = np.isin(im_ms[:,:,k], -np.inf)
             im_nan = np.isnan(im_ms[:,:,k])
             im_nodata = np.logical_or(np.logical_or(im_nodata, im_inf), im_nan)
+        # add the edges of the SWIR1 band that contains only 0's to the nodata image
+        # these are created when reprojecting the SWIR1 20 m band onto the 10m pixel grid
+        im_nodata = pad_edges(im_swir, im_nodata)        
         # check if there are pixels with 0 intensity in the Green, NIR and SWIR bands and add those
         # to the cloud mask as otherwise they will cause errors when calculating the NDWI and MNDWI
         im_zeros = np.ones(im_nodata.shape).astype(bool)
@@ -282,6 +285,64 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
 ###################################################################################################
 # AUXILIARY FUNCTIONS
 ###################################################################################################
+
+
+def find_edge_padding(im_band: np.ndarray) -> np.ndarray:
+    """
+    Finds the padding required for each edge of an image band based on the presence of data.
+
+    Parameters:
+    im_band (numpy.ndarray): The image band.
+
+    Returns:
+    tuple: A tuple containing the top, bottom, left, and right padding values.
+    """
+    # Assuming non-data values are zeros. Adjust the condition if needed.
+    is_data = im_band != 0
+
+    # Function to find padding for one edge
+    def find_edge_data(is_data_along_edge):
+        for idx, has_data in enumerate(is_data_along_edge):
+            if has_data:
+                return idx
+        return len(is_data_along_edge)  # Return full length if no data found
+
+    # Calculate padding for each side
+    top_padding = find_edge_data(np.any(is_data, axis=1))
+    bottom_padding = find_edge_data(np.any(is_data, axis=1)[::-1])
+    left_padding = find_edge_data(np.any(is_data, axis=0))
+    right_padding = find_edge_data(np.any(is_data, axis=0)[::-1])
+
+    return top_padding, bottom_padding, left_padding, right_padding
+
+
+def pad_edges(im_swir: np.ndarray, im_nodata: np.ndarray) -> np.ndarray:
+    """
+    Adds 0's located along the edges of im_swir to the nodata array.
+
+    Fixes the issue where 0s are created along the edges of the SWIR1 band caused by reprojecting the 20 m band onto the 10m pixel grid (with bilinear interpolation in GDAL)
+
+    Args:
+        im_swir (np.ndarray): The SWIR image.
+        im_nodata (np.ndarray): The nodata array.
+
+    Returns:
+        np.ndarray: The nodata array with padded edges.
+    """
+    top_pad, bottom_pad, left_pad, right_pad = find_edge_padding(im_swir)
+    # Apply this padding to your masks or other arrays as needed
+
+    # if bottom pad is 0 the entire image gets set to True
+    if bottom_pad > 0:
+        im_nodata[-bottom_pad:, :] = True
+    # if right pad is 0 the entire image gets set to True
+    if right_pad > 0:
+        im_nodata[:, -right_pad:] = True
+
+    im_nodata[:, :left_pad] = True
+    im_nodata[:top_pad, :] = True
+    return im_nodata
+
 
 def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
     """

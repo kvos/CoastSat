@@ -89,7 +89,7 @@ def retrieve_images(inputs):
     # if user also wants to download T2 images, merge both lists
     if 'include_T2' in inputs.keys():
         for key in inputs['sat_list']:
-            if key == 'S2': continue
+            if key in ['S2','L9']: continue
             else: im_dict_T1[key] += im_dict_T2[key]
 
     # for S2 get s2cloudless collection for advanced cloud masking
@@ -119,21 +119,8 @@ def retrieve_images(inputs):
     # main loop to download the images for each satellite mission
     print('\nDownloading images:')
     suffix = '.tif'
-    
-    # check if images already exist in the data folders
-    metadata_existing = get_metadata(inputs)
-    
     for satname in im_dict_T1.keys():
-          
-        # remove from download list the images that are already existing
-        if satname in metadata_existing:
-            if len(metadata_existing[satname]['dates']) > 0:
-                last_date = metadata_existing[satname]['dates'][-1]
-                date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
-                idx_new = np.where([_ > last_date for _ in date_list])[0]
-                # only keep images corresponding to dates that are not already existing
-                im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
-        
+
         # print how many images will be downloaded for the users
         print('%s: %d images'%(satname,len(im_dict_T1[satname])))
 
@@ -218,7 +205,9 @@ def retrieve_images(inputs):
             # first delete dimensions key from dictionnary
             # otherwise the entire image is extracted (don't know why)
             im_bands = image_ee.getInfo()['bands']
-            for j in range(len(im_bands)): del im_bands[j]['dimensions']
+            for j in range(len(im_bands)):
+                if 'dimensions' in im_bands[j].keys():
+                    del im_bands[j]['dimensions']
             
             #=============================================================================================#
             # Landsat 5 download
@@ -598,6 +587,23 @@ def check_images_available(inputs):
         
     print('  Total to download: %d images'%sum_img)
 
+    # check if images already exist  
+    # print('\nLooking for existing imagery...')
+    filepath = os.path.join(inputs['filepath'],inputs['sitename'])
+    if os.path.exists(filepath):
+        metadata_existing = get_metadata(inputs)
+        for satname in inputs['sat_list']:
+            # remove from download list the images that are already existing
+            if satname in metadata_existing:
+                if len(metadata_existing[satname]['dates']) > 0:
+                    first_date = metadata_existing[satname]['dates'][0] - timedelta(days=1)
+                    last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
+                    date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
+                    idx_new = np.where([np.logical_or(_< first_date, _ > last_date) for _ in date_list])[0]
+                    # only keep images corresponding to dates that are not already existing
+                    im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
+                    print('%s: %d images already exist, %s to download'%(satname, len(date_list)-len(idx_new), len(idx_new)))
+
     # if only S2 is in sat_list, stop here as no Tier 2 for Sentinel
     if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':
         return im_dict_T1, []
@@ -630,7 +636,7 @@ def check_images_available(inputs):
             im_dict_T2[satname] += im_list         
 
     print('  Total Tier 2: %d images'%sum_img)
-
+    
     return im_dict_T1, im_dict_T2
 
 def get_image_info(collection,satname,polygon,dates,**kwargs):

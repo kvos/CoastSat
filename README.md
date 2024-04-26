@@ -12,6 +12,16 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
+#### Latest toolbox updates
+
+:arrow_forward: *(2024/04/26)*
+CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
+
+:arrow_forward: *(2023/11/09)*
+CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
+
+:arrow_forward: *(2023/07/07)*
+CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
 
 #### Additional resources
 
@@ -35,14 +45,6 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
  
-#### Latest toolbox updates
-
-:arrow_forward: *(2023/11/09)*
-CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
-
-:arrow_forward: *(2023/07/07)*
-CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
-
 ### Project description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.

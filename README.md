@@ -12,6 +12,8 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
+*Finding CoastSat useful? Show your support with a Github star — it’s a simple click that helps others discover it* ⭐️
+
 #### Latest toolbox updates
 
 :arrow_forward: *(2024/04/26)*

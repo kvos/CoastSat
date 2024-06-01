@@ -263,7 +263,7 @@ tides_sat = SDS_tools.get_closest_datapoint(dates_sat, dates_ts, tides_ts)
 # plot the subsampled tide data
 fig, ax = plt.subplots(1,1,figsize=(15,4), tight_layout=True)
 ax.grid(which='major', linestyle=':', color='0.5')
-ax.plot(tide_data['dates'], tide_data['tide'], '-', color='0.6', label='all time-series')
+ax.plot(dates_ts, tides_ts, '-', color='0.6', label='all time-series')
 ax.plot(dates_sat, tides_sat, '-o', color='k', ms=6, mfc='w',lw=1, label='image acquisition')
 ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Water levels at the time of image acquisition')
 ax.legend()

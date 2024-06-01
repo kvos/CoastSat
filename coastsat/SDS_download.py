@@ -205,7 +205,9 @@ def retrieve_images(inputs):
             # first delete dimensions key from dictionnary
             # otherwise the entire image is extracted (don't know why)
             im_bands = image_ee.getInfo()['bands']
-            for j in range(len(im_bands)): del im_bands[j]['dimensions']
+            for j in range(len(im_bands)):
+                if 'dimensions' in im_bands[j].keys():
+                    del im_bands[j]['dimensions']
             
             #=============================================================================================#
             # Landsat 5 download
@@ -594,13 +596,22 @@ def check_images_available(inputs):
             # remove from download list the images that are already existing
             if satname in metadata_existing:
                 if len(metadata_existing[satname]['dates']) > 0:
-                    first_date = metadata_existing[satname]['dates'][0] - timedelta(days=1)
-                    last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
-                    date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
-                    idx_new = np.where([np.logical_or(_< first_date, _ > last_date) for _ in date_list])[0]
-                    # only keep images corresponding to dates that are not already existing
-                    im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
-                    print('%s: %d images already exist, %s to download'%(satname, len(date_list)-len(idx_new), len(idx_new)))
+                    # get all the possible availabe dates for the imagery requested
+                    avail_date_list = [datetime.fromtimestamp(image['properties']['system:time_start'] / 1000, tz=pytz.utc).replace( microsecond=0) for image in im_dict_T1[satname]]
+                    # if no images are available, skip this loop
+                    if len(avail_date_list) == 0:
+                        print(f'{satname}:There are {len(avail_date_list)} images available, {len(metadata_existing[satname]["dates"])} images already exist, {len(avail_date_list)} to download')
+                        continue
+                    # get the dates of the images that are already downloaded
+                    downloaded_dates = metadata_existing[satname]['dates']
+                    # if no images are already downloaded, skip this loop and use whats already in im_dict_T1[satname]
+                    if len(downloaded_dates) == 0:
+                        print(f'{satname}:There are {len(avail_date_list)} images available, {len(downloaded_dates)} images already exist, {len(avail_date_list)} to download')
+                        continue
+                    # get the indices of the images that are not already downloaded 
+                    idx_new = np.where([ not avail_date in downloaded_dates for avail_date in avail_date_list])[0]
+                    im_dict_T1[satname] = [im_dict_T1[satname][index] for index in idx_new]
+                    print('%s: %d images already exist, %s to download'%(satname, len(avail_date_list), len(idx_new)))
 
     # if only S2 is in sat_list, stop here as no Tier 2 for Sentinel
     if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':

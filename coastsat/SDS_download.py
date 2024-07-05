@@ -145,7 +145,7 @@ def retrieve_images(inputs):
             # get epsg code
             im_epsg = int(im_meta['bands'][0]['crs'][5:])
 
-            # get quality flags (geometric and radiometric quality)
+            # get geometric accuracy, radiometric quality and tilename for Landsat
             if satname in ['L5','L7','L8','L9']:
                 if 'GEOMETRIC_RMSE_MODEL' in im_meta['properties'].keys():
                     acc_georef = im_meta['properties']['GEOMETRIC_RMSE_MODEL']
@@ -156,6 +156,10 @@ def retrieve_images(inputs):
                     rad_quality = im_meta['properties']['IMAGE_QUALITY']
                 elif satname in ['L8','L9']:
                     rad_quality = im_meta['properties']['IMAGE_QUALITY_OLI']
+                # add tilename (path/row)
+                tilename = '%03d%03d'%(im_meta['properties']['WRS_PATH'],im_meta['properties']['WRS_ROW'])
+                
+            # get geometric accuracy, radiometric quality and tilename for S2
             elif satname in ['S2']:
                 # Sentinel-2 products don't provide a georeferencing accuracy (RMSE as in Landsat)
                 # but they have a flag indicating if the geometric quality control was PASSED or FAILED
@@ -186,15 +190,17 @@ def retrieve_images(inputs):
                           ' raise an issue at https://github.com/kvos/CoastSat/issues'+
                           ' and add you inputs in text (not a screenshot pls).')
                     rad_quality = 'PASSED'
-            
+                # add tilename (MGRS name)
+                tilename = im_meta['properties']['MGRS_TILE']
+                
             # select image by id
             image_ee = ee.Image(im_meta['id'])
             
             # for S2 add s2cloudless probability band
             if satname == 'S2':
                 if len(im_dict_s2cloudless[i]) == 0:
-                    raise Exception('could not find matching s2cloudless image, raise issue on Github at'+
-                                    'https://github.com/kvos/CoastSat/issues and provide your inputs.')
+                    print('Warning: S2cloudless mask for image %s is not available yet, try again tomorrow.'%im_date)
+                    continue
                 im_cloud = ee.Image(im_dict_s2cloudless[i]['id'])
                 cloud_prob = im_cloud.select('probability').rename('s2cloudless')
                 image_ee = image_ee.addBands(cloud_prob)
@@ -237,7 +243,7 @@ def retrieve_images(inputs):
                         
                 # create filename for image
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -304,7 +310,7 @@ def retrieve_images(inputs):
                 
                 # create filename for both images (ms and pan)
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -375,8 +381,7 @@ def retrieve_images(inputs):
                 
                 # create filename for the three images (ms, swir and mask)
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' \
-                        + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -410,7 +415,7 @@ def retrieve_images(inputs):
             width, height = SDS_tools.get_image_dimensions(image_path)
             # write metadata in a text file for easy access
             filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
-            metadict = {'filename':filename_ms,'epsg':im_epsg,
+            metadict = {'filename':filename_ms,'tile':tilename,'epsg':im_epsg,
                         'acc_georef':acc_georef,'image_quality':rad_quality,
                         'im_width':width,'im_height':height}
             with open(os.path.join(filepaths[0],filename_txt + '.txt'), 'w') as f:
@@ -471,7 +476,7 @@ def get_metadata(inputs):
         # if a folder has been created for the given satellite mission
         if satname in os.listdir(filepath):
             # update the metadata dict
-            metadata[satname] = {'filenames':[],'dates':[],'epsg':[],'acc_georef':[],
+            metadata[satname] = {'filenames':[],'dates':[],'tilename':[],'epsg':[],'acc_georef':[],
                                  'im_quality':[],'im_dimensions':[]}
             # directory where the metadata .txt files are stored
             filepath_meta = os.path.join(filepath, satname, 'meta')
@@ -483,6 +488,7 @@ def get_metadata(inputs):
                 # read them and extract the metadata info
                 with open(os.path.join(filepath_meta, im_meta), 'r') as f:
                     filename = f.readline().split('\t')[1].replace('\n','')
+                    tilename = f.readline().split('\t')[1].replace('\n','')
                     epsg = int(f.readline().split('\t')[1].replace('\n',''))
                     acc_georef = f.readline().split('\t')[1].replace('\n','')
                     im_quality = f.readline().split('\t')[1].replace('\n','')
@@ -500,6 +506,7 @@ def get_metadata(inputs):
                 # store the information in the metadata dict
                 metadata[satname]['filenames'].append(filename)
                 metadata[satname]['dates'].append(date)
+                metadata[satname]['tilename'].append(tilename)
                 metadata[satname]['epsg'].append(epsg)
                 metadata[satname]['acc_georef'].append(acc_georef)
                 metadata[satname]['im_quality'].append(im_quality)

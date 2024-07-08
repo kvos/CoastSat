@@ -823,8 +823,10 @@ def get_reference_sl(metadata, settings):
     # create figure
     fig, ax = plt.subplots(1,1, figsize=[18,9], tight_layout=True)
     mng = plt.get_current_fig_manager()
-    mng.window.showMaximized()
-    # loop trhough the images
+    #AttributeError: '_tkinter.tkapp' object has no attribute 'showMaximized'
+    #mng.window.showMaximized()
+    # Maximize the window using tkinter method
+    mng.window.wm_attributes('-zoomed', True)    # loop through the images
     for i in range(len(filenames)):
 
         # read image
@@ -1011,3 +1013,4 @@ def get_reference_sl(metadata, settings):
                         'download more images and try again')
     
     return pts_coords
+

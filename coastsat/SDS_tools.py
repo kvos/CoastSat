@@ -653,23 +653,34 @@ def get_closest_datapoint(dates, dates_ts, values_ts):
         values corresponding to the input dates
         
     """
-    
-    # check if the time-series cover the dates
+
+    # Check if the time-series cover the dates
     if dates[0] < dates_ts[0] or dates[-1] > dates_ts[-1]: 
         raise Exception('Time-series do not cover the range of your input dates')
-    
-    # get closest point to each date (no interpolation)
+
+    # Get closest point to each date (no interpolation)
     temp = []
+
     def find(item, lst):
         start = 0
+        # Start the search from the position of the item
         start = lst.index(item, start)
         return start
-    for i,date in enumerate(dates):
+
+    for i, date in enumerate(dates):
         print('\rExtracting closest points: %d%%' % int((i+1)*100/len(dates)), end='')
-        temp.append(values_ts[find(min(item for item in dates_ts if item > date), dates_ts)])
+        # Find the minimum item in dates_ts that is greater than the current date
+        try:
+            closest_date = min(item for item in dates_ts if item >= date)
+            index = find(closest_date, dates_ts)
+            temp.append(values_ts[index])
+        except ValueError:
+            # This error occurs if the list comprehension returns an empty list, meaning no date in dates_ts is >= date
+            raise ValueError(f"No date in time series is greater than or equal to {date}")
+
     values = np.array(temp)
-    
     return values
+
 
 ###################################################################################################
 # GEODATAFRAMES AND READ/WRITE GEOJSON

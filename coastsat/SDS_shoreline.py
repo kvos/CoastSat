@@ -89,7 +89,15 @@ def extract_shorelines(metadata, settings):
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
     collection = settings['inputs']['landsat_collection']
-    filepath_models = os.path.join(os.getcwd(), 'classification', 'models')
+    # Get the current directory of the script
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+
+    # Navigate to the 'models' directory
+    filepath_models = os.path.abspath(os.path.join(current_dir, '..', 'classification', 'models'))
+
+    # Verify the path to ensure it is correct
+    print(f"The model file path is: {filepath_models}")
+
     # initialise output structure
     output = dict([])
     # create a subfolder to store the .jpg images showing the detection
@@ -805,8 +813,10 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
         fig = plt.figure()
         fig.set_size_inches([18, 9])
         mng = plt.get_current_fig_manager()
-        mng.window.showMaximized()
-
+        #AttributeError: '_tkinter.tkapp' object has no attribute 'showMaximized'
+        #mng.window.showMaximized()
+        # Maximize the window using tkinter method
+        mng.window.wm_attributes('-zoomed', True)    # loop through the images
         # according to the image shape, decide whether it is better to have the images
         # in vertical subplots or horizontal subplots
         if im_RGB.shape[1] > 2.5*im_RGB.shape[0]:

@@ -21,6 +21,10 @@ from scipy import stats
 from datetime import datetime, timedelta
 import pytz
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
+import cv2
+import imageio
+from PIL import Image
+import tkinter as tk
 
 # region of interest (longitude, latitude in WGS84)
 polygon = [[[151.301454, -33.700754],
@@ -97,15 +101,77 @@ settings = {
 }
 
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
-SDS_preprocess.save_jpg(metadata, settings, use_matplotlib=True)
-# create MP4 timelapse animation
-fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_RGB.mp4'%inputs['sitename'])
+#SDS_preprocess.save_jpg(metadata, settings, use_matplotlib=True)
+
+# Function to check if jpg files already exist
+def check_files_exist(path, file_extension=".jpg"):
+    if not os.path.exists(path):
+        return False
+    return any(file.endswith(file_extension) for file in os.listdir(path))
+
+# Define the path to preprocessed jpg files in the current directory
+preprocessed_path = f"./data/{sitename}/jpg_files/preprocessed"
+
+# Check if directory exists and if files exist
+if not os.path.exists(preprocessed_path):
+    os.makedirs(preprocessed_path)
+    print(f"Directory created: {preprocessed_path}")
+
+if not check_files_exist(preprocessed_path):
+    # Only save images if they don't already exist
+    SDS_preprocess.save_jpg(metadata, settings, use_matplotlib=True)
+    print("Satellite images saved as .jpg in", preprocessed_path)
+else:
+    print("Preprocessed jpg files already exist in", preprocessed_path)
+
+# Define functions
+def resize_image_to_macro_block(image, macro_block_size=16):
+    height, width = image.shape[:2]
+    new_width = (width + macro_block_size - 1) // macro_block_size * macro_block_size
+    new_height = (height + macro_block_size - 1) // macro_block_size * macro_block_size
+    return cv2.resize(image, (new_width, new_height))
+
+def load_and_resize_images(image_folder, macro_block_size=16):
+    images = []
+    for filename in sorted(os.listdir(image_folder)):
+        if filename.endswith(".jpg"):
+            img_path = os.path.join(image_folder, filename)
+            image = np.array(Image.open(img_path))
+            resized_image = resize_image_to_macro_block(image, macro_block_size)
+            images.append(resized_image)
+    return images
+
+def create_animation(image_folder, output_file, fps=4, macro_block_size=16, probesize=5000000):
+    images = load_and_resize_images(image_folder, macro_block_size)
+    writer = imageio.get_writer(output_file, fps=fps, ffmpeg_params=['-probesize', str(probesize)])
+    for image in images:
+        writer.append_data(image)
+    writer.close()
+
+#create MP4 timelapse animation
+#fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_RGB.mp4'%inputs['sitename'])
+#fp_images = os.path.join(inputs['filepath'], inputs['sitename'], 'jpg_files', 'preprocessed')
+#fps = 4 # frames per second in animation
+#SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)
+
+#IMAGEIO FFMPEG_WRITER WARNING: input image is not divisible by macro_block_size=16, resizing from (2700, 1350) to (2704, 1360) to ensure video compatibility with most codecs and players. To prevent resizing, make your input image divisible by the macro_block_size or set the macro_block_size to 1 (risking incompatibility).
+#[rawvideo @ 0x5b94500] Stream #0: not enough frames to estimate rate; consider increasing probesize
+#[swscaler @ 0x5babfc0] Warning: data is not aligned! This can lead to a speed loss
+
+# Define paths and settings
+print("create MP4 timelapse animation")
+fn_animation = os.path.join(inputs['filepath'], inputs['sitename'], '%s_animation_RGB.mp4' % inputs['sitename'])
 fp_images = os.path.join(inputs['filepath'], inputs['sitename'], 'jpg_files', 'preprocessed')
-fps = 4 # frames per second in animation
-SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)
+fps = 4
+create_animation(fp_images, fn_animation, fps)
 
 # [OPTIONAL] create a reference shoreline (helps to identify outliers and false detections)
+#settings['reference_shoreline'] = SDS_preprocess.get_reference_sl(metadata, settings)
+#AttributeError: '_tkinter.tkapp' object has no attribute 'showMaximized'
+
+# Replace showMaximized with state('zoomed')
 settings['reference_shoreline'] = SDS_preprocess.get_reference_sl(metadata, settings)
+
 # set the max distance (in meters) allowed from the reference shoreline for a detected shoreline to be valid
 settings['max_dist_ref'] = 100
 
@@ -128,10 +194,11 @@ gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.g
                                 driver='GeoJSON', encoding='utf-8')
 
 # create MP4 timelapse animation
+print("create MP4 timelapse animation")
 fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_shorelines.mp4'%inputs['sitename'])
 fp_images = os.path.join(inputs['filepath'], inputs['sitename'], 'jpg_files', 'detection')
 fps = 4 # frames per second in animation
-SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)
+create_animation(fp_images, fn_animation, fps)
 
 # plot the mapped shorelines
 plt.ion()
@@ -170,8 +237,14 @@ output = SDS_tools.remove_inaccurate_georef(output, 10)
 # transects = SDS_transects.draw_transects(output, settings)
 
 # option 2: load the transects from a .geojson file
-geojson_file = os.path.join(os.getcwd(), 'examples', 'NARRA_transects.geojson')
+
+# Navigate to the 'examples' directory and load the geojson file
+current_dir = os.path.abspath(os.path.dirname(__file__))
+geojson_file = os.path.abspath(os.path.join(current_dir, 'examples', 'NARRA_transects.geojson'))
 transects = SDS_tools.transects_from_geojson(geojson_file)
+
+# Verify the path to ensure it is correct
+print(f"The geojson file path is: {geojson_file}")
 
 # option 3: create the transects by manually providing the coordinates of two points
 # transects = dict([])
@@ -250,31 +323,115 @@ print('Time-series of the shoreline change along the transects saved as:\n%s'%fn
 # When using your own file make sure that the dates are in UTC time, as the CoastSat shorelines are also in UTC
 # and the datum for the water levels is approx. Mean Sea Level. We assume a beach slope of 0.1 here.
 
-# load the measured tide data
-filepath = os.path.join(os.getcwd(),'examples','NARRA_tides.csv')
+# Load the measured tide data
+filepath = os.path.abspath(os.path.join(current_dir, 'examples', 'NARRA_tides.csv'))
+
+# Verify the path to ensure it is correct
+print(f"The file path is: {filepath}")
+
 tide_data = pd.read_csv(filepath, parse_dates=['dates'])
 dates_ts = [pd.to_datetime(_).to_pydatetime() for _ in tide_data['dates']]
 tides_ts = np.array(tide_data['tide'])
 
-# get tide levels corresponding to the time of image acquisition
-dates_sat = output['dates']
-tides_sat = SDS_tools.get_closest_datapoint(dates_sat, dates_ts, tides_ts)
+# Print the dates of the time series
+print("Dates of the time series (dates_ts):")
+print(dates_ts)
 
-# plot the subsampled tide data
-fig, ax = plt.subplots(1,1,figsize=(15,4), tight_layout=True)
+# Check if dates_ts is not empty
+if not dates_ts:
+    raise ValueError("The time series dates (dates_ts) are empty.")
+
+time_series_start = min(dates_ts)
+time_series_end = max(dates_ts)
+
+# Assuming 'output' is defined somewhere in your script
+if 'output' in globals() and 'dates' in output:
+    dates_sat = output['dates']
+else:
+    raise ValueError("The 'output' variable or 'output['dates']' is not defined.")
+
+# Print the dates of the input data
+print("Dates of the input data (dates_sat):")
+print(dates_sat)
+
+# Check if dates_sat is not empty
+if not dates_sat:
+    raise ValueError("The input dates (dates_sat) are empty.")
+
+input_data_start = min(dates_sat)
+input_data_end = max(dates_sat)
+
+# Print the date ranges
+print(f"Date range of the time series: {time_series_start} to {time_series_end}")
+print(f"Date range of the input data: {input_data_start} to {input_data_end}")
+
+# Check if the time series covers the input data range
+if input_data_start < time_series_start or input_data_end > time_series_end:
+    print("Sorry, the time series data does not cover the range of your input dates.")
+    print(f"The available time series data ranges from {time_series_start} to {time_series_end}.")
+    
+    # Adjust the dates to fit within the available time series data range
+    adjusted_dates_sat = [
+        max(time_series_start, min(time_series_end, date)) for date in dates_sat
+    ]
+    
+    # Ensure adjusted_dates_sat is not empty
+    if not adjusted_dates_sat:
+        raise ValueError("The adjusted input dates are empty after adjustment.")
+    
+    print("Adjusting input dates to fit within the available time series data range:")
+    print(f"Adjusted date range: {min(adjusted_dates_sat)} to {max(adjusted_dates_sat)}")
+else:
+    adjusted_dates_sat = dates_sat
+
+# Now proceed with your processing using adjusted_dates_sat
+try:
+    if len(adjusted_dates_sat) > 0:
+        tides_sat = SDS_tools.get_closest_datapoint(adjusted_dates_sat, dates_ts, tides_ts)
+        print("Tide levels corresponding to the input dates have been successfully retrieved.")
+    else:
+        tides_sat = np.array([])
+        print("Adjusted dates are empty, skipping tide level retrieval.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+    tides_sat = np.array([])
+
+# Plotting the subsampled tide data
+fig, ax = plt.subplots(1, 1, figsize=(15, 4), tight_layout=True)
 ax.grid(which='major', linestyle=':', color='0.5')
 ax.plot(dates_ts, tides_ts, '-', color='0.6', label='all time-series')
-ax.plot(dates_sat, tides_sat, '-o', color='k', ms=6, mfc='w',lw=1, label='image acquisition')
-ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Water levels at the time of image acquisition')
+if tides_sat.size > 0:
+    ax.plot(adjusted_dates_sat, tides_sat, '-o', color='k', ms=6, mfc='w', lw=1, label='image acquisition')
+    ax.set(ylabel='tide level [m]', xlim=[adjusted_dates_sat[0], adjusted_dates_sat[-1]], title='Water levels at the time of image acquisition')
+else:
+    print("Tide levels for the input dates could not be plotted because tides_sat is empty.")
 ax.legend()
+plt.show()
 
-# tidal correction along each transect
-reference_elevation = 0.7 # elevation at which you would like the shoreline time-series to be
-beach_slope = 0.1
+# Further processing only if tides_sat is not empty
+if tides_sat.size > 0:
+    try:
+        reference_elevation = 0  # Example reference elevation
+        beach_slope = 0.1  # Example beach slope
+        correction = (tides_sat - reference_elevation) / beach_slope
+        print("Correction values computed successfully.")
+    except NameError as e:
+        print(f"A NameError occurred: {e}. Did you mean: 'tide_data'?")
+    except Exception as e:
+        print(f"An error occurred while computing correction values: {e}")
+else:
+    print("Skipping correction computation because tides_sat is empty.")
+
+# Tidal correction along each transect
+reference_elevation = 0.7  # Example reference elevation
+beach_slope = 0.1  # Example beach slope
 cross_distance_tidally_corrected = {}
-for key in cross_distance.keys():
-    correction = (tides_sat-reference_elevation)/beach_slope
-    cross_distance_tidally_corrected[key] = cross_distance[key] + correction
+if tides_sat.size > 0:
+    for key in cross_distance.keys():
+        correction = (tides_sat - reference_elevation) / beach_slope
+        cross_distance_tidally_corrected[key] = cross_distance[key] + correction
+else:
+    print("Skipping tidal correction along transects because tides_sat is empty.")
 
 # store the tidally-corrected time-series in a .csv file
 out_dict = dict([])
@@ -307,7 +464,8 @@ ax.legend()
 #%% 5. Time-series post-processing
 
 # load mapped shorelines from 1984 (mapped with the previous code)
-filename_output = os.path.join(os.getcwd(),'examples','NARRA_output.pkl')
+filename_output = os.path.abspath(os.path.join(current_dir, 'examples', 'NARRA_output.pkl'))
+
 with open(filename_output, 'rb') as f:
     output = pickle.load(f)
 
@@ -329,7 +487,8 @@ for i,key in enumerate(list(transects.keys())):
                 va='center', ha='right', bbox=dict(boxstyle="square", ec='k',fc='w'))
 
 # load long time-series (1984-2021)
-filepath = os.path.join(os.getcwd(),'examples','NARRA_time_series_tidally_corrected.csv')
+filepath = os.path.abspath(os.path.join(current_dir, 'examples', 'NARRA_time_series_tidally_corrected.csv'))
+
 df = pd.read_csv(filepath, parse_dates=['dates'])
 dates = [_.to_pydatetime() for _ in df['dates']]
 cross_distance = dict([])
@@ -414,9 +573,30 @@ for key in cross_distance.keys():
 
 # 6.1. Read and preprocess downloaded csv file Narrabeen_Profiles.csv
 # read the csv file
-fp_datasets = os.path.join(os.getcwd(),'examples','Narrabeen_Profiles.csv')
-df = pd.read_csv(fp_datasets)
-pf_names = list(np.unique(df['Profile ID']))
+#df = pd.read_csv(fp_datasets)
+#if Narrabeen_Profiles.csv file don't exist,   File "/usr/lib/python3/dist-packages/pandas/io/common.py", line 863, in get_handle handle = open(
+#FileNotFoundError: [Errno 2] No such file or directory: 'coastsat/CoastSat-master/examples/Narrabeen_Profiles.csv'
+
+# Define the path to the CSV file
+fp_datasets = os.path.abspath(os.path.join(current_dir, 'examples', 'Narrabeen_Profiles.csv'))
+
+# Try to read the CSV file and handle any errors that occur
+try:
+    df = pd.read_csv(fp_datasets)
+    print("CSV file loaded successfully.")
+except FileNotFoundError:
+    print(f"Error: The file '{fp_datasets}' does not exist. Please ensure the file path is correct and the file is present.")
+    print("You can download the Narrabeen data from http://narrabeen.wrl.unsw.edu.au/")
+except pd.errors.EmptyDataError:
+    print(f"Error: The file '{fp_datasets}' is empty. Please provide a valid CSV file.")
+except pd.errors.ParserError:
+    print(f"Error: There was an error parsing the file '{fp_datasets}'. Please ensure the file is a valid CSV.")
+except Exception as e:
+    print(f"An unexpected error occurred while trying to read the file '{fp_datasets}': {e}")
+else:
+    # If the CSV was loaded successfully, proceed with further processing
+    pf_names = list(np.unique(df['Profile ID']))
+    print(f"Profile IDs loaded: {pf_names}")
 
 # select contour level
 contour_level = 0.7
@@ -455,12 +635,12 @@ for i,key in enumerate(topo_profiles.keys()):
     ax.text(0.5,0.95, key, bbox=dict(boxstyle="square", ec='k',fc='w'), ha='center',
             va='top', transform=ax.transAxes, fontsize=14)
 # save a .pkl file
-with open(os.path.join(os.getcwd(), 'examples', 'Narrabeen_ts_07m.pkl'), 'wb') as f:
+with open(os.path.join(current_dir, 'examples', 'Narrabeen_ts_07m.pkl'), 'wb') as f:
     pickle.dump(topo_profiles, f)
 
 #%% 6.2. Compare time-series along each transect
 # load survey data
-with open(os.path.join(os.getcwd(), 'examples', 'Narrabeen_ts_07m.pkl'), 'rb') as f:
+with open(os.path.join(current_dir, 'examples', 'Narrabeen_ts_07m.pkl'), 'rb') as f:
     gt = pickle.load(f)
 # change names to mach surveys
 for i,key in enumerate(list(cross_distance.keys())):
@@ -593,7 +773,7 @@ for key in cross_distance.keys():
     ax3.text(0, 0.98, str_stats,va='top', transform=ax3.transAxes)
 
     # save plot
-    fig.savefig(os.path.join(os.getcwd(),'examples','comparison_transect_%s.jpg'%key), dpi=150)
+    fig.savefig( os.path.join(current_dir, 'examples','comparison_transect_%s.jpg'%key), dpi=150)
 
 #%% 6.3. Comparison for all transects
 
@@ -641,4 +821,4 @@ for j,boxes in enumerate(bp['boxes']):
     ax[1].text(j+1,median_data[j]+1, '%.1f' % median_data[j], horizontalalignment='center', fontsize=14)
     ax[1].text(j+1+0.35,median_data[j]+1, ('n=%.d' % int(n_data[j])), ha='center', va='center', fontsize=12, rotation='vertical')
 ax[1].set(ylabel='error [m]', ylim=sett['lims']);
-fig.savefig(os.path.join(os.getcwd(),'examples','comparison_all_transects.jpg'), dpi=150)
+fig.savefig( os.path.join(current_dir, 'examples','comparison_all_transects.jpg'), dpi=150)

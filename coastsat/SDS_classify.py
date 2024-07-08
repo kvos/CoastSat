@@ -9,7 +9,6 @@ Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from matplotlib.widgets import LassoSelector
 from matplotlib import path
 import pickle
@@ -457,7 +456,7 @@ def format_training_data(features, classes, labels):
     
     return X, y
 
-def plot_confusion_matrix(y_true,y_pred,classes,normalize=False,cmap=plt.cm.Blues):
+def plot_confusion_matrix(y_true,y_pred,classes,normalize=False,cmap=plt.get_cmap("Blues")):
     """
     Function copied from the scikit-learn examples (https://scikit-learn.org/stable/)
     This function plots a confusion matrix.
@@ -547,7 +546,7 @@ def evaluate_classifier(classifier, metadata, settings):
                           constrained_layout=True)
 
     # create colormap for labels
-    cmap = cm.get_cmap('tab20c')
+    cmap = plt.get_cmap('tab20c')
     colorpalette = cmap(np.arange(0,13,1))
     colours = np.zeros((3,4))
     colours[0,:] = colorpalette[5]

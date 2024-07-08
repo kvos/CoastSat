@@ -27,7 +27,6 @@ from shapely.geometry import LineString
 # other modules
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-import matplotlib.cm as cm
 from matplotlib import gridspec
 import pickle
 from datetime import datetime, timedelta
@@ -768,7 +767,7 @@ def show_detection(im_ms, cloud_mask, im_labels, shoreline,image_epsg, georef,
 
     # compute classified image
     im_class = np.copy(im_RGB)
-    cmap = cm.get_cmap('tab20c')
+    cmap = plt.get_cmap('tab20c')
     colorpalette = cmap(np.arange(0,13,1))
     colours = np.zeros((3,4))
     colours[0,:] = colorpalette[5]
@@ -983,7 +982,7 @@ def adjust_detection(im_ms, cloud_mask, im_nodata, im_labels, im_ref_buffer, ima
 
     # compute classified image
     im_class = np.copy(im_RGB)
-    cmap = cm.get_cmap('tab20c')
+    cmap = plt.get_cmap('tab20c')
     colorpalette = cmap(np.arange(0,13,1))
     colours = np.zeros((3,4))
     colours[0,:] = colorpalette[5]

@@ -385,7 +385,7 @@ for key in cross_distance.keys():
 #%% 5.3 Monthly averaging
 
 # compute monthly averages along each transect
-month_colors = plt.cm.get_cmap('tab20')
+month_colors = plt.get_cmap('tab20')
 for key in cross_distance.keys():
     chainage = cross_distance[key]
     # remove nans

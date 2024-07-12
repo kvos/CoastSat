@@ -16,6 +16,9 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 #### Latest toolbox updates
 
+:arrow_forward: *(2024/05/07)*
+CoastSat v2.5: added the tilename at the end of each image download so that images can be separated by tile if needed.
+
 :arrow_forward: *(2024/04/26)*
 CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
 
@@ -29,7 +32,7 @@ CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the 
 
 :point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing datasets of satellite-derived shorelines and beach slopes generated with CoastSat in the Pacific and Atlantic basins.
 
-:point_right: Useful publications describing the toolbox:
+:point_right: Useful publications describing the CoastSat satellite-derived shorelines:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 - Accuracy assessment: https://doi.org/10.1016/j.coastaleng.2019.04.004
@@ -38,7 +41,7 @@ CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the 
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-:point_right: Other repositories and extensions related to the toolbox:
+:point_right: Other repositories and extensions related to CoastSat:
 - [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.

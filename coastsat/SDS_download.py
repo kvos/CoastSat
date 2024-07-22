@@ -121,7 +121,7 @@ def retrieve_images(inputs):
     """
     
     # initialise connection with GEE server
-    ee.Initialize()
+    authenticate_and_initialize()
 
     # check image availabiliy and retrieve list of images
     im_dict_T1, im_dict_T2 = check_images_available(inputs)

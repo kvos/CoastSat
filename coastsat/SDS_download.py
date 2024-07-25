@@ -36,6 +36,46 @@ from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 gdal.PushErrorHandler('CPLQuietErrorHandler')
 
+def authenticate_and_initialize():
+    """
+    Authenticates and initializes the Earth Engine API.
+
+    This function handles the authentication and initialization process for the 
+    Google Earth Engine (GEE) API. It performs the following steps:
+
+    1. Authenticates the session with GEE using the `ee.Authenticate()` method.
+       - This step may prompt the user to provide authentication credentials 
+         if they are not already stored locally.
+       - The credentials are typically linked to a Google account that has 
+         been granted access to GEE.
+
+    2. Initializes the GEE module with the `ee.Initialize()` method.
+       - This step sets up the necessary environment to interact with GEE 
+         programmatically.
+       - It ensures that the authenticated session is ready to make API calls 
+         to GEE services.
+
+    If the authentication and initialization are successful, appropriate success
+    messages are printed to the console. In case of failure, an error message 
+    is displayed.
+
+    This function does not return any value but will print messages indicating 
+    the success or failure of the authentication process.
+
+    Raises:
+    -------
+    Exception: If the authentication or initialization process fails, an 
+               exception is caught, and an error message is printed to the console.
+    """
+    try:
+        # Authenticate the Earth Engine session.
+        ee.Authenticate()
+        # Initialize the Earth Engine module.
+        ee.Initialize()
+        print("You are now connected to Google Earth Engine.")
+    except Exception as e:
+        print(f"Authentication failed: {e}")
+
 def retrieve_images(inputs):
     """
     Downloads all images from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2
@@ -81,7 +121,7 @@ def retrieve_images(inputs):
     """
     
     # initialise connection with GEE server
-    ee.Initialize()
+    authenticate_and_initialize()
 
     # check image availabiliy and retrieve list of images
     im_dict_T1, im_dict_T2 = check_images_available(inputs)

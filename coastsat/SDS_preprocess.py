@@ -939,7 +939,7 @@ def get_reference_sl(metadata, settings):
                     phi = 0
                     deltax = pts_world[k+1,0] - pts_world[k,0]
                     deltay = pts_world[k+1,1] - pts_world[k,1]
-                    phi = np.pi/2 - np.math.atan2(deltax, deltay)
+                    phi = np.pi/2 - np.arctan2(deltax, deltay)                    
                     tf = transform.EuclideanTransform(rotation=phi, translation=pts_world[k,:])
                     pts_world_interp = np.append(pts_world_interp,tf(pt_coords), axis=0)
                 pts_world_interp = np.delete(pts_world_interp,0,axis=0)

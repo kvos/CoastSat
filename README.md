@@ -17,16 +17,10 @@ CoastSat is an open-source software toolkit written in Python that enables users
 #### Latest toolbox updates
 
 :arrow_forward: *(2024/05/07)*
-CoastSat v2.5: added the tilename at the end of each image download so that images can be separated by tile if needed.
+CoastSat v2.6: added the tilename at the end of each image filename when downloading so that images can be separated by tiles if needed. Also a number of bug fixes on `matplotlib` and `numpy` from @2320sharon and @thekester.
 
 :arrow_forward: *(2024/04/26)*
 CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
-
-:arrow_forward: *(2023/11/09)*
-CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
-
-:arrow_forward: *(2023/07/07)*
-CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
 
 #### Additional resources
 

@@ -36,6 +36,46 @@ from coastsat import SDS_preprocess, SDS_tools, gdal_merge
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 gdal.PushErrorHandler('CPLQuietErrorHandler')
 
+def authenticate_and_initialize():
+    """
+    Authenticates and initializes the Earth Engine API.
+
+    This function handles the authentication and initialization process for the 
+    Google Earth Engine (GEE) API. It performs the following steps:
+
+    1. Authenticates the session with GEE using the `ee.Authenticate()` method.
+       - This step may prompt the user to provide authentication credentials 
+         if they are not already stored locally.
+       - The credentials are typically linked to a Google account that has 
+         been granted access to GEE.
+
+    2. Initializes the GEE module with the `ee.Initialize()` method.
+       - This step sets up the necessary environment to interact with GEE 
+         programmatically.
+       - It ensures that the authenticated session is ready to make API calls 
+         to GEE services.
+
+    If the authentication and initialization are successful, appropriate success
+    messages are printed to the console. In case of failure, an error message 
+    is displayed.
+
+    This function does not return any value but will print messages indicating 
+    the success or failure of the authentication process.
+
+    Raises:
+    -------
+    Exception: If the authentication or initialization process fails, an 
+               exception is caught, and an error message is printed to the console.
+    """
+    try:
+        # Authenticate the Earth Engine session.
+        ee.Authenticate()
+        # Initialize the Earth Engine module.
+        ee.Initialize()
+        print("You are now connected to Google Earth Engine.")
+    except Exception as e:
+        print(f"Authentication failed: {e}")
+
 def retrieve_images(inputs):
     """
     Downloads all images from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2
@@ -81,7 +121,7 @@ def retrieve_images(inputs):
     """
     
     # initialise connection with GEE server
-    ee.Initialize()
+    authenticate_and_initialize()
 
     # check image availabiliy and retrieve list of images
     im_dict_T1, im_dict_T2 = check_images_available(inputs)
@@ -145,7 +185,7 @@ def retrieve_images(inputs):
             # get epsg code
             im_epsg = int(im_meta['bands'][0]['crs'][5:])
 
-            # get quality flags (geometric and radiometric quality)
+            # get geometric accuracy, radiometric quality and tilename for Landsat
             if satname in ['L5','L7','L8','L9']:
                 if 'GEOMETRIC_RMSE_MODEL' in im_meta['properties'].keys():
                     acc_georef = im_meta['properties']['GEOMETRIC_RMSE_MODEL']
@@ -156,6 +196,10 @@ def retrieve_images(inputs):
                     rad_quality = im_meta['properties']['IMAGE_QUALITY']
                 elif satname in ['L8','L9']:
                     rad_quality = im_meta['properties']['IMAGE_QUALITY_OLI']
+                # add tilename (path/row)
+                tilename = '%03d%03d'%(im_meta['properties']['WRS_PATH'],im_meta['properties']['WRS_ROW'])
+                
+            # get geometric accuracy, radiometric quality and tilename for S2
             elif satname in ['S2']:
                 # Sentinel-2 products don't provide a georeferencing accuracy (RMSE as in Landsat)
                 # but they have a flag indicating if the geometric quality control was PASSED or FAILED
@@ -186,15 +230,17 @@ def retrieve_images(inputs):
                           ' raise an issue at https://github.com/kvos/CoastSat/issues'+
                           ' and add you inputs in text (not a screenshot pls).')
                     rad_quality = 'PASSED'
-            
+                # add tilename (MGRS name)
+                tilename = im_meta['properties']['MGRS_TILE']
+                
             # select image by id
             image_ee = ee.Image(im_meta['id'])
             
             # for S2 add s2cloudless probability band
             if satname == 'S2':
                 if len(im_dict_s2cloudless[i]) == 0:
-                    raise Exception('could not find matching s2cloudless image, raise issue on Github at'+
-                                    'https://github.com/kvos/CoastSat/issues and provide your inputs.')
+                    print('Warning: S2cloudless mask for image %s is not available yet, try again tomorrow.'%im_date)
+                    continue
                 im_cloud = ee.Image(im_dict_s2cloudless[i]['id'])
                 cloud_prob = im_cloud.select('probability').rename('s2cloudless')
                 image_ee = image_ee.addBands(cloud_prob)
@@ -237,7 +283,7 @@ def retrieve_images(inputs):
                         
                 # create filename for image
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -304,7 +350,7 @@ def retrieve_images(inputs):
                 
                 # create filename for both images (ms and pan)
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate number X)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -375,8 +421,7 @@ def retrieve_images(inputs):
                 
                 # create filename for the three images (ms, swir and mask)
                 for key in bands.keys():
-                    im_fn[key] = im_date + '_' + satname + '_' \
-                        + inputs['sitename'] + '_' + key + suffix
+                    im_fn[key] = im_date + '_' + satname + '_' + tilename + '_' + inputs['sitename'] + '_' + key + suffix
                 # if multiple images taken at the same date add 'dupX' to the name (duplicate)
                 duplicate_counter = 0
                 while im_fn['ms'] in all_names:
@@ -410,7 +455,7 @@ def retrieve_images(inputs):
             width, height = SDS_tools.get_image_dimensions(image_path)
             # write metadata in a text file for easy access
             filename_txt = im_fn['ms'].replace('_ms','').replace('.tif','')
-            metadict = {'filename':filename_ms,'epsg':im_epsg,
+            metadict = {'filename':filename_ms,'tile':tilename,'epsg':im_epsg,
                         'acc_georef':acc_georef,'image_quality':rad_quality,
                         'im_width':width,'im_height':height}
             with open(os.path.join(filepaths[0],filename_txt + '.txt'), 'w') as f:
@@ -471,7 +516,7 @@ def get_metadata(inputs):
         # if a folder has been created for the given satellite mission
         if satname in os.listdir(filepath):
             # update the metadata dict
-            metadata[satname] = {'filenames':[],'dates':[],'epsg':[],'acc_georef':[],
+            metadata[satname] = {'filenames':[],'dates':[],'tilename':[],'epsg':[],'acc_georef':[],
                                  'im_quality':[],'im_dimensions':[]}
             # directory where the metadata .txt files are stored
             filepath_meta = os.path.join(filepath, satname, 'meta')
@@ -483,6 +528,7 @@ def get_metadata(inputs):
                 # read them and extract the metadata info
                 with open(os.path.join(filepath_meta, im_meta), 'r') as f:
                     filename = f.readline().split('\t')[1].replace('\n','')
+                    tilename = f.readline().split('\t')[1].replace('\n','')
                     epsg = int(f.readline().split('\t')[1].replace('\n',''))
                     acc_georef = f.readline().split('\t')[1].replace('\n','')
                     im_quality = f.readline().split('\t')[1].replace('\n','')
@@ -500,6 +546,7 @@ def get_metadata(inputs):
                 # store the information in the metadata dict
                 metadata[satname]['filenames'].append(filename)
                 metadata[satname]['dates'].append(date)
+                metadata[satname]['tilename'].append(tilename)
                 metadata[satname]['epsg'].append(epsg)
                 metadata[satname]['acc_georef'].append(acc_georef)
                 metadata[satname]['im_quality'].append(im_quality)
@@ -596,13 +643,22 @@ def check_images_available(inputs):
             # remove from download list the images that are already existing
             if satname in metadata_existing:
                 if len(metadata_existing[satname]['dates']) > 0:
-                    first_date = metadata_existing[satname]['dates'][0] - timedelta(days=1)
-                    last_date = metadata_existing[satname]['dates'][-1] + timedelta(days=1)
-                    date_list = [datetime.fromtimestamp(_['properties']['system:time_start']/1000, tz=pytz.utc) for _ in im_dict_T1[satname]]
-                    idx_new = np.where([np.logical_or(_< first_date, _ > last_date) for _ in date_list])[0]
-                    # only keep images corresponding to dates that are not already existing
-                    im_dict_T1[satname] = [im_dict_T1[satname][_] for _ in idx_new]
-                    print('%s: %d images already exist, %s to download'%(satname, len(date_list)-len(idx_new), len(idx_new)))
+                    # get all the possible availabe dates for the imagery requested
+                    avail_date_list = [datetime.fromtimestamp(image['properties']['system:time_start'] / 1000, tz=pytz.utc).replace( microsecond=0) for image in im_dict_T1[satname]]
+                    # if no images are available, skip this loop
+                    if len(avail_date_list) == 0:
+                        print(f'{satname}:There are {len(avail_date_list)} images available, {len(metadata_existing[satname]["dates"])} images already exist, {len(avail_date_list)} to download')
+                        continue
+                    # get the dates of the images that are already downloaded
+                    downloaded_dates = metadata_existing[satname]['dates']
+                    # if no images are already downloaded, skip this loop and use whats already in im_dict_T1[satname]
+                    if len(downloaded_dates) == 0:
+                        print(f'{satname}:There are {len(avail_date_list)} images available, {len(downloaded_dates)} images already exist, {len(avail_date_list)} to download')
+                        continue
+                    # get the indices of the images that are not already downloaded 
+                    idx_new = np.where([ not avail_date in downloaded_dates for avail_date in avail_date_list])[0]
+                    im_dict_T1[satname] = [im_dict_T1[satname][index] for index in idx_new]
+                    print('%s: %d images already exist, %s to download'%(satname, len(avail_date_list), len(idx_new)))
 
     # if only S2 is in sat_list, stop here as no Tier 2 for Sentinel
     if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':

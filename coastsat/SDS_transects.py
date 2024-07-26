@@ -341,7 +341,7 @@ def compute_intersection_QC(output, transects, settings):
                 med_intersect[i] = np.nanmedian(xy_rot[0,:])
                 max_intersect[i] = np.nanmax(xy_rot[0,:])
                 min_intersect[i] = np.nanmin(xy_rot[0,:])
-                n_intersect[i] = len(xy_rot[0,:])
+                n_intersect[i] = np.sum(~np.isnan(xy_rot[0, :]))  # count only non-nan values
                 
         # quality control the intersections using dispersion metrics (std and range)
         condition1 = std_intersect <= settings['max_std']

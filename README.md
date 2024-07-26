@@ -12,14 +12,21 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
+*Finding CoastSat useful? Show your support with a Github star — it’s a simple click that helps others discover it* ⭐️
 
-:star: **If you like the repo put a star on it!** :star:
+#### Latest toolbox updates
+
+:arrow_forward: *(2024/05/07)*
+CoastSat v2.6: added the tilename at the end of each image filename when downloading so that images can be separated by tiles if needed. Also a number of bug fixes on `matplotlib` and `numpy` from @2320sharon and @thekester.
+
+:arrow_forward: *(2024/04/26)*
+CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
 
 #### Additional resources
 
-:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download regional-scale datasets of satellite-derived shorelines and beach slopes generated with CoastSat in different regions (Pacific Rim, US Atlantic coast).
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing datasets of satellite-derived shorelines and beach slopes generated with CoastSat in the Pacific and Atlantic basins.
 
-:point_right: Useful publications describing the toolbox:
+:point_right: Useful publications describing the CoastSat satellite-derived shorelines:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 - Accuracy assessment: https://doi.org/10.1016/j.coastaleng.2019.04.004
@@ -28,23 +35,15 @@ CoastSat is an open-source software toolkit written in Python that enables users
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 
-:point_right: Other repositories and extensions related to the toolbox:
-- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+:point_right: Other repositories and extensions related to CoastSat:
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
+- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): image segmentation, deep learning, doodler.
 - [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
-- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
-
-#### Latest toolbox updates
-
-:arrow_forward: *(2023/11/09)*
-CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
-
-:arrow_forward: *(2023/07/07)*
-CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
-
+- [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
+ 
 ### Project description
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.

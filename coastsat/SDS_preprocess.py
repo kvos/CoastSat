@@ -402,11 +402,14 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
     if sum(sum(cloud_mask)) > 0 and sum(sum(~cloud_mask)) > 0:
         cloud_mask = morphology.remove_small_objects(cloud_mask, min_size=40, connectivity=1)
 
-        if cloud_mask_issue:
+    if cloud_mask_issue:
+        cloud_mask = np.zeros_like(im_QA, dtype=bool)
+        for value in cloud_values:
+            cloud_mask_temp = np.isin(im_QA, value)         
             elem = morphology.square(6) # use a square of width 6 pixels
-            cloud_mask = morphology.binary_opening(cloud_mask,elem) # perform image opening
-            # remove objects with less than min_size connected pixels
-            cloud_mask = morphology.remove_small_objects(cloud_mask, min_size=100, connectivity=1)
+            cloud_mask_temp = morphology.binary_opening(cloud_mask_temp, elem) # perform image opening            
+            cloud_mask_temp = morphology.remove_small_objects(cloud_mask_temp, min_size=100, connectivity=1)
+            cloud_mask = np.logical_or(cloud_mask, cloud_mask_temp)
 
     return cloud_mask
 
@@ -936,7 +939,7 @@ def get_reference_sl(metadata, settings):
                     phi = 0
                     deltax = pts_world[k+1,0] - pts_world[k,0]
                     deltay = pts_world[k+1,1] - pts_world[k,1]
-                    phi = np.pi/2 - np.math.atan2(deltax, deltay)
+                    phi = np.pi/2 - np.arctan2(deltax, deltay)                    
                     tf = transform.EuclideanTransform(rotation=phi, translation=pts_world[k,:])
                     pts_world_interp = np.append(pts_world_interp,tf(pt_coords), axis=0)
                 pts_world_interp = np.delete(pts_world_interp,0,axis=0)

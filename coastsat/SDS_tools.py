@@ -888,9 +888,29 @@ def make_animation_mp4(filepath_images, fps, fn_out):
     
 # Define functions for resizing and creating animations
 def resize_image_to_fixed_size(image, size=(2864, 1440)):
+    """
+    Resize an image to a fixed size.
+
+    Args:
+        image (numpy.ndarray): The image to be resized.
+        size (tuple): The target size for the image.
+
+    Returns:
+        numpy.ndarray: The resized image.
+    """
     return cv2.resize(image, size)
 
 def load_and_resize_images(image_folder, size=(2864, 1440)):
+    """
+    Load and resize all images in a folder to a fixed size.
+
+    Args:
+        image_folder (str): Path to the folder containing images.
+        size (tuple): The target size for the images.
+
+    Returns:
+        list: A list of tuples, each containing the filename and the resized image.
+    """
     images = []
     for filename in sorted(os.listdir(image_folder)):
         if filename.endswith(".jpg"):
@@ -901,6 +921,19 @@ def load_and_resize_images(image_folder, size=(2864, 1440)):
     return images
 
 def create_animation(image_folder, output_file, fps=4, size=(2864, 1440), probesize=5000000):
+    """
+    Create an animation from images in a folder and save it as a video file.
+
+    Args:
+        image_folder (str): Path to the folder containing images.
+        output_file (str): Path to the output video file.
+        fps (int): Frames per second for the video.
+        size (tuple): The target size for the images.
+        probesize (int): Probesize parameter for ffmpeg.
+
+    Raises:
+        ValueError: If images have different sizes.
+    """
     images = load_and_resize_images(image_folder, size)
     
     # Check for different image sizes
@@ -918,6 +951,14 @@ def create_animation(image_folder, output_file, fps=4, size=(2864, 1440), probes
     writer.close()
 
 def make_animation_mp4(filepath_images, fps, fn_out):
+    """
+    Generate an animation (MP4) from images in a specified folder.
+
+    Args:
+        filepath_images (str): Path to the folder containing images.
+        fps (int): Frames per second for the video.
+        fn_out (str): Path to the output video file.
+    """
     create_animation(filepath_images, fn_out, fps)
     print('Animation has been generated (using %d frames per second) and saved at %s'%(fps, fn_out))
 

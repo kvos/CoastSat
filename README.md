@@ -104,11 +104,13 @@ You can also install the packages with the **Anaconda Navigator**, in the *Envir
 
 ### 1.2 Activate Google Earth Engine Python API
 
-First, you need to request access to Google Earth Engine at https://signup.earthengine.google.com/. Then install `gcloud`, go to https://cloud.google.com/sdk/docs/install and install gcloud CLI. After you have installed gcloud CLI it will automatically launch and let you authenticate with your GEE account (or gmail). Then close the Anaconda Prompt and restart it.
+First, you need to request access to Google Earth Engine at https://signup.earthengine.google.com/. Then go to https://cloud.google.com/sdk/docs/install and install the gcloud CLI. After you have installed it will automatically launch and let you authenticate with your GEE account (or personal gmail). Then close the Anaconda Prompt and restart it.
 
 Now you are ready to start using the CoastSat toolbox!
 
 :warning: remember to always activate the environment with `conda activate coastsat` each time you are preparing to use the toolbox.
+
+:warning: if you're finding that you're always asked to authenticate, open the gloud CLI and run this command: `gcloud auth application-default login` to set a default authentication on your machine.
 
 ## 2. Usage<a name="usage"></a>
 

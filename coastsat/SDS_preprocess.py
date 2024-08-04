@@ -59,7 +59,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
     pan_off : boolean
         if True, disable panchromatic sharpening and ignore pan band
     collection: str
-        Landsat collection ,'C01' or 'C02'
+        Landsat collection 'C02'
     s2cloudless_prob: float [0,100)
         threshold to identify cloud pixels in the s2cloudless probability mask
         
@@ -90,9 +90,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
     fn_to_split=fn_to_split.split(os.sep)[-1].split('.')[0]
     # search for the year the tif was taken with regex and convert to int
     year = int(re.search('[0-9]+',fn_to_split).group(0))
-    # after 2022 everything is automatically from Collection 2
-    if collection == 'C01' and year >= 2022:
-        collection = 'C02'
+    collection = 'C02'
         
     #=============================================================================================#
     # L5 images
@@ -360,7 +358,7 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
         True if there is an issue with the cloud mask and sand pixels are being
         erroneously masked on the images
     collection: str
-        Landsat collection ,'C01' or 'C02'
+        Landsat collection 'C02'
         
     Returns:
     -----------
@@ -372,15 +370,7 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
         # 1024 = dense cloud, 2048 = cirrus clouds
         cloud_values = [1024, 2048] 
     else:
-        if collection == 'C01':
-            if  satname in ['L8','L9']:
-                # 2800, 2804, 2808, 2812 = High confidence cloud
-                # 6896, 6900, 6904, 6908 = High confidence cirrus cloud
-                cloud_values = [2800, 2804, 2808, 2812, 6896, 6900, 6904, 6908]
-            elif satname in ['L4','L5','L7','L8']:
-                # 752, 756, 760, 764 = High confidence cloud
-                cloud_values = [752, 756, 760, 764]
-        elif collection == 'C02':
+        if collection == 'C02':
             # function to return flag for n-th bit
             def is_set(x, n):
                 return x & 1 << n != 0   

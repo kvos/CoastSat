@@ -132,14 +132,19 @@ def retrieve_images(inputs):
     im_folder = os.path.join(inputs['filepath'],inputs['sitename'])
     if not os.path.exists(im_folder): os.makedirs(im_folder)
 
+    # Deprecation warning for Collection 1
+    # Landsat Collection 1 is deprecated, and you should migrate to Collection 2.
+    # See this link for details: https://developers.google.com/earth-engine/landsat_c1_to_c2
+
     # bands for each mission
     if inputs['landsat_collection'] == 'C01':
-        qa_band_Landsat = 'BQA'
-    elif inputs['landsat_collection'] == 'C02':
+        raise Exception('Landsat Collection 1 is deprecated. Please migrate to Collection 2. See https://developers.google.com/earth-engine/landsat_c1_to_c2 for more details.')
+        
+    if inputs['landsat_collection'] == 'C02':
         qa_band_Landsat = 'QA_PIXEL'
     else:
         raise Exception('Landsat collection %s does not exist, '%inputs['landsat_collection'] + \
-                        'choose C01 or C02.')
+                        'choose C02.')
     qa_band_S2 = 'QA60'
     # the cloud mask band for Sentinel-2 images is the s2cloudless probability
     bands_dict = {'L5':['B1','B2','B3','B4','B5',qa_band_Landsat],
@@ -557,7 +562,10 @@ def get_metadata(inputs):
 def check_images_available(inputs):
     """
     Scan the GEE collections to see how many images are available for each
-    satellite mission (L5,L7,L8,L9,S2), collection (C01,C02) and tier (T1,T2).
+    satellite mission (L5,L7,L8,L9,S2), collection (C02) and tier (T1,T2).
+    
+    Note: Landsat Collection 1 (C01) is deprecated. Users should migrate to Collection 2 (C02).
+    For more information, visit: https://developers.google.com/earth-engine/landsat_c1_to_c2
 
     KV WRL 2018
 
@@ -584,7 +592,7 @@ def check_images_available(inputs):
 
     # check if EE was initialised or not
     try:
-        ee.ImageCollection('LANDSAT/LT05/C01/T1_TOA')
+        ee.ImageCollection('LANDSAT/LT05/C02/T1_TOA')
     except:
         ee.Initialize()
         
@@ -1272,7 +1280,7 @@ def merge_overlapping_images(metadata,inputs):
         else:
             for index in range(len(pair)):
                 # read image
-                im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False, 'C01')
+                im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn_im[index], sat, False, 'C02')
                 # in Sentinel2 images close to the edge of the image there are some artefacts,
                 # that are squares with constant pixel intensities. They need to be masked in the
                 # raster (GEOTIFF). It can be done using the image standard deviation, which

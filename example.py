@@ -42,7 +42,6 @@ dates = ['1984-01-01', '2022-01-01']
 
 # satellite missions
 sat_list = ['L5','L7','L8']
-collection = 'C02' # choose Landsat collection 'C01' or 'C02'
 # name of the site
 sitename = 'NARRA'
 
@@ -56,7 +55,6 @@ inputs = {
     'sat_list': sat_list,
     'sitename': sitename,
     'filepath': filepath_data,
-    'landsat_collection': collection
         }
 
 # before downloading the images, check how many images are available for your inputs

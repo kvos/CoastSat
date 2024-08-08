@@ -87,7 +87,6 @@ def extract_shorelines(metadata, settings):
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
-    collection = settings['inputs']['landsat_collection']
     filepath_models = os.path.join(os.getcwd(), 'classification', 'models')
     # initialise output structure
     output = dict([])
@@ -152,7 +151,6 @@ def extract_shorelines(metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'], 
                                                                                                      settings['pan_off'],
-                                                                                                     collection,
                                                                                                      settings['s2cloudless_prob'])
             # get image spatial reference system (epsg code) from metadata dict
             image_epsg = metadata[satname]['epsg'][i]

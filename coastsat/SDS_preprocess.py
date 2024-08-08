@@ -36,7 +36,7 @@ from coastsat import SDS_tools
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
 # Main function to preprocess a satellite image (L5, L7, L8, L9 or S2)
-def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2cloudless_prob=40):
+def preprocess_single(fn, satname, cloud_mask_issue, pan_off, s2cloudless_prob=40):
     """
     Reads the image and outputs the pansharpened/down-sampled multispectral bands,
     the georeferencing vector of the image (coordinates of the upper left pixel),
@@ -58,8 +58,6 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
         True if there is an issue with the cloud mask and sand pixels are being masked on the images
     pan_off : boolean
         if True, disable panchromatic sharpening and ignore pan band
-    collection: str
-        Landsat collection ,'C02'
     s2cloudless_prob: float [0,100)
         threshold to identify cloud pixels in the s2cloudless probability mask
         
@@ -83,15 +81,13 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
     """
     
     if isinstance(fn, list):
-        fn_to_split=fn[0]
+        fn_to_split = fn[0]
     elif isinstance(fn, str):
-        fn_to_split=fn
+        fn_to_split = fn
     # split by os.sep and only get the filename at the end then split again to remove file extension
     fn_to_split=fn_to_split.split(os.sep)[-1].split('.')[0]
     # search for the year the tif was taken with regex and convert to int
     year = int(re.search('[0-9]+',fn_to_split).group(0))
-    # after 2022 everything is automatically from Collection 2
-    collection = 'C02'
         
     #=============================================================================================#
     # L5 images
@@ -109,7 +105,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
         data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_QA = bands[0]
-        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
 
         # check if -inf or nan values on any band and eventually add those pixels to cloud mask
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
@@ -147,7 +143,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
         data = gdal.Open(fn_mask, gdal.GA_ReadOnly)
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_QA = bands[0]
-        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
+        cloud_mask = create_cloud_mask(im_QA, satname, cloud_mask_issue)
         # check if -inf or nan values on any band and eventually add those pixels to cloud mask
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
         for k in range(im_ms.shape[2]):
@@ -246,7 +242,7 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
         bands = [data.GetRasterBand(k + 1).ReadAsArray() for k in range(data.RasterCount)]
         im_QA = bands[0]
         # compute cloud mask using QA60 band
-        cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue, collection)
+        cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue)
         # compute cloud mask using s2cloudless probability band
         cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob, s2cloudless_prob)
         # combine both cloud masks
@@ -285,7 +281,6 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, collection, s2clou
 # AUXILIARY FUNCTIONS
 ###################################################################################################
 
-
 def find_edge_padding(im_band: np.ndarray) -> np.ndarray:
     """
     Finds the padding required for each edge of an image band based on the presence of data.
@@ -314,7 +309,6 @@ def find_edge_padding(im_band: np.ndarray) -> np.ndarray:
 
     return top_padding, bottom_padding, left_padding, right_padding
 
-
 def pad_edges(im_swir: np.ndarray, im_nodata: np.ndarray) -> np.ndarray:
     """
     Adds 0's located along the edges of im_swir to the nodata array.
@@ -342,8 +336,7 @@ def pad_edges(im_swir: np.ndarray, im_nodata: np.ndarray) -> np.ndarray:
     im_nodata[:top_pad, :] = True
     return im_nodata
 
-
-def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
+def create_cloud_mask(im_QA, satname, cloud_mask_issue):
     """
     Creates a cloud mask using the information contained in the QA band.
 
@@ -358,8 +351,6 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
     cloud_mask_issue: boolean
         True if there is an issue with the cloud mask and sand pixels are being
         erroneously masked on the images
-    collection: str
-        Landsat collection 'C02'
         
     Returns:
     -----------
@@ -371,19 +362,18 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue, collection):
         # 1024 = dense cloud, 2048 = cirrus clouds
         cloud_values = [1024, 2048] 
     else:
-        if collection == 'C02':
-            # function to return flag for n-th bit
-            def is_set(x, n):
-                return x & 1 << n != 0   
-            # dilated cloud = bit 1
-            # cirrus = bit 2
-            # cloud = bit 3 
-            qa_values = np.unique(im_QA.flatten())
-            cloud_values = []
-            for qaval in qa_values:
-                for k in [1,2,3]: # check the first 3 flags
-                    if is_set(qaval,k):
-                        cloud_values.append(qaval)
+        # function to return flag for n-th bit
+        def is_set(x, n):
+            return x & 1 << n != 0   
+        # dilated cloud = bit 1
+        # cirrus = bit 2
+        # cloud = bit 3 
+        qa_values = np.unique(im_QA.flatten())
+        cloud_values = []
+        for qaval in qa_values:
+            for k in [1,2,3]: # check the first 3 flags
+                if is_set(qaval,k):
+                    cloud_values.append(qaval)
  
     # find which pixels have bits corresponding to cloud values
     cloud_mask = np.isin(im_QA, cloud_values)
@@ -704,7 +694,6 @@ def save_jpg(metadata, settings, use_matplotlib=False):
     cloud_thresh = settings['cloud_thresh']
     s2cloudless_prob = settings['s2cloudless_prob']
     filepath_data = settings['inputs']['filepath']
-    collection = settings['inputs']['landsat_collection']
     
     # create subfolder to store the jpg files
     filepath_jpg = os.path.join(filepath_data, sitename, 'jpg_files', 'preprocessed')
@@ -725,8 +714,7 @@ def save_jpg(metadata, settings, use_matplotlib=False):
             fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
             # read and preprocess image
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'],
-                                                                                      settings['pan_off'], collection, 
-                                                                                      s2cloudless_prob)
+                                                                                      settings['pan_off'], s2cloudless_prob)
 
             # compute cloud_cover percentage (with no data pixels)
             cloud_cover_combined = np.divide(sum(sum(cloud_mask.astype(int))),
@@ -785,7 +773,6 @@ def get_reference_sl(metadata, settings):
 
     sitename = settings['inputs']['sitename']
     filepath_data = settings['inputs']['filepath']
-    collection = settings['inputs']['landsat_collection']
     pts_coords = []
     # check if reference shoreline already exists in the corresponding folder
     fp_ref_shoreline = os.path.join(filepath_data, sitename, sitename + '_reference_shoreline.geojson')
@@ -821,7 +808,7 @@ def get_reference_sl(metadata, settings):
         # read image
         fn = SDS_tools.get_filenames(filenames[i],filepath, satname)
         im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = preprocess_single(fn, satname, settings['cloud_mask_issue'],
-                                                                                  settings['pan_off'], collection,
+                                                                                  settings['pan_off'],
                                                                                   settings['s2cloudless_prob'])
 
         # compute cloud_cover percentage (with no data pixels)

@@ -102,7 +102,6 @@ def label_images(metadata,settings):
     """
     
     filepath_train = settings['filepath_train']
-    collection = settings['inputs']['landsat_collection']
 
     # initialize figure
     fig,ax = plt.subplots(1,1,figsize=[17,10], tight_layout=True,sharex=True,
@@ -122,7 +121,6 @@ def label_images(metadata,settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'],
                                                                                                      settings['pan_off'],
-                                                                                                     collection,
                                                                                                      settings['s2cloudless_prob'])
 
             # compute cloud_cover percentage (with no data pixels)
@@ -534,7 +532,6 @@ def evaluate_classifier(classifier, metadata, settings):
     Saves .jpg images with the output of the classification in the folder ./detection
     
     """  
-    collection = settings['inputs']['landsat_collection']
     # create folder called evaluation
     fp = os.path.join(os.getcwd(), 'evaluation')
     if not os.path.exists(fp):
@@ -574,7 +571,6 @@ def evaluate_classifier(classifier, metadata, settings):
             im_ms, georef, cloud_mask, im_extra, im_QA, im_nodata = SDS_preprocess.preprocess_single(fn, satname, 
                                                                                                      settings['cloud_mask_issue'],
                                                                                                      settings['pan_off'],
-                                                                                                     collection,
                                                                                                      settings['s2cloudless_prob'])
             image_epsg = metadata[satname]['epsg'][i]
 

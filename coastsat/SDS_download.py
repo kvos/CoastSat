@@ -67,7 +67,6 @@ def authenticate_and_initialize():
             ee.Authenticate()
             ee.Initialize()
             print('GEE initialized (manual authentication).')
-    
             
 def retrieve_images(inputs):
     """
@@ -132,19 +131,8 @@ def retrieve_images(inputs):
     im_folder = os.path.join(inputs['filepath'],inputs['sitename'])
     if not os.path.exists(im_folder): os.makedirs(im_folder)
 
-    # Deprecation warning for Collection 1
-    # Landsat Collection 1 is deprecated, and you should migrate to Collection 2.
-    # See this link for details: https://developers.google.com/earth-engine/landsat_c1_to_c2
-
-    # bands for each mission
-    if inputs['landsat_collection'] == 'C01':
-        raise Exception('Landsat Collection 1 is deprecated. Please migrate to Collection 2. See https://developers.google.com/earth-engine/landsat_c1_to_c2 for more details.')
-        
-    if inputs['landsat_collection'] == 'C02':
-        qa_band_Landsat = 'QA_PIXEL'
-    else:
-        raise Exception('Landsat collection %s does not exist, '%inputs['landsat_collection'] + \
-                        'choose C02.')
+    # QA band for each satellite mission
+    qa_band_Landsat = 'QA_PIXEL'
     qa_band_S2 = 'QA60'
     # the cloud mask band for Sentinel-2 images is the s2cloudless probability
     bands_dict = {'L5':['B1','B2','B3','B4','B5',qa_band_Landsat],
@@ -225,7 +213,7 @@ def retrieve_images(inputs):
                 else:
                     print('WARNING: could not find Sentinel-2 geometric quality flag,'+ 
                           ' raise an issue at https://github.com/kvos/CoastSat/issues'+
-                          ' and add you inputs in text (not a screenshot pls).')
+                          ' and add your inputs in text (not a screenshot pls).')
                     rad_quality = 'PASSED'
                 # add tilename (MGRS name)
                 tilename = im_meta['properties']['MGRS_TILE']
@@ -315,11 +303,6 @@ def retrieve_images(inputs):
                 fp_ms = filepaths[1]
                 fp_pan = filepaths[2]
                 fp_mask = filepaths[3] 
-                # if C01 is selected, for images after 2022 adjust the name of the QA band 
-                # as the name has changed for Collection 2 images (from BQA to QA_PIXEL)
-                if inputs['landsat_collection'] == 'C01':
-                    if not 'BQA' in [_['id'] for _ in im_bands]:
-                        bands_id[-1] = 'QA_PIXEL'
                 # select bands (multispectral and panchromatic)
                 bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id]
                 bands['pan'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in ['B8']]
@@ -600,10 +583,10 @@ def check_images_available(inputs):
     
     # get images in Landsat Tier 1 as well as Sentinel Level-1C
     print('- In Landsat Tier 1 & Sentinel-2 Level-1C:')
-    col_names_T1 = {'L5':'LANDSAT/LT05/%s/T1_TOA'%inputs['landsat_collection'],
-                    'L7':'LANDSAT/LE07/%s/T1_TOA'%inputs['landsat_collection'],
-                    'L8':'LANDSAT/LC08/%s/T1_TOA'%inputs['landsat_collection'],
-                    'L9':'LANDSAT/LC09/C02/T1_TOA', # only C02 for Landsat 9
+    col_names_T1 = {'L5':'LANDSAT/LT05/C02/T1_TOA',
+                    'L7':'LANDSAT/LE07/C02/T1_TOA',
+                    'L8':'LANDSAT/LC08/C02/T1_TOA',
+                    'L9':'LANDSAT/LC09/C02/T1_TOA',
                     'S2':'COPERNICUS/S2_HARMONIZED'}
     im_dict_T1 = dict([])
     sum_img = 0
@@ -617,20 +600,7 @@ def check_images_available(inputs):
             im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
-        im_dict_T1[satname] = im_list
-        
-    # if using C01 (only goes to the end of 2021), complete with C02 for L7 and L8
-    if dates[1] > datetime(2022,1,1) and inputs['landsat_collection'] == 'C01':
-        print('  -> completing Tier 1 with C02 after %s...'%'2022-01-01')
-        col_names_C02 = {'L7':'LANDSAT/LE07/C02/T1_TOA',
-                         'L8':'LANDSAT/LC08/C02/T1_TOA'}
-        dates_C02 = ['2022-01-01',dates_str[1]]
-        for satname in inputs['sat_list']:
-            if satname not in ['L7','L8']: continue # only L7 and L8 
-            im_list = get_image_info(col_names_C02[satname],satname,polygon,dates_C02)
-            sum_img = sum_img + len(im_list)
-            print('     %s: %d images'%(satname,len(im_list)))
-            im_dict_T1[satname] += im_list        
+        im_dict_T1[satname] = im_list          
         
     print('  Total to download: %d images'%sum_img)
 
@@ -665,9 +635,9 @@ def check_images_available(inputs):
         return im_dict_T1, []
 
     # if user also requires Tier 2 images, check the T2 collections as well
-    col_names_T2 = {'L5':'LANDSAT/LT05/%s/T2_TOA'%inputs['landsat_collection'],
-                    'L7':'LANDSAT/LE07/%s/T2_TOA'%inputs['landsat_collection'],
-                    'L8':'LANDSAT/LC08/%s/T2_TOA'%inputs['landsat_collection']}
+    col_names_T2 = {'L5':'LANDSAT/LT05/C02/T2_TOA',
+                    'L7':'LANDSAT/LE07/C02/T2_TOA',
+                    'L8':'LANDSAT/LC08/C02/T2_TOA'}
     print('- In Landsat Tier 2 (not suitable for time-series analysis):', end='\n')
     im_dict_T2 = dict([])
     sum_img = 0
@@ -677,19 +647,6 @@ def check_images_available(inputs):
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T2[satname] = im_list
-        
-    # also complete with C02 for L7 and L8 after 2022
-    if dates[1] > datetime(2022,1,1) and inputs['landsat_collection'] == 'C01':
-        print('  -> completing Tier 2 with C02 after %s...'%'2022-01-01')
-        col_names_C02 = {'L7':'LANDSAT/LE07/C02/T2_TOA',
-                         'L8':'LANDSAT/LC08/C02/T2_TOA'}
-        dates_C02 = ['2022-01-01',dates_str[1]]
-        for satname in inputs['sat_list']:
-            if satname not in ['L7','L8']: continue # only L7 and L8 
-            im_list = get_image_info(col_names_C02[satname],satname,polygon,dates_C02)
-            sum_img = sum_img + len(im_list)
-            print('     %s: %d images'%(satname,len(im_list)))
-            im_dict_T2[satname] += im_list         
 
     print('  Total Tier 2: %d images'%sum_img)
     
@@ -697,14 +654,12 @@ def check_images_available(inputs):
 
 def get_image_info(collection,satname,polygon,dates,**kwargs):
     """
-    Reads info about EE images for the specified collection, satellite and dates
+    Reads info about EE images for the specified collection, sensor and dates
 
     KV WRL 2022
 
     Arguments:
     -----------
-    collection: str
-        name of the collection (e.g. 'LANDSAT/LC08/C02/T1_TOA')
     satname: str
         name of the satellite mission
     polygon: list

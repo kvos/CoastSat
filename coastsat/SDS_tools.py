@@ -23,7 +23,6 @@ from scipy import stats, interpolate
 import pyproj
 import pandas as pd
 import imageio
-import cv2
 from PIL import Image
 
 ###################################################################################################
@@ -898,7 +897,7 @@ def resize_image_to_fixed_size(image, size=(2864, 1440)):
     Returns:
         numpy.ndarray: The resized image.
     """
-    return cv2.resize(image, size)
+    return image.resize(size)
 
 def load_and_resize_images(image_folder, size=(2864, 1440)):
     """
@@ -915,7 +914,7 @@ def load_and_resize_images(image_folder, size=(2864, 1440)):
     for filename in sorted(os.listdir(image_folder)):
         if filename.endswith(".jpg"):
             img_path = os.path.join(image_folder, filename)
-            image = np.array(Image.open(img_path))
+            image = Image.open(img_path)
             resized_image = resize_image_to_fixed_size(image, size)
             images.append((filename, resized_image))
     return images
@@ -937,17 +936,17 @@ def create_animation(image_folder, output_file, fps=4, size=(2864, 1440), probes
     images = load_and_resize_images(image_folder, size)
     
     # Check for different image sizes
-    sizes = [img[1].shape for img in images]
+    sizes = [img[1].size for img in images]
     unique_sizes = set(sizes)
     if len(unique_sizes) > 1:
         print("Images have different sizes: ", unique_sizes)
         for img in images:
-            print(f"{img[0]}: {img[1].shape}")
-        raise ValueError("All images in a movie should have same size")
-    
+            print(f"{img[0]}: {img[1].size}")
+        raise ValueError("All images in a movie should have the same size")
+
     writer = imageio.get_writer(output_file, fps=fps, ffmpeg_params=['-probesize', str(probesize)])
     for filename, image in images:
-        writer.append_data(image)
+        writer.append_data(np.array(image))
     writer.close()
 
 def make_animation_mp4(filepath_images, fps, fn_out):

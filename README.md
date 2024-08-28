@@ -8,7 +8,7 @@ https://github.com/kvos/CoastSat/commits/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2779293.svg)](https://doi.org/10.5281/zenodo.2779293)
 [![Join the chat at https://gitter.im/CoastSat/community](https://badges.gitter.im/spyder-ide/spyder.svg)](https://gitter.im/CoastSat/community)
 
-CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 39 years (and growing) of publicly available satellite imagery (Landsat and Sentinel-2).
+CoastSat is an open-source software toolkit written in Python that enables users to obtain time-series of shoreline position at any coastline worldwide from 40 years (and growing) of publicly available satellite imagery (Landsat and Sentinel-2).
 
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/example.gif)
 
@@ -31,7 +31,6 @@ CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collect
 :arrow_forward: *(2023/07/07)*
 CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
 </details>
- <br>
 <details>
 <summary><strong>Additional resources</strong></summary>
 
@@ -54,7 +53,6 @@ CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the 
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 </details>
- <br>
 <details>
 <summary><strong>Project description</strong></summary>
 
@@ -314,9 +312,18 @@ An example is shown in the animation below:
 #### Computing the intersections (quality-controlled mode)
 
 There is also a more advanced function to compute the intersections `SDS_transects.compute_intersection_QA()`, which provides more quality-control and can deal with small loops, multiple intersections, false detections etc. It is recommended to use this function as it can provide cleaner shoreline time-series. An example of parameter values is provided below, the default parameters should work in most cases (leave as it is if unsure).
-
-<img width="800" alt="Capture" src="https://github.com/kvos/CoastSat/assets/7217258/b2cf1ff7-a4f7-4c5a-b4eb-c2bed7b06c33">
-
+```
+settings_transects = { # parameters for computing intersections
+                      'along_dist':          25,        # along-shore distance to use for computing the intersection
+                      'min_points':          3,         # minimum number of shoreline points to calculate an intersection
+                      'max_std':             15,        # max std for points around transect
+                      'max_range':           30,        # max range for points around transect
+                      'min_chainage':        -100,      # largest negative value along transect (landwards of transect origin)
+                      'multiple_inter':      'auto',    # mode for removing outliers ('auto', 'nan', 'max')
+                      'auto_prc':            0.1,       # percentage of the time that multiple intersects are present to use the max
+                     }
+cross_distance = SDS_transects.compute_intersection_QC(output, transects, settings_transects)
+```
 - `along_dist`: (in metres),
     alongshore distance to caluclate the intersection (median of points
     within this distance).

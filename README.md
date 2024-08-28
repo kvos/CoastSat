@@ -14,7 +14,10 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 *Finding CoastSat useful? Show your support with a Github star — it’s a simple click that helps others discover it* ⭐️
 
-#### Latest toolbox updates
+:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing satellite-derived shoreline datasets generated with CoastSat in the Pacific and Atlantic basins.
+
+<details>
+<summary><strong>Latest updates</strong></summary>
 
 :arrow_forward: *(2024/05/07)*
 CoastSat v2.6: added the tilename at the end of each image filename when downloading so that images can be separated by tiles if needed. Also a number of bug fixes on `matplotlib` and `numpy` from @2320sharon and @thekester.
@@ -22,12 +25,17 @@ CoastSat v2.6: added the tilename at the end of each image filename when downloa
 :arrow_forward: *(2024/04/26)*
 CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
 
-#### Additional resources
+:arrow_forward: *(2023/11/09)*
+CoastSat v2.4: bug & fixes, function to create animations, S2_HARMONIZED collection, better instructions on gcloud installations
 
-:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing datasets of satellite-derived shorelines and beach slopes generated with CoastSat in the Pacific and Atlantic basins.
-
+:arrow_forward: *(2023/07/07)*
+CoastSat v2.3: addition of a better cloud mask for Sentinel-2 imagery using the s2cloudless collection on GEE
+</details>
+ <br>
 <details>
-<summary>:point_down: Other repositories and extensions related to CoastSat:</summary>
+<summary><strong>Additional resources</strong></summary>
+
+ :point_right: Other repositories and extensions related to CoastSat: 
 
 - [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
@@ -36,10 +44,8 @@ CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the do
 - [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
-</details>
 
-<details>
-<summary>:point_down: Publications describing the CoastSat satellite-derived shorelines:</summary>
+ :point_right: Publications describing the CoastSat satellite-derived shorelines:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 - Accuracy assessment: https://doi.org/10.1016/j.coastaleng.2019.04.004
@@ -48,8 +54,9 @@ CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the do
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
 </details>
- 
-### Project description
+ <br>
+<details>
+<summary><strong>Project description</strong></summary>
 
 Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
 The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
@@ -60,6 +67,7 @@ The toolbox has the following functionalities:
 3. intersection of the 2D shorelines with user-defined shore-normal transects.
 4. tidal correction using tide/water levels and an estimate of the beach slope.
 5. post-processing of the shoreline time-series, despiking and seasonal averaging.
+</details>
 
 ### Table of Contents
 

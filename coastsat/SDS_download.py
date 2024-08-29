@@ -508,8 +508,14 @@ def get_metadata(inputs):
                 # read them and extract the metadata info
                 with open(os.path.join(filepath_meta, im_meta), 'r') as f:
                     filename = f.readline().split('\t')[1].replace('\n','')
-                    tilename = f.readline().split('\t')[1].replace('\n','')
-                    epsg = int(f.readline().split('\t')[1].replace('\n',''))
+                    next_line = f.readline().split('\t')[1].replace('\n','')
+                    # if statement to be compatible with older version without tilename
+                    if next_line.isdigit(): 
+                        tilename = 'NA'
+                        epsg = next_line
+                    else:
+                        tilename = next_line
+                        epsg = int(f.readline().split('\t')[1].replace('\n',''))
                     acc_georef = f.readline().split('\t')[1].replace('\n','')
                     im_quality = f.readline().split('\t')[1].replace('\n','')
                     im_width = int(f.readline().split('\t')[1].replace('\n',''))

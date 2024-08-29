@@ -62,6 +62,9 @@ SDS_download.check_images_available(inputs);
 
 #%% 2. Retrieve images
 
+# option to skip L7 images affected by the Scan-Line-Correction error after 31st May 2003
+# inputs['skip_L7_SLC'] = True
+
 # only uncomment this line if you want Landsat Tier 2 images (not suitable for time-series analysis)
 # inputs['include_T2'] = True
 

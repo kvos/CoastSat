@@ -10,6 +10,7 @@ Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 import pdb
 
 # earth engine module
@@ -166,7 +167,7 @@ def retrieve_images(inputs):
             t = im_meta['properties']['system:time_start']
             im_timestamp = datetime.fromtimestamp(t/1000, tz=pytz.utc)
             im_date = im_timestamp.strftime('%Y-%m-%d-%H-%M-%S')
-
+            
             # skip L7 after 2022 as L9 is replacing it
             if im_timestamp.year >= 2022 and satname == 'L7':
                 continue
@@ -175,7 +176,7 @@ def retrieve_images(inputs):
                 if inputs['skip_L7_SLC']:
                     if im_timestamp >= pytz.utc.localize(datetime(2003,5,31)):
                         continue
-
+            
             # get epsg code
             im_epsg = int(im_meta['bands'][0]['crs'][5:])
 
@@ -514,21 +515,21 @@ def get_metadata(inputs):
             filenames_meta.sort()
             # loop through the .txt files
             for im_meta in filenames_meta:
-                # read them and extract the metadata info
-                with open(os.path.join(filepath_meta, im_meta), 'r') as f:
-                    filename = f.readline().split('\t')[1].replace('\n','')
-                    next_line = f.readline().split('\t')[1].replace('\n','')
-                    # if statement to be compatible with older version without tilename
-                    if next_line.isdigit(): 
-                        tilename = 'NA'
-                        epsg = next_line
-                    else:
-                        tilename = next_line
-                        epsg = int(f.readline().split('\t')[1].replace('\n',''))
-                    acc_georef = f.readline().split('\t')[1].replace('\n','')
-                    im_quality = f.readline().split('\t')[1].replace('\n','')
-                    im_width = int(f.readline().split('\t')[1].replace('\n',''))
-                    im_height = int(f.readline().split('\t')[1].replace('\n',''))
+                # read the file and extract the metadata info
+                df = pd.read_csv(os.path.join(filepath_meta, im_meta),sep='\t', 
+                                 names=['property','value'])
+                df.set_index('property', inplace=True)
+                # if statement to be compatible with older version without tilename
+                filename = df.at['filename','value']
+                if 'tile' in df.index:
+                    tilename = df.at['tile','value']
+                else:
+                    tilename = 'NA'
+                epsg = df.at['epsg','value']    
+                acc_georef = df.at['acc_georef','value'] 
+                im_quality = df.at['image_quality','value'] 
+                im_width = df.at['im_width','value'] 
+                im_height = df.at['im_height','value'] 
                 date_str = filename[0:19]
                 date = pytz.utc.localize(datetime(int(date_str[:4]),int(date_str[5:7]),
                                                   int(date_str[8:10]),int(date_str[11:13]),

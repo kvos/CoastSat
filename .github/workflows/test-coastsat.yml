@@ -23,14 +23,14 @@ jobs:
           uses: conda-incubator/setup-miniconda@v2
           with:
             activate-environment: coastsat-env
-            python-version: 3.11
+            python-version: 3.12
   
         - name: Recreate Conda Environment
           shell: bash -l {0}
           run: |
             conda deactivate
             conda remove --name coastsat-env --all -y
-            conda create --name coastsat-env python=3.11 -y
+            conda create --name coastsat-env python=3.12 -y
             conda activate coastsat-env
   
         - name: Initialize Conda and Install Dependencies

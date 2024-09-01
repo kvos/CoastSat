@@ -3,37 +3,41 @@ name: Test CoastSat
 on:
   push:
     branches:
-      - github-actions  # Trigger the workflow on push events to the 'github-actions' branch
+      - github-actions
   pull_request:
     branches:
-      - master  # Trigger the workflow on pull requests to the 'master' branch
+      - master
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # The workflow runs on the latest version of Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3  # Checks out the repository code
+      uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v4  # Sets up Python environment
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.8'  # Specifies the Python version to use
+        python-version: '3.11'  # You can specify the latest stable version of Python here
 
     - name: Install Miniconda
-      uses: conda-incubator/setup-miniconda@v2  # Installs Miniconda to manage the Conda environment
+      uses: conda-incubator/setup-miniconda@v2
       with:
-        activate-environment: coastsat-env  # Activates the 'coastsat-env' environment
-        python-version: 3.8  # Ensures Python version in the Conda environment matches the project's Python version
+        activate-environment: coastsat-env
+        python-version: 3.11  # Match the Python version in Conda environment
 
-    - name: Create CoastSat environment
+    - name: Initialize Conda
+      shell: bash -l {0}
       run: |
-        conda install -c conda-forge geopandas -y  # Installs geopandas using Conda
-        conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y  # Installs additional dependencies
-        pip install pyqt5 imageio-ffmpeg  # Installs PyQt5 and imageio-ffmpeg using pip
+        conda init bash
+        source ~/.bashrc
+        conda activate coastsat-env
+        conda install -c conda-forge geopandas -y
+        conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
+        pip install pyqt5 imageio-ffmpeg
 
     - name: Run Jupyter Notebook as test
       run: |
-        conda activate coastsat-env  # Activates the 'coastsat-env' environment
-        jupyter nbconvert --to notebook --execute example_jupyter.ipynb  # Executes the example Jupyter Notebook to ensure it runs successfully
+        conda activate coastsat-env
+        jupyter nbconvert --to notebook --execute example_jupyter.ipynb

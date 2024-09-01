@@ -1,0 +1,63 @@
+on:
+    push:
+      branches:
+        - github-actions
+    pull_request:
+      branches:
+        - master
+
+jobs:
+    test:
+      runs-on: ubuntu-latest
+  
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+  
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.12'
+  
+        - name: Install Miniconda
+          uses: conda-incubator/setup-miniconda@v2
+          with:
+            activate-environment: coastsat-env
+            python-version: 3.12
+  
+        - name: Recreate Conda Environment
+          shell: bash -l {0}
+          run: |
+            conda deactivate
+            conda remove --name coastsat-env --all -y
+            conda create --name coastsat-env python=3.12 -y
+            conda activate coastsat-env
+  
+        - name: Initialize Conda and Install Dependencies
+          shell: bash -l {0}
+          run: |
+            echo "Initializing Conda..."
+            conda init bash
+            source ~/.bashrc
+            echo "Conda initialized."
+  
+            echo "Activating the environment..."
+            conda activate coastsat-env
+  
+            echo "Installing dependencies..."
+            conda install -c conda-forge sqlite -y
+            conda install -c conda-forge geopandas -y
+            conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
+            pip install pyqt5 imageio-ffmpeg
+  
+            echo "Installed packages:"
+            conda list
+            pip list
+  
+        - name: Run Python Test Script
+          shell: bash -l {0}
+          run: |
+            echo "Running the Python Test Script..."
+            conda activate coastsat-env
+            python test.py
+  

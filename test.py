@@ -36,7 +36,14 @@ def test_coastsat():
     
     # Test the smallest_rectangle function
     rectangle = SDS_tools.smallest_rectangle(polygon)
-    assert len(rectangle[0]) == 4, "CoastSat smallest_rectangle test failed!"
+    
+    # Print the output for debugging
+    print("Output of smallest_rectangle:", rectangle)
+    
+    # Check that the output is a list of exactly 4 vertices
+    assert len(rectangle[0]) == 5, "CoastSat smallest_rectangle test failed! The rectangle should have 5 points (4 vertices plus the closing point)."
+    assert rectangle[0][0] == rectangle[0][-1], "The first and last point should be the same to close the polygon."
+    
     print("Test CoastSat: OK")
 
 if __name__ == "__main__":

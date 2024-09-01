@@ -1,52 +1,54 @@
-name: Test CoastSat
-
 on:
-  push:
-    branches:
-      - github-actions
-  pull_request:
-    branches:
-      - master
-
+    push:
+      branches:
+        - github-actions
+    pull_request:
+      branches:
+        - master
+  
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'  # Use the latest stable version of Python
-
-    - name: Install Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        activate-environment: coastsat-env
-        python-version: 3.11  # Ensure the Python version matches
-
-    - name: Initialize Conda and Install Dependencies
-      shell: bash -l {0}
-      run: |
-        echo "Initializing Conda..."
-        conda init bash
-        source ~/.bashrc
-        echo "Activating the environment..."
-        conda activate coastsat-env
-        
-        echo "Installing dependencies..."
-        conda install -c conda-forge geopandas -y
-        conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
-        pip install pyqt5 imageio-ffmpeg
-        
-        echo "Installed packages:"
-        conda list
-        pip list
-
-    - name: Run Jupyter Notebook as test
-      run: |
-        echo "Running the Jupyter Notebook..."
-        conda activate coastsat-env
-        jupyter nbconvert --to notebook --execute example_jupyter.ipynb --log-level=DEBUG
+    test:
+      runs-on: ubuntu-latest
+  
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+  
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.11'  # Use the latest stable version of Python
+  
+        - name: Install Miniconda
+          uses: conda-incubator/setup-miniconda@v2
+          with:
+            activate-environment: coastsat-env
+            python-version: 3.11  # Ensure the Python version matches
+  
+        - name: Initialize Conda and Install Dependencies
+          shell: bash -l {0}
+          run: |
+            echo "Initializing Conda..."
+            conda init bash
+            source ~/.bashrc
+            echo "Conda initialized."
+  
+            echo "Activating the environment..."
+            conda activate coastsat-env
+  
+            echo "Installing dependencies..."
+            conda install -c conda-forge geopandas -y
+            conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
+            pip install pyqt5 imageio-ffmpeg
+  
+            echo "Installed packages:"
+            conda list
+            pip list
+  
+        - name: Run Jupyter Notebook as test
+          shell: bash -l {0}
+          run: |
+            echo "Running the Jupyter Notebook..."
+            conda activate coastsat-env
+            jupyter nbconvert --to notebook --execute example_jupyter.ipynb --log-level=DEBUG
+  

@@ -5,7 +5,7 @@ on:
     pull_request:
       branches:
         - master
-  
+
 jobs:
     test:
       runs-on: ubuntu-latest
@@ -54,10 +54,10 @@ jobs:
             conda list
             pip list
   
-        - name: Run Jupyter Notebook as test
+        - name: Run Python Test Script
           shell: bash -l {0}
           run: |
-            echo "Running the Jupyter Notebook..."
+            echo "Running the Python Test Script..."
             conda activate coastsat-env
-            jupyter nbconvert --to notebook --execute example_jupyter.ipynb --log-level=DEBUG
+            python test.py
   

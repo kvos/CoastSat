@@ -14,7 +14,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 
 *Finding CoastSat useful? Show your support with a Github star — it’s a simple click that helps others discover it* ⭐️
 
-:point_right: Visit the [CoastSat website](http://coastsat.wrl.unsw.edu.au/) to explore and download existing satellite-derived shoreline datasets generated with CoastSat in the Pacific and Atlantic basins.
+:point_right: Visit the [CoastSat website](http://coastsat.space) to explore and download existing satellite-derived shoreline datasets generated with CoastSat in the Pacific and Atlantic basins.
 
 <details>
 <summary><strong>Latest updates</strong></summary>

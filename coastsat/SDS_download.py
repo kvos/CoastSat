@@ -809,77 +809,71 @@ def download_tif(image, polygon, bands, filepath, satname):
     Downloads an image in a file named data.tif
 
     """
-
-    # for the old version of ee raise an exception
-    if int(ee.__version__[-3:]) <= 201:
-        raise Exception('CoastSat2.0 and above is not compatible with earthengine-api version below 0.1.201.' +\
-                        'Try downloading a previous CoastSat version (1.x).')
-    # for the newer versions of ee
-    else:       
-        # crop and download
-        download_id = ee.data.getDownloadId({'image': image,
-                                             'region': polygon,
-                                             'bands': bands,
-                                             'filePerBand': True,
-                                             'name': 'image'})
-        response = requests.get(ee.data.makeDownloadUrl(download_id))  
-        fp_zip = os.path.join(filepath,'temp.zip')
-        with open(fp_zip, 'wb') as fd:
-          fd.write(response.content) 
-        # unzip the individual bands
-        with zipfile.ZipFile(fp_zip) as local_zipfile:
-            for fn in local_zipfile.namelist():
-                local_zipfile.extract(fn, filepath)
-            fn_all = [os.path.join(filepath,_) for _ in local_zipfile.namelist()]
-        os.remove(fp_zip)
-        # now process the individual bands:
-        # - for Landsat
-        if satname in ['L5','L7','L8','L9']:
-            # if there is only one band, it's the panchromatic
-            if len(fn_all) == 1:
-                # return the filename of the .tif
-                return fn_all[0]
-            # otherwise there are multiple multispectral bands so we have to merge them into one .tif
-            else:
-                # select all ms bands except the QA band (which is processed separately)
-                fn_tifs = [_ for _ in fn_all if not 'QA' in _]
-                filename = 'ms_bands.tif'
-                # build a VRT and merge the bands (works the same with pan band)
-                outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
-                                      fn_tifs, separate=True)
-                outds = gdal.Translate(os.path.join(filepath,filename), outds) 
-                # remove temporary files
-                os.remove(os.path.join(filepath,'temp.vrt'))
-                for _ in fn_tifs: os.remove(_)
-                if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
-                    os.remove(os.path.join(filepath,filename+'.aux.xml'))
-                # return file names (ms and QA bands separately)
-                fn_image = os.path.join(filepath,filename)
-                fn_QA = [_ for _ in fn_all if 'QA' in _][0]
-                return fn_image, fn_QA
-        # - for Sentinel-2
-        if satname in ['S2']:
-            # if there is only one band, it's either the SWIR1 or QA60
-            if len(fn_all) == 1:
-                # return the filename of the .tif
-                return fn_all[0]
-            # otherwise there are multiple multispectral bands so we have to merge them into one .tif
-            else:
-                # select all ms bands except the QA band (which is processed separately)
-                fn_tifs = fn_all
-                filename = 'ms_bands.tif'
-                # build a VRT and merge the bands (works the same with pan band)
-                outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
-                                      fn_tifs, separate=True)
-                outds = gdal.Translate(os.path.join(filepath,filename), outds) 
-                # remove temporary files
-                os.remove(os.path.join(filepath,'temp.vrt'))
-                for _ in fn_tifs: os.remove(_)
-                if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
-                    os.remove(os.path.join(filepath,filename+'.aux.xml'))
-                # return filename of the merge .tif file
-                fn_image = os.path.join(filepath,filename)
-                return fn_image           
+     
+    # crop and download
+    download_id = ee.data.getDownloadId({'image': image,
+                                         'region': polygon,
+                                         'bands': bands,
+                                         'filePerBand': True,
+                                         'name': 'image'})
+    response = requests.get(ee.data.makeDownloadUrl(download_id))  
+    fp_zip = os.path.join(filepath,'temp.zip')
+    with open(fp_zip, 'wb') as fd:
+      fd.write(response.content) 
+    # unzip the individual bands
+    with zipfile.ZipFile(fp_zip) as local_zipfile:
+        for fn in local_zipfile.namelist():
+            local_zipfile.extract(fn, filepath)
+        fn_all = [os.path.join(filepath,_) for _ in local_zipfile.namelist()]
+    os.remove(fp_zip)
+    # now process the individual bands:
+    # - for Landsat
+    if satname in ['L5','L7','L8','L9']:
+        # if there is only one band, it's the panchromatic
+        if len(fn_all) == 1:
+            # return the filename of the .tif
+            return fn_all[0]
+        # otherwise there are multiple multispectral bands so we have to merge them into one .tif
+        else:
+            # select all ms bands except the QA band (which is processed separately)
+            fn_tifs = [_ for _ in fn_all if not 'QA' in _]
+            filename = 'ms_bands.tif'
+            # build a VRT and merge the bands (works the same with pan band)
+            outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
+                                  fn_tifs, separate=True)
+            outds = gdal.Translate(os.path.join(filepath,filename), outds) 
+            # remove temporary files
+            os.remove(os.path.join(filepath,'temp.vrt'))
+            for _ in fn_tifs: os.remove(_)
+            if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
+                os.remove(os.path.join(filepath,filename+'.aux.xml'))
+            # return file names (ms and QA bands separately)
+            fn_image = os.path.join(filepath,filename)
+            fn_QA = [_ for _ in fn_all if 'QA' in _][0]
+            return fn_image, fn_QA
+    # - for Sentinel-2
+    if satname in ['S2']:
+        # if there is only one band, it's either the SWIR1 or QA60
+        if len(fn_all) == 1:
+            # return the filename of the .tif
+            return fn_all[0]
+        # otherwise there are multiple multispectral bands so we have to merge them into one .tif
+        else:
+            # select all ms bands except the QA band (which is processed separately)
+            fn_tifs = fn_all
+            filename = 'ms_bands.tif'
+            # build a VRT and merge the bands (works the same with pan band)
+            outds = gdal.BuildVRT(os.path.join(filepath,'temp.vrt'),
+                                  fn_tifs, separate=True)
+            outds = gdal.Translate(os.path.join(filepath,filename), outds) 
+            # remove temporary files
+            os.remove(os.path.join(filepath,'temp.vrt'))
+            for _ in fn_tifs: os.remove(_)
+            if os.path.exists(os.path.join(filepath,filename+'.aux.xml')):
+                os.remove(os.path.join(filepath,filename+'.aux.xml'))
+            # return filename of the merge .tif file
+            fn_image = os.path.join(filepath,filename)
+            return fn_image           
 
 def warp_image_to_target(fn_in,fn_out,fn_target,double_res=True,resampling_method='bilinear'):
     """
@@ -1265,20 +1259,11 @@ def merge_overlapping_images(metadata,inputs):
                     mask10 = morphology.dilation(im_binary, morphology.square(3))
                     # mask the 10m .tif file (add no_data where mask is True)
                     SDS_tools.mask_raster(fn_im[index][0], mask10)    
-                    # now calculate the mask for the 20m band (SWIR1)
-                    # for the older version of the ee api calculate the image std again 
-                    if int(ee.__version__[-3:]) <= 201:
-                        # calculate std to create another mask for the 20m band (SWIR1)
-                        im_std = SDS_tools.image_std(im_extra,1)
-                        im_binary = np.logical_or(im_std < 1e-6, np.isnan(im_std))
-                        mask20 = morphology.dilation(im_binary, morphology.square(3))    
-                    # for the newer versions just resample the mask for the 10m bands
-                    else:
-                        # create mask for the 20m band (SWIR1) by resampling the 10m one
-                        mask20 = ndimage.zoom(mask10,zoom=1/2,order=0)
-                        mask20 = transform.resize(mask20, im_extra.shape, mode='constant',
-                                                  order=0, preserve_range=True)
-                        mask20 = mask20.astype(bool)     
+                    # create mask for the 20m band (SWIR1) by resampling the 10m one
+                    mask20 = ndimage.zoom(mask10,zoom=1/2,order=0)
+                    mask20 = transform.resize(mask20, im_extra.shape, mode='constant',
+                                              order=0, preserve_range=True)
+                    mask20 = mask20.astype(bool)     
                     # mask the 20m .tif file (im_extra)
                     SDS_tools.mask_raster(fn_im[index][1], mask20)
                     # create a mask for the 60m QA band by resampling the 20m one

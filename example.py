@@ -42,7 +42,6 @@ dates = ['1984-01-01', '2022-01-01']
 
 # satellite missions
 sat_list = ['L5','L7','L8']
-collection = 'C02' # choose Landsat collection 'C01' or 'C02'
 # name of the site
 sitename = 'NARRA'
 
@@ -56,13 +55,15 @@ inputs = {
     'sat_list': sat_list,
     'sitename': sitename,
     'filepath': filepath_data,
-    'landsat_collection': collection
         }
 
 # before downloading the images, check how many images are available for your inputs
 SDS_download.check_images_available(inputs);
 
 #%% 2. Retrieve images
+
+# option to skip L7 images affected by the Scan-Line-Correction error after 31st May 2003
+# inputs['skip_L7_SLC'] = True
 
 # only uncomment this line if you want Landsat Tier 2 images (not suitable for time-series analysis)
 # inputs['include_T2'] = True

@@ -226,7 +226,6 @@ settings = {
 ```
 
 </details>
-<br>
 
 Before mapping the shorelines, it is **HIGHLY RECOMMENDED** to digitize a reference shoreline in order to improve the detection. 
 This can be done by calling `settings['reference_shoreline'] = SDS_preprocess.get_reference_sl_manual(metadata, settings)`, which allows the user to manually digitize the reference shoreline on a cloud-free image. Then you can set the maximum distance from the reference shoreline where shoreline points can be detection using `settings['max_dist_ref']`.
@@ -247,7 +246,6 @@ This function allows the user to click points along the shoreline on cloud-free 
 The maximum distance (in metres) allowed from the reference shoreline is defined by the parameter `max_dist_ref`. This parameter is set to a default value of 100 m. If you think that 100 m buffer from the reference shoreline will not capture the shoreline variability at your site, increase the value of this parameter. This may be the case for large nourishments or eroding/accreting coastlines.
 
 </details>
-<br>
 
 Additionally, there is the option to visualise the images and create a timelapse (MP4) using the code below:
 <details>
@@ -287,7 +285,6 @@ If `adjust_detection` was set to `True` in `settings`, a figure like the one bel
 ![Alt text](https://github.com/kvos/CoastSat/blob/master/doc/adjust_shorelines.gif)
 
 </details>
-<br>
 
 Once all the shorelines have been mapped, the output is saved in two different formats (under */filepath/data/SITENAME*):
 - `SITENAME_output.pkl`: contains a list with the shoreline coordinates, the exact timestamp at which the image was captured (UTC time), the geometric accuracy and the cloud cover of each individual image. This list can be manipulated with Python, a snippet of code to plot the results is provided in the example script.
@@ -310,7 +307,6 @@ There are some additional parameters that can be modified to optimise the shorel
 - `pan_off`: by default Landsat 7, 8 and 9 images are pan-sharpened using the panchromatic band and a PCA algorithm. If for any reason you prefer not to pan-sharpen the Landsat images, switch it off by setting `pan_off` to `True`.
 - `s2cloudless_prob`: by default set to 60, this is the threshold to identify cloudy pixels in the s2cloudless probability mask. If you see that too many cloudy pixels appear on the image increase the threshold, if too many cloudy pixels are missed lower the threshold (reasonable range between 20 and 80).
 </details>
-<br>
 
 Finally, the provided classifiers may not be able to detect sand accurately at certain beaches so you have the option to re-train your own classifier in a separate [notebook](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md). 
 <details>
@@ -319,9 +315,7 @@ Finally, the provided classifiers may not be able to detect sand accurately at c
 CoastSat's shoreline mapping alogorithm uses an image classification scheme to label each pixel into 4 classes: sand, water, white-water and other land features. While this classifier has been trained using a wide range of different beaches, it may be that it does not perform very well at specific sites that it has never seen before. You can try the different classifiers already available in the `/classification` folder by changing the `settings['sand_color']` parameter to `latest`, `dark` or `bright`, but if none of those fit your data you can label images of your own site and uses those labels to train a new classifier specifically for your site. This process is implemented in a separate Jupyter notebook [re-train CoastSat classifier](https://github.com/kvos/CoastSat/blob/master/doc/train_new_classifier.md) located in the */classification* folder.
 
 Once you have trained your new classifier, a new .pkl file will be created in */classification/models*. In order to use it for shoreline mapping, you will need to open the script `SDS_shorelines` located in /coastsat and go to lines 132-134 and change the filename to match your new classifier .pkl file.
-
 </details>
-
 
 ### 2.3 Shoreline intersections with transects<a name="analysis"></a>
 
@@ -364,7 +358,7 @@ cross_distance = SDS_transects.compute_intersection(output, transects, settings)
 The parameter `along_dist` defines the along-shore distance around the transect over which shoreline points are selected to compute the intersection. The default value is 25 m, which means that the intersection is computed as the median of the points located within 25 m of the transect (50 m alongshore-median). This helps to smooth out localised water levels in the swash zone.
 
 </details>
-<br>
+
 <details>
 <summary><strong> Quality-controlled intersections (RECOMMENDED)</strong></summary>
 

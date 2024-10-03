@@ -1,4 +1,4 @@
-# SETUP OF FES2022
+# FES2022 SETUP INSTRUCTIONS
 
 This document shows how to setup the FES2022 global tide model to get modelled tides at a given location for a given time period.
 

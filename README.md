@@ -400,7 +400,7 @@ In order to tidally-correct the time-series of shoreline change, two inputs are 
 
 In the notebook, the user has two options for the tide level time-series:
 - **Option 1**: use a CSV file with the time-series of water levels (at least 15/30 min timestep). Note that this file should be formatted as the one provided in */examples* [NARRA_tides.csv](https://github.com/kvos/CoastSat/blob/master/examples/NARRA_tides.csv). Dates should be in UTC time and tides in metres above mean sea level.
-- **Option 2**: use the [FES2022](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) global tide model to predict tide levels at your beach. This requires you to have FES2022 setup, follow the instructions in [this document](https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup). Once installed, you can predict tides for any dates at any location in the world!
+- **Option 2**: use the [FES2022](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) global tide model to predict tide levels at your beach. This requires you to have FES2022 setup, follow the instructions in [this document](https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup.md). Once installed, you can predict tides for any dates at any location in the world!
 
 ![example_tides](https://github.com/user-attachments/assets/f0b0c29d-2db8-450c-86f2-73614a6a0940)
 

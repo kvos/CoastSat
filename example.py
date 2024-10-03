@@ -20,6 +20,7 @@ from scipy import interpolate
 from scipy import stats
 from datetime import datetime, timedelta
 import pytz
+from pyproj import CRS
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
 # region of interest (longitude, latitude in WGS84)
@@ -38,10 +39,10 @@ polygon = [[[151.301454, -33.700754],
 polygon = SDS_tools.smallest_rectangle(polygon)
 
 # date range
-dates = ['1984-01-01', '2022-01-01']
+dates = ['1984-01-01', '2025-01-01']
 
 # satellite missions
-sat_list = ['L5','L7','L8']
+sat_list = ['L5','L7','L8','L9']
 # name of the site
 sitename = 'NARRA'
 
@@ -119,11 +120,11 @@ output = SDS_tools.remove_duplicates(output)
 output = SDS_tools.remove_inaccurate_georef(output, 10)
 
 # for GIS applications, save output into a GEOJSON layer
-geomtype = 'points' # choose 'points' or 'lines' for the layer geometry
+geomtype = 'lines' # choose 'points' or 'lines' for the layer geometry
 gdf = SDS_tools.output_to_gdf(output, geomtype)
 if gdf is None:
     raise Exception("output does not contain any mapped shorelines")
-gdf.crs = {'init':'epsg:'+str(settings['output_epsg'])} # set layer projection
+gdf.crs = CRS(settings['output_epsg']) # set layer projection
 # save GEOJSON layer to file
 gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.geojson'%(sitename,geomtype)),
                                 driver='GeoJSON', encoding='utf-8')
@@ -247,27 +248,52 @@ print('Time-series of the shoreline change along the transects saved as:\n%s'%fn
 
 #%% 4. Tidal correction
 
-# For this example, measured water levels for Sydney are stored in a csv file located in /examples.
-# When using your own file make sure that the dates are in UTC time, as the CoastSat shorelines are also in UTC
-# and the datum for the water levels is approx. Mean Sea Level. We assume a beach slope of 0.1 here.
+# For this example, we can use the FES2022 global tide model to predict tides at our beach for all the image times.
+# To setup FES2022, follow the instructions at https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup
 
-# load the measured tide data
-filepath = os.path.join(os.getcwd(),'examples','NARRA_tides.csv')
-tide_data = pd.read_csv(filepath, parse_dates=['dates'])
-dates_ts = [pd.to_datetime(_).to_pydatetime() for _ in tide_data['dates']]
-tides_ts = np.array(tide_data['tide'])
+# load pyfes and the global tide model (may take one minute)
+import pyfes
+# enter the location of where you downloaded the FES2022 data
+filepath = os.path.join(os.pardir,'CoastSat.webgis','aviso-fes-main','data','fes2022b')
+config =  os.path.join(filepath, 'fes2022.yaml')
+handlers = pyfes.load_config(config)
+ocean_tide = handlers['tide']
+load_tide = handlers['radial']
+# load coastsat module to estimate slopes
+from coastsat import SDS_slopes
 
+# get polygon centroid
+centroid = np.mean(polygon[0], axis=0)
+print(centroid)
+
+# get tides time-series (15 minutes timestep)
+date_range = [pytz.utc.localize(datetime(2024,1,1)),
+              pytz.utc.localize(datetime(2025,1,1))]
+timestep = 900 # seconds
+dates_ts, tides_ts = SDS_slopes.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
 # get tide levels corresponding to the time of image acquisition
 dates_sat = output['dates']
-tides_sat = SDS_tools.get_closest_datapoint(dates_sat, dates_ts, tides_ts)
+tides_sat = SDS_slopes.compute_tide_dates(centroid, output['dates'], ocean_tide, load_tide)
+
+# If you have measure tide levels you can also use those instead.
+# When using your own file make sure that the dates are in UTC time, as the CoastSat shorelines are also in UTC
+# and the datum for the water levels is approx. Mean Sea Level. Timestep should be 15 to 30 minutes.
+# load your own file with measure tide data
+# filepath = os.path.join(os.getcwd(),'examples','NARRA_tides.csv')
+# tide_data = pd.read_csv(filepath, parse_dates=['dates'])
+# dates_ts = [pd.to_datetime(_).to_pydatetime() for _ in tide_data['dates']]
+# tides_ts = np.array(tide_data['tide'])
+# get tide levels corresponding to the time of image acquisition
+# dates_sat = output['dates']
+# tides_sat = SDS_tools.get_closest_datapoint(dates_sat, dates_ts, tides_ts)
 
 # plot the subsampled tide data
 fig, ax = plt.subplots(1,1,figsize=(15,4), tight_layout=True)
 ax.grid(which='major', linestyle=':', color='0.5')
 ax.plot(dates_ts, tides_ts, '-', color='0.6', label='all time-series')
 ax.plot(dates_sat, tides_sat, '-o', color='k', ms=6, mfc='w',lw=1, label='image acquisition')
-ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Water levels at the time of image acquisition')
-ax.legend()
+ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Tide levels at the time of image acquisition');
+ax.legend();
 
 # tidal correction along each transect
 reference_elevation = 0.7 # elevation at which you would like the shoreline time-series to be

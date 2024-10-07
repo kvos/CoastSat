@@ -276,9 +276,11 @@ def find_tide_peak(dates,tide_level,settings):
         ax = fig.add_subplot(111)
         ax.grid(linestyle=':', color='0.5')
         ax.plot(freqs,ps_tide)
-        ax.set_title('$\Delta t$ = %d days'%settings['n_days'], x=0, ha='left')
+        ax.set_title('Power Spectrum Density of tide time-series - $\Delta t$ = %d days (Nyquist limit = %d days)'%(settings['n_days'],2*settings['n_days']),
+                     x=0, ha='left')
         ax.set(xticks=[(days_in_year*seconds_in_day)**-1, (30*seconds_in_day)**-1, (16*seconds_in_day)**-1, (8*seconds_in_day)**-1],
-                       xticklabels=['1y','1m','16d','8d']);        
+                       xticklabels=['1y','1m','16d','8d'])
+        ax.set(ylabel='PSD',xlabel='frequency')
         # show top 3 peaks
         for k in range(3):
             ax.plot(freqs[idx_peaks[k]], ps_tide[idx_peaks[k]], 'ro', ms=4)
@@ -291,7 +293,7 @@ def find_tide_peak(dates,tide_level,settings):
         ax.axvline(x=freqs[-1]-settings['delta_f'], ls='--', c='k')
     return freqs_max 
 
-def integrate_power_spectrum(dates_rand,tsall,settings):
+def integrate_power_spectrum(dates_rand,tsall,settings,key=None):
     'integrate power spectrum at the frequency band of peak tidal signal'
     t = np.array([_.timestamp() for _ in dates_rand]).astype('float64')
     seconds_in_day = 24*3600
@@ -305,13 +307,12 @@ def integrate_power_spectrum(dates_rand,tsall,settings):
         ps, _, _ = power_spectrum(t,tsall[i],freqs,[])
         E[i] = sintegrate.simpson(ps[idx_interval], x=freqs[idx_interval])
     # calculate confidence interval
-    delta = 0.0001
-    prc = 0.05
+    delta = settings['delta_slope']/2
     f = sinterpolate.interp1d(beach_slopes, E, kind='linear')
-    beach_slopes_interp = range_slopes(settings['slope_min'],settings['slope_max']-delta,delta)
+    beach_slopes_interp = range_slopes(settings['slope_min'],settings['slope_max'],delta)
     E_interp = f(beach_slopes_interp)
     # find values below minimum + 5%
-    slopes_min = beach_slopes_interp[np.where(E_interp <= np.min(E)*(1+prc))[0]]
+    slopes_min = beach_slopes_interp[np.where(E_interp <= np.min(E)*(1+settings['prc_conf']))[0]]
     if len(slopes_min) > 1:
         ci = [slopes_min[0],slopes_min[-1]]
     else:
@@ -319,22 +320,32 @@ def integrate_power_spectrum(dates_rand,tsall,settings):
     
     # plot energy vs slope curve
     if settings['plot_fig']:
+        # plot energy vs slope curve
         fig = plt.figure()
         fig.set_size_inches([12,4])
         fig.set_tight_layout(True)
         ax = fig.add_subplot(111)
         ax.grid(linestyle=':', color='0.5')
-        ax.set(title='Energy in tidal frequency band', xlabel='slope values',ylabel='energy')
-        ax.plot(beach_slopes,E,'-k',lw=1.5)
+        ax.set(title='Transect %s - Energy in tidal frequency band for each slope'%key,
+               xlabel='Slope values',ylabel='Energy')
+        ax.plot(beach_slopes_interp,E_interp,'-k',lw=1.5)
         cmap = cm.get_cmap('RdYlGn')
         color_list = cmap(np.linspace(0,1,len(beach_slopes)))
         for i in range(len(beach_slopes)): ax.plot(beach_slopes[i], E[i],'o',ms=8,mec='k',mfc=color_list[i,:])
-        blue_circle = ax.plot(beach_slopes[np.argmin(E)],np.min(E),'bo',ms=14,mfc='None',mew=2, label='%.3f'%beach_slopes[np.argmin(E)])
-        ax.legend(handles=blue_circle)
-        ax.plot(ci,[beach_slopes[np.argmin(E)],beach_slopes[np.argmin(E)]],'k-',lw=2)
+        ax.plot(beach_slopes[np.argmin(E)],np.min(E),'bo',ms=14,mfc='None',mew=2)
+        ax.text(0.65,0.85,
+                'slope estimate = %.3f\nconf. band = [%.4f , %.4f]'%(beach_slopes[np.argmin(E)],ci[0],ci[1]),
+                transform=ax.transAxes,va='center',ha='left',
+                bbox=dict(boxstyle='round', ec='k',fc='w', alpha=0.5),fontsize=12)
+        ax.axhspan(ymin=np.min(E),ymax=np.min(E)*(1+settings['prc_conf']),fc='0.7',alpha=0.5)
+        ybottom = ax.get_ylim()[0]
+        ax.plot([ci[0],ci[0]],[ybottom,f(ci[0])],'k--',lw=1,zorder=0)
+        ax.plot([ci[1],ci[1]],[ybottom,f(ci[1])],'k--',lw=1,zorder=0)
+        ax.plot([ci[0],ci[1]],[ybottom,ybottom],'k--',lw=1,zorder=0)
+        
     return beach_slopes[np.argmin(E)], ci
 
-def plot_spectrum_all(dates_rand,composite,tsall,settings):
+def plot_spectrum_all(dates_rand,composite,tsall,settings, slope_est):
     'plot the spectrum of the tidally-corrected time-series of shoreline change'
     t = np.array([_.timestamp() for _ in dates_rand]).astype('float64')
     seconds_in_day = 24*3600
@@ -342,33 +353,31 @@ def plot_spectrum_all(dates_rand,composite,tsall,settings):
     time_step = settings['n_days']*seconds_in_day
     freqs = frequency_grid(t,time_step,settings['n0'])    
     beach_slopes = range_slopes(settings['slope_min'], settings['slope_max'], settings['delta_slope'])
-    
-    # make figure 1
-    fig = plt.figure()
-    fig.set_size_inches([12,5])
-    fig.set_tight_layout(True)
+    # colormaps
     cmap = cm.get_cmap('RdYlGn')
     color_list = cmap(np.linspace(0,1,len(beach_slopes)))
     indices = np.arange(0,len(beach_slopes))
-    # axis labels
-    freq_1month = 1/(days_in_year*seconds_in_day/12)
-    xt = freq_1month/np.array([12,3,1, 20/(days_in_year/12), 16/(days_in_year/12)])
-    xl = ['1y', '3m', '1m', '20d', '16d']
-    # loop for plots
-    ax = fig.add_subplot(111)
-    ax.grid(which='major', linestyle=':', color='0.5')
-    ax.set(xticks=xt, xticklabels=xl, title='Power Spectrum of tidally-corrected time-series', ylabel='amplitude')
-    for i,idx in enumerate(indices):
-        # compute spectrum
-        ps,_,_ = power_spectrum(t,tsall[idx],freqs,[])
-        ax.plot(freqs, ps, '-', color=color_list[idx,:], lw=1)
-    # draw some references
-    ax.axvline(x=settings['freqs_max'][0], ls='--', c='0.5')
-    ax.axvline(x=settings['freqs_max'][1], ls='--', c='0.5')
-    ax.axvline(x=freqs[-1]-settings['delta_f'], ls='--', c='k')
     
-    # close figure 1
-    plt.close(fig)
+    # make figure 1
+    # fig = plt.figure()
+    # fig.set_size_inches([12,5])
+    # fig.set_tight_layout(True)
+    # # axis labels
+    # freq_1month = 1/(days_in_year*seconds_in_day/12)
+    # xt = freq_1month/np.array([12,3,1, 20/(days_in_year/12), 16/(days_in_year/12)])
+    # xl = ['1y', '3m', '1m', '20d', '16d']
+    # # loop for plots
+    # ax = fig.add_subplot(111)
+    # ax.grid(which='major', linestyle=':', color='0.5')
+    # ax.set(xticks=xt, xticklabels=xl, title='Power Spectrum of tidally-corrected time-series', ylabel='amplitude')
+    # for i,idx in enumerate(indices):
+    #     # compute spectrum
+    #     ps,_,_ = power_spectrum(t,tsall[idx],freqs,[])
+    #     ax.plot(freqs, ps, '-', color=color_list[idx,:], lw=1)
+    # # draw some references
+    # ax.axvline(x=settings['freqs_max'][0], ls='--', c='0.5')
+    # ax.axvline(x=settings['freqs_max'][1], ls='--', c='0.5')
+    # ax.axvline(x=freqs[-1]-settings['delta_f'], ls='--', c='k')
     
     # make figure 2
     fig = plt.figure()
@@ -388,14 +397,14 @@ def plot_spectrum_all(dates_rand,composite,tsall,settings):
         ax.plot(freqs[idx_interval], ps[idx_interval], '-', color=color_list[idx,:], lw=1) 
     # non-corrected time-series
     ps,_,_ = power_spectrum(t,composite,freqs,[])
-    ax.plot(freqs[idx_interval], ps[idx_interval], '--', color='b', lw=1.5)   
+    ax.plot(freqs[idx_interval], ps[idx_interval], '--', color='k', lw=1.5)   
     # true slope
-    idx_true = np.where(beach_slopes == settings['beach_slope'])[0][0]
+    idx_true = np.where(beach_slopes == slope_est)[0][0]
     ps,_,_ = power_spectrum(t,tsall[idx_true],freqs,[])
-    ax.plot(freqs[idx_interval], ps[idx_interval], '--', color='k', lw=1.5)
+    ax.plot(freqs[idx_interval], ps[idx_interval], '--', color='b', lw=1.5)
     # add legend
-    nc_line = lines.Line2D([],[],ls='--', c='b', lw=1.5, label='non-corrected time-series')
-    true_line = lines.Line2D([],[],ls='--', c='k', lw=1.5, label='true slope (%.3f)'%settings['beach_slope'])
+    nc_line = lines.Line2D([],[],ls='--', c='k', lw=1.5, label='non-corrected time-series')
+    true_line = lines.Line2D([],[],ls='--', c='b', lw=1.5, label='min. energy slope (%.3f)'%slope_est)
     ax.legend(handles=[nc_line, true_line], loc=2)
     
 ###################################################################################################
@@ -437,7 +446,7 @@ def get_min_max3(cross_distance):
     xmin = -np.max([np.abs(xmin),np.abs(xmax)]) 
     return [xmin, xmax]
 
-def plot_timestep(dates, timestep):
+def plot_timestep(dates, timestep=8):
     'plot the distribution of the timestep for given dates'
     seconds_in_day = 3600*24
     t = np.array([_.timestamp() for _ in dates]).astype('float64')
@@ -448,4 +457,4 @@ def plot_timestep(dates, timestep):
     bins = np.arange(np.min(delta_t)/seconds_in_day, np.max(delta_t)/seconds_in_day+1,1)-0.5
     ax.hist(delta_t/seconds_in_day, bins=bins, ec='k', width=1);
     ax.set(xlabel='timestep [days]', ylabel='counts', xticks=timestep*np.arange(0,20),
-           xlim=[0,50], title='Timestep distribution');
+           xlim=[-1,50], title='Timestep distribution');

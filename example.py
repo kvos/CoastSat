@@ -21,7 +21,7 @@ from scipy import stats
 from datetime import datetime, timedelta
 import pytz
 from pyproj import CRS
-from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
+from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects, SDS_slope
 
 # region of interest (longitude, latitude in WGS84)
 polygon = [[[151.301454, -33.700754],
@@ -246,7 +246,7 @@ fn = os.path.join(settings['inputs']['filepath'],settings['inputs']['sitename'],
 df.to_csv(fn, sep=',')
 print('Time-series of the shoreline change along the transects saved as:\n%s'%fn)
 
-#%% 4. Tidal correction
+#%% 5. Tidal correction
 
 # For this example, we can use the FES2022 global tide model to predict tides at our beach for all the image times.
 # To setup FES2022, follow the instructions at https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup
@@ -259,8 +259,6 @@ config =  os.path.join(filepath, 'fes2022.yaml')
 handlers = pyfes.load_config(config)
 ocean_tide = handlers['tide']
 load_tide = handlers['radial']
-# load coastsat module to estimate slopes
-from coastsat import SDS_slopes
 
 # get polygon centroid
 centroid = np.mean(polygon[0], axis=0)
@@ -270,10 +268,10 @@ print(centroid)
 date_range = [pytz.utc.localize(datetime(2024,1,1)),
               pytz.utc.localize(datetime(2025,1,1))]
 timestep = 900 # seconds
-dates_ts, tides_ts = SDS_slopes.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
+dates_ts, tides_ts = SDS_slope.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
 # get tide levels corresponding to the time of image acquisition
 dates_sat = output['dates']
-tides_sat = SDS_slopes.compute_tide_dates(centroid, output['dates'], ocean_tide, load_tide)
+tides_sat = SDS_slope.compute_tide_dates(centroid, output['dates'], ocean_tide, load_tide)
 
 # If you have measure tide levels you can also use those instead.
 # When using your own file make sure that the dates are in UTC time, as the CoastSat shorelines are also in UTC
@@ -330,8 +328,9 @@ for i,key in enumerate(cross_distance.keys()):
     ax.text(0.5,0.95, key, bbox=dict(boxstyle="square", ec='k',fc='w'), ha='center',
             va='top', transform=ax.transAxes, fontsize=14)
 ax.legend()
+fig.savefig(os.path.join(filepath,'%s_timeseries_corrected.jpg'%sitename),dpi=200)
 
-#%% 5. Time-series post-processing
+#%% 6. Time-series post-processing
 
 # load mapped shorelines from 1984 (mapped with the previous code)
 filename_output = os.path.join(os.getcwd(),'examples','NARRA_output.pkl')
@@ -356,14 +355,14 @@ for i,key in enumerate(list(transects.keys())):
                 va='center', ha='right', bbox=dict(boxstyle="square", ec='k',fc='w'))
 
 # load long time-series (1984-2021)
-filepath = os.path.join(os.getcwd(),'examples','NARRA_time_series_tidally_corrected.csv')
-df = pd.read_csv(filepath, parse_dates=['dates'])
+filepath_ts = os.path.join(os.getcwd(),'examples','NARRA_time_series_tidally_corrected.csv')
+df = pd.read_csv(filepath_ts, parse_dates=['dates'])
 dates = [_.to_pydatetime() for _ in df['dates']]
 cross_distance = dict([])
 for key in transects.keys():
     cross_distance[key] = np.array(df[key])
 
-#%% 5.1 Remove outliers
+#%% 6.1 Remove outliers
 
 # plot Otsu thresholds for the mapped shorelines
 fig,ax = plt.subplots(1,1,figsize=[12,5],tight_layout=True)
@@ -374,7 +373,7 @@ ax.axhline(y=0,ls='--',c='r')
 ax.set(title='Otsu thresholds on MNDWI for the %d shorelines mapped'%len(output['shorelines']),
        ylim=[-0.6,0.2],ylabel='otsu threshold')
 ax.legend(loc='upper left')
-fig.savefig(os.path.join(inputs['filepath'], inputs['sitename'], 'otsu_threhsolds.jpg'))
+fig.savefig(os.path.join(inputs['filepath'], inputs['sitename'], '%s_otsu_threhsolds.jpg'%sitename), dpi=200)
 
 # remove outliers in the time-series (despiking)
 settings_outliers = {'otsu_threshold':     [-.5,0],        # min and max intensity threshold use for contouring the shoreline
@@ -383,8 +382,11 @@ settings_outliers = {'otsu_threshold':     [-.5,0],        # min and max intensi
                     }
 cross_distance = SDS_transects.reject_outliers(cross_distance,output,settings_outliers)
 
-#%% 5.2 Seasonal averaging
+#%% 6.2 Seasonal averaging
 
+fp_seasonal = os.path.join(filepath,'jpg_files','seasonal_timeseries')
+if not os.path.exists(fp_seasonal): os.makedirs(fp_seasonal)
+print('Outputs will be saved in %s'%fp_seasonal)
 # compute seasonal averages along each transect
 season_colors = {'DJF':'C3', 'MAM':'C1', 'JJA':'C2', 'SON':'C0'}
 for key in cross_distance.keys():
@@ -408,9 +410,13 @@ for key in cross_distance.keys():
         ax.plot(dict_seas[seas]['dates'], dict_seas[seas]['chainages'],
                  'o', mec='k', color=season_colors[seas], label=seas,ms=5)
     ax.legend(loc='lower left',ncol=6,markerscale=1.5,frameon=True,edgecolor='k',columnspacing=1)
+    fig.savefig(os.path.join(fp_seasonal,'%s_timeseries_seasonal.jpg'%sitename), dpi=200)
+    
+#%% 6.3 Monthly averaging
 
-#%% 5.3 Monthly averaging
-
+fp_monthly = os.path.join(filepath,'jpg_files','seasonal_timeseries')
+if not os.path.exists(fp_seasonal): os.makedirs(fp_monthly)
+print('Outputs will be saved in %s'%fp_monthly)
 # compute monthly averages along each transect
 month_colors = plt.get_cmap('tab20')
 for key in cross_distance.keys():
@@ -434,13 +440,126 @@ for key in cross_distance.keys():
         ax.plot(dict_month[month]['dates'], dict_month[month]['chainages'],
                  'o', mec='k', color=month_colors(k), label=month,ms=5)
     ax.legend(loc='lower left',ncol=7,markerscale=1.5,frameon=True,edgecolor='k',columnspacing=1)
+    fig.savefig(os.path.join(fp_monthly,'%s_timeseries_monthly.jpg'%sitename), dpi=200)
 
-#%% 6. Validation against survey data
+#%% 7. Beach slope estimation
+
+# This section uses the same long-term time-series of shoreline change to demonstrate how to estimate the beach-face slope.  
+# For a more detailed tutorial visit https://github.com/kvos/CoastSat.slope
+
+# create folder to save outputs from slope estimation
+fp_slopes = os.path.join(filepath,'slope_estimation')
+if not os.path.exists(fp_slopes):
+    os.makedirs(fp_slopes)
+print('Outputs will be saved in %s'%fp_slopes)
+
+# load mapped shorelines from 1984 using Landsat 5, 7 and 8
+filename_output = os.path.join(os.getcwd(),'examples','NARRA_output.pkl')
+with open(filename_output, 'rb') as f:
+    output = pickle.load(f) 
+# remove duplicates (images taken on the same date by the same satellite)
+output = SDS_tools.remove_duplicates(output)
+# remove inaccurate georeferencing (set threshold to 10 m)
+output = SDS_tools.remove_inaccurate_georef(output, 10)
+# compute intersections 
+settings_transects = { # parameters for computing intersections
+                      'along_dist':          25,        # along-shore distance to use for computing the intersection
+                      'min_points':          3,         # minimum number of shoreline points to calculate an intersection
+                      'max_std':             15,        # max std for points around transect
+                      'max_range':           30,        # max range for points around transect
+                      'min_chainage':        -100,      # largest negative value along transect (landwards of transect origin)
+                      'multiple_inter':      'auto',    # mode for removing outliers ('auto', 'nan', 'max')
+                      'auto_prc':            0.1,       # percentage of the time that multiple intersects are present to use the max
+                     }
+cross_distance = SDS_transects.compute_intersection_QC(output, transects, settings_transects) 
+# remove outliers in the time-series (coastal despiking)
+settings_outliers = {'max_cross_change':   40,             # maximum cross-shore change observable between consecutive timesteps
+                     'otsu_threshold':     [-.5,0],        # min and max intensity threshold use for contouring the shoreline
+                     'plot_fig':           False,           # whether to plot the intermediate steps
+                    }
+cross_distance = SDS_transects.reject_outliers(cross_distance,output,settings_outliers)
+
+# plot time-series
+SDS_slope.plot_cross_distance(output['dates'],cross_distance)
+
+# slope estimation settings
+days_in_year = 365.2425
+seconds_in_day = 24*3600
+settings_slope = {'slope_min':        0.035,                  # minimum slope to trial
+                  'slope_max':        0.2,                    # maximum slope to trial
+                  'delta_slope':      0.005,                  # slope increment
+                  'n0':               50,                     # parameter for Nyquist criterium in Lomb-Scargle transforms
+                  'freq_cutoff':     1./(seconds_in_day*30), # 1 month frequency
+                  'delta_f':          100*1e-10,              # deltaf for identifying peak tidal frequency band
+                  'prc_conf':         0.05,                   # percentage above minimum to define confidence bands in energy curve
+                  'plot_fig':         True,                   # whether to plot the intermediary products during analysis
+                  }
+# range of slopes to test for
+beach_slopes = SDS_slope.range_slopes(settings_slope['slope_min'], settings_slope['slope_max'], settings_slope['delta_slope'])
+
+# range of dates over which to perform the analysis (2 Landsat satellites)
+settings_slope['date_range'] = [1999,2022]
+# re-write in datetime objects (same as shoreline in UTC)
+settings_slope['date_range'] = [pytz.utc.localize(datetime(settings_slope['date_range'][0],5,1)),
+                                pytz.utc.localize(datetime(settings_slope['date_range'][1],1,1))]
+# clip the time-series between 1999 and 2022 as we need at least 2 Landsat satellites 
+idx_dates = [np.logical_and(_>settings_slope['date_range'][0],_<settings_slope['date_range'][1]) for _ in output['dates']]
+dates_sat = [output['dates'][_] for _ in np.where(idx_dates)[0]]
+for key in cross_distance.keys():
+    cross_distance[key] = cross_distance[key][idx_dates]
+    
+# plot timestep
+SDS_slope.plot_timestep(dates_sat)
+plt.gcf().savefig(os.path.join(fp_slopes,'0_timestep_distribution.jpg'),dpi=200)
+
+# select sampling period [days]
+settings_slope['n_days'] = 8
+
+# get polygon centroid
+centroid = np.mean(polygon[0], axis=0)
+print(centroid)
+# get tides time-series (15 minutes timestep)
+date_range = [dates_sat[0], dates_sat[-1]]
+timestep = 900 # seconds
+dates_ts, tides_ts = SDS_slope.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
+# get tide levels corresponding to the time of image acquisition
+tides_sat = SDS_slope.compute_tide_dates(centroid, dates_sat, ocean_tide, load_tide)
+# plot the subsampled tide data
+fig, ax = plt.subplots(1,1,figsize=(15,4), tight_layout=True)
+ax.grid(which='major', linestyle=':', color='0.5')
+ax.plot(dates_ts, tides_ts, '-', color='0.6', label='all time-series')
+ax.plot(dates_sat, tides_sat, '-o', color='k', ms=5, mfc='w',lw=1, label='image acquisition')
+ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Tide levels at the time of image acquisition');
+ax.legend()
+fig.savefig(os.path.join(fp_slopes,'0_tide_timeseries.jpg'),dpi=200)
+
+# find peak tidal frequency
+settings_slope['freqs_max'] = SDS_slope.find_tide_peak(dates_sat,tides_sat,settings_slope)
+plt.gcf().savefig(os.path.join(fp_slopes,'1_tides_power_spectrum.jpg'),dpi=200)
+
+# estimate beach-face slopes along the transects
+slope_est, cis = dict([]), dict([])
+for key in cross_distance.keys():
+    # remove NaNs
+    idx_nan = np.isnan(cross_distance[key])
+    dates = [dates_sat[_] for _ in np.where(~idx_nan)[0]]
+    tide = tides_sat[~idx_nan]
+    composite = cross_distance[key][~idx_nan]
+    # apply tidal correction
+    tsall = SDS_slope.tide_correct(composite,tide,beach_slopes)
+    # estimate beach slope
+    slope_est[key],cis[key] = SDS_slope.integrate_power_spectrum(dates,tsall,settings_slope, key)
+    plt.gcf().savefig(os.path.join(fp_slopes,'2_energy_curve_%s.jpg'%key),dpi=200)
+    # plot spectrums
+    SDS_slope.plot_spectrum_all(dates,composite,tsall,settings_slope,slope_est[key])
+    plt.gcf().savefig(os.path.join(fp_slopes,'3_slope_spectrum_%s.jpg'%key),dpi=200)
+    print('Beach slope at transect %s: %.3f (%.4f - %.4f)'%(key, slope_est[key], cis[key][0], cis[key][1]))
+
+#%% 8. Validation against survey data
 # In this section we provide a comparison against in situ data at Narrabeen.
 # See the Jupyter Notebook for information on hopw to downlaod the Narrabeen data from http://narrabeen.wrl.unsw.edu.au/
 
-# 6.1. Read and preprocess downloaded csv file Narrabeen_Profiles.csv
-# read the csv file
+# read and preprocess downloaded csv file Narrabeen_Profiles.csv
 fp_datasets = os.path.join(os.getcwd(),'examples','Narrabeen_Profiles.csv')
 df = pd.read_csv(fp_datasets)
 pf_names = list(np.unique(df['Profile ID']))
@@ -485,7 +604,7 @@ for i,key in enumerate(topo_profiles.keys()):
 with open(os.path.join(os.getcwd(), 'examples', 'Narrabeen_ts_07m.pkl'), 'wb') as f:
     pickle.dump(topo_profiles, f)
 
-#%% 6.2. Compare time-series along each transect
+#%% 8.1. Compare time-series along each transect
 # load survey data
 with open(os.path.join(os.getcwd(), 'examples', 'Narrabeen_ts_07m.pkl'), 'rb') as f:
     gt = pickle.load(f)
@@ -622,7 +741,7 @@ for key in cross_distance.keys():
     # save plot
     fig.savefig(os.path.join(os.getcwd(),'examples','comparison_transect_%s.jpg'%key), dpi=150)
 
-#%% 6.3. Comparison for all transects
+#%% 8.2. Comparison for all transects
 
 # calculate statistics for all transects together
 chain_error = chain_sat_all - chain_sur_all

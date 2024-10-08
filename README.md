@@ -20,7 +20,7 @@ CoastSat is an open-source software toolkit written in Python that enables users
 <summary><strong>Latest updates</strong></summary>
 
 :arrow_forward: *(2024/10/02)*
-CoastSat v3.0: integration with [FES2022 global tide model](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) to perform tidal correction within CoastSat.
+CoastSat v3.0: integration with [FES2022 global tide model](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) to perform **tidal correction** and **beach slope estimation** within CoastSat.
 
 :arrow_forward: *(2024/08/29)*
 CoastSat v2.7: reverse compatibility for file downloads (pre v2.6) and removed Collection 1 (deprecated, throws an error)
@@ -67,6 +67,7 @@ The toolbox has the following functionalities:
 3. intersection of the 2D shorelines with user-defined shore-normal transects.
 4. tidal correction using tide/water levels and an estimate of the beach slope.
 5. post-processing of the shoreline time-series, despiking and seasonal averaging.
+6. Beach slope estimation using satellite-derived shorelines and predicted tides
 </details>
 
 ### Table of Contents

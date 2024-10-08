@@ -77,7 +77,7 @@ The toolbox has the following functionalities:
    - [Retrieval of the satellite images in GEE](#retrieval)
    - [Shoreline detection](#detection)
    - [Shoreline intersections with transects](#analysis)
-   - [Tidal correction](#correction)
+   - [Tidal correction and beach slope estimation](#correction)
    - [Post-processing (seasonal averages and linear trends)](#postprocessing)
    - [Validation against survey data at Narrabeen-Collaroy](#validation)
 - [Contributing and Issues](#issues)
@@ -393,7 +393,7 @@ If `'auto'` is chosen, the `auto_prc` parameter will define when to use the max,
 
 </details>
 
-### 2.4 Tidal Correction<a name="correction"></a>
+### 2.4 Tidal Correction and Beach slope estimation<a name="correction"></a>
 
 Each satellite image is captured at a different stage of the tide, therefore a tidal correction is necessary to remove the apparent shoreline changes cause by tidal fluctuations.
 
@@ -405,9 +405,7 @@ In the notebook, the user has two options for the tide level time-series:
 
 ![example_tides](https://github.com/user-attachments/assets/f0b0c29d-2db8-450c-86f2-73614a6a0940)
 
-Once you have the tide levels, you need an estimate of the beach slope. You can provide this manually (e.g., 0.1 for all transects) or you can also estimate it using the satellite-derived shorelines and tide levels using 
-
-You will also need an estimate of the beach-face slope along each transect. If you don't have this data you can obtain it using [CoastSat.slope](https://github.com/kvos/CoastSat.slope), see [Vos et al. 2020](https://doi.org/10.1029/2020GL088365) for more details (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
+Once you have the tide levels, you need an estimate of the beach slope. You can provide this manually (e.g., 0.1 for all transects) or you can also estimate it using the satellite-derived shorelines and tide levels inside the notebook, see the Beach Slope estimation scetion. This parts uses the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository, for more details on the methodology see [Vos et al. 2020](https://doi.org/10.1029/2020GL088365) (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).
 
 ### 2.5 Post-processing (seasonal averages and linear trends)<a name="postprocessing"></a>
 

@@ -265,7 +265,7 @@ centroid = np.mean(polygon[0], axis=0)
 print(centroid)
 
 # get tides time-series (15 minutes timestep)
-date_range = [pytz.utc.localize(datetime(2024,1,1)),
+date_range = [pytz.utc.localize(datetime(1984,1,1)),
               pytz.utc.localize(datetime(2025,1,1))]
 timestep = 900 # seconds
 dates_ts, tides_ts = SDS_slope.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)

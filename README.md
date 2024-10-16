@@ -94,7 +94,7 @@ Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linu
 ```
 conda create -n coastsat
 conda activate coastsat
-conda install fbriol::pyfes -y
+conda install -c conda-forge pyfes -y
 conda install -c conda-forge geopandas -y
 conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
 pip install pyqt5 imageio-ffmpeg

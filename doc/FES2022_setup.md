@@ -2,24 +2,9 @@
 
 This document shows how to setup the FES2022 global tide model to get modelled tides at a given location for a given time period.
 
-## 1. Install CoastSat (starting by pyfes)
-If you have already installed `coastsat` before, create a new environment with a new name, as you will need to install `pyfes` first otherwise there are conflicts with the python version.
+## 1. Install pyfes
 
-1. Download Anaconda for your operating system https://docs.anaconda.com/anaconda/install/windows/
-2. Open the Anaconda Prompt as Administrator and type the following commands:
-```
-conda clean --all -y
-conda update -n base -c conda-forge conda -y
-conda create -n coastsat
-conda activate coastsat
-conda install fbriol::pyfes -y
-conda install -c conda-forge geopandas -y
-conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
-pip install pyqt5 imageio-ffmpeg
-```
-Now you have setup the `coastsat` python environment, which can be activated with `conda activate coastsat`.
-
-Either clone the Github repository https://github.com/kvos/CoastSat or download the zip folder and unzip in a local folder.
+If you have an old installation of coastsat (pre version 3.0), you will not have `pyfes` installed. You can try to run `conda install fbriol::pyfes` with your `coastsat` environment activated, but this will probably not work and raise a conflict. To install `pyfes` wihin the coastsat environment you will need to create a new environment by following the instructions in the main README (create a separate environment).
 
 ## 2. Download FES2022 netcdf files
 
@@ -58,9 +43,9 @@ Either clone the Github repository https://github.com/kvos/CoastSat or download 
 
     Your Python environment can map shorelines and predict tides anywhere in the world.
 
-## Test that it's working
+## 3. Test that it's working
 
-To test your installation, open the Anaconda Prompt.
+To test your installation, open the Miniforge/Anaconda Prompt.
 Activate the coastsat environment and open Python:
 - `conda activate coastsat`
 - `python`
@@ -73,7 +58,7 @@ This last command may take 5 minutes to run but if it doesn't return an error yo
 
 You can now generate tide time-series using FES2022 for any location and any dates. 
 
-## Example
+## 4. Example of tide prediction
 ```
 # load pyfes and the global tide model (may take one minute)
 import pyfes

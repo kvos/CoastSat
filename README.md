@@ -86,41 +86,43 @@ The toolbox has the following functionalities:
 ## 1. Installation<a name="introduction"></a>
 
 <details>
-<summary><strong>1.1 Create an environment with Anaconda:</strong></summary>
+<summary><strong>1.1 Create an environment with Mamba/Anaconda:</strong></summary>
 
-To run the toolbox you first need to install the required Python packages in an environment. To do this we will use **Anaconda**, which can be downloaded freely [here](https://www.anaconda.com/download/). If you are a more advanced user and have **Mamba** installed, use Mamba as it will install everything faster and without problems (highly recommended if you know about python environments).
+To run the toolbox you first need to install the required Python packages in an environment.You can do this with **Anaconda** or with **Mamba**. It is highly recommended to use Mamba. Go to https://github.com/conda-forge/miniforge and download Miniforge for your operating system.
 
-Once you have it installed on your PC, open the Anaconda prompt (in Mac and Linux, open a terminal window) and run the following commands to install the `coastsat` environment:
+Once you have it installed on your PC, open the Miniforge Prompt (in Mac and Linux, open a terminal window) and run the following commands to install the `coastsat` environment:
 ```
-conda create -n coastsat
-conda activate coastsat
-conda install -c conda-forge pyfes -y
-conda install -c conda-forge geopandas -y
-conda install -c conda-forge earthengine-api scikit-image matplotlib astropy notebook -y
+mamba create -n coastsat
+mamba activate coastsat
+mamba install fbriol::pyfes -y
+mamba install geopandas -y
+mamba install earthengine-api scikit-image matplotlib astropy notebook -y
 pip install pyqt5 imageio-ffmpeg
 ```
 
 All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:
 
 ```
-conda activate coastsat
+mamba activate coastsat
 ```
 
 To confirm that you have successfully activated CoastSat, your terminal command line prompt should now start with `(coastsat)`.
 
-:warning: **In case errors are raised** :warning:: clean things up with the following command (with Anaconda Prompt opened as administrator) before attempting to install `coastsat` again:
+:warning: **In case errors are raised** :warning:: clean things up with the following command before attempting to install `coastsat` again:
 ```
-conda clean --all
+mamba clean --all
+mamba update conda
 ```
+If you are more used to **Anaconda** you can run the same commands in the Anaconda Prompt by replacing `mamba` with `conda`.
 
-You can also install the packages with the **Anaconda Navigator**, in the *Environments* tab. For more details, the following [link](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) shows how to create and manage an environment with Anaconda.
+If any problems with the installation, raise an issue.
 </details>
 
 <details>
 <summary><strong>1.2 Activate Google Earth Engine Python API:</strong></summary>
 
 First, create a Google Earth Engine project at https://signup.earthengine.google.com/. 
-Then, go to https://cloud.google.com/sdk/docs/install and install the `gcloud CLI`. After you have installed it will automatically launch and let you authenticate with your GEE account (or personal gmail). Then close the Anaconda Prompt and restart it.
+Then, go to https://cloud.google.com/sdk/docs/install and install the `gcloud CLI`. After you have installed it will automatically launch and let you authenticate with your GEE account (or personal gmail).
 
 :warning: if you're finding that you're always asked to authenticate, open the gloud CLI and run this command: `gcloud auth application-default login` to set a default authentication on your machine.
 </details>
@@ -135,7 +137,7 @@ If you prefer to use **Spyder** or other integrated development environments (ID
 
 <details>
 <summary><strong>How to run Jupyter Notebooks</strong></summary>
-To run a Jupyter Notebook, open the Anaconda prompt, activate your `coastsat` environment with `conda activate coastsat`, and then run type `jupyter lab`.
+To run a Jupyter Notebook, open the Miniforge prompt, activate your `coastsat` environment with `mamba activate coastsat`, and then run type `jupyter lab`.
 
 A web browser will open with the JupyterLab interface. Browse to the directory where you downloaded CoastSat and click on the file `example_jupyter.ipynb`. The notebook will open. A Jupyter Notebook combines formatted text and code. To run the code, place your cursor inside one of the code sections and click on the `run cell` button (or press `Shift` + `Enter`) and progress forward.
 

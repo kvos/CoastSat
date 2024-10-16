@@ -4,7 +4,7 @@ This document shows how to setup the FES2022 global tide model to get modelled t
 
 ## 1. Install pyfes
 
-If you have an old installation of coastsat (pre version 3.0), you will not have `pyfes` installed. You can try to run `conda install fbriol::pyfes` with your `coastsat` environment activated, but this will probably not work and raise a conflict. To install `pyfes` wihin the coastsat environment you will need to create a new environment by following the instructions in the main README (create a separate environment).
+If you have an old installation of coastsat (pre version 3.0), you will not have `pyfes` installed. You can try to run `conda install conda-forge::pyfes` with your `coastsat` environment activated, but this will probably not work and raise a conflict due to compatibility of pyfes with your Python version. To install `pyfes` wihin the coastsat environment you will need to create a new environment by following the instructions in the main README (create a separate environment).
 
 ## 2. Download FES2022 netcdf files
 

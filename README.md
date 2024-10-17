@@ -94,10 +94,10 @@ Once you have it installed on your PC, open the Miniforge Prompt (in Mac and Lin
 ```
 mamba create -n coastsat
 mamba activate coastsat
-mamba install pyfes -y
 mamba install geopandas -y
 mamba install earthengine-api scikit-image matplotlib astropy notebook -y
 pip install pyqt5 imageio-ffmpeg
+mamba install pyfes -y
 ```
 
 All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:

@@ -21,7 +21,7 @@ from scipy import stats
 from datetime import datetime, timedelta
 import pytz
 from pyproj import CRS
-from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects, SDS_slope
+from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
 # region of interest (longitude, latitude in WGS84)
 polygon = [[[151.301454, -33.700754],
@@ -101,7 +101,7 @@ settings = {
 # [OPTIONAL] preprocess images (cloud masking, pansharpening/down-sampling)
 SDS_preprocess.save_jpg(metadata, settings, use_matplotlib=True)
 # create MP4 timelapse animation
-fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_RGB.mp4'%inputs['sitename'])
+fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_RGB.gif'%inputs['sitename'])
 fp_images = os.path.join(inputs['filepath'], inputs['sitename'], 'jpg_files', 'preprocessed')
 fps = 4 # frames per second in animation
 SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)
@@ -130,7 +130,7 @@ gdf.to_file(os.path.join(inputs['filepath'], inputs['sitename'], '%s_output_%s.g
                                 driver='GeoJSON', encoding='utf-8')
 
 # create MP4 timelapse animation
-fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_shorelines.mp4'%inputs['sitename'])
+fn_animation = os.path.join(inputs['filepath'],inputs['sitename'], '%s_animation_shorelines.gif'%inputs['sitename'])
 fp_images = os.path.join(inputs['filepath'], inputs['sitename'], 'jpg_files', 'detection')
 fps = 4 # frames per second in animation
 SDS_tools.make_animation_mp4(fp_images, fps, fn_animation)
@@ -251,6 +251,8 @@ print('Time-series of the shoreline change along the transects saved as:\n%s'%fn
 # For this example, we can use the FES2022 global tide model to predict tides at our beach for all the image times.
 # To setup FES2022, follow the instructions at https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup
 
+# load coastsat.slope module
+from coastsat import SDS_slope
 # load pyfes and the global tide model (may take one minute)
 import pyfes
 # enter the location of where you downloaded the FES2022 data
@@ -260,9 +262,11 @@ handlers = pyfes.load_config(config)
 ocean_tide = handlers['tide']
 load_tide = handlers['radial']
 
-# get polygon centroid
+# get polygon centroid, coordinates to get tides from
 centroid = np.mean(polygon[0], axis=0)
 print(centroid)
+# if longitude is negative add 180 (longitudes are from 0 to 360 in fes)
+if centroid[0] < 0: centroid[0] += 180
 
 # get tides time-series (15 minutes timestep)
 date_range = [pytz.utc.localize(datetime(1984,1,1)),
@@ -415,7 +419,7 @@ for key in cross_distance.keys():
 #%% 6.3 Monthly averaging
 
 fp_monthly = os.path.join(filepath,'jpg_files','seasonal_timeseries')
-if not os.path.exists(fp_seasonal): os.makedirs(fp_monthly)
+if not os.path.exists(fp_monthly): os.makedirs(fp_monthly)
 print('Outputs will be saved in %s'%fp_monthly)
 # compute monthly averages along each transect
 month_colors = plt.get_cmap('tab20')

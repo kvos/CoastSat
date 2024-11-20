@@ -267,8 +267,9 @@ def retrieve_images(inputs):
                     try:    
                         fn_ms, fn_QA = download_tif(image_ee,ee_region,bands['ms'],fp_ms,satname) 
                         break
-                    except:
+                    except Exception as e:
                         print('\nDownload failed, trying again...')
+                        print(f"The error that occurred: {e}")
                         time.sleep(60)
                         count += 1
                         if count > 100:
@@ -329,8 +330,9 @@ def retrieve_images(inputs):
                         fn_ms, fn_QA = download_tif(image_ee,ee_region_ms,bands['ms'],fp_ms,satname)
                         fn_pan = download_tif(image_ee,ee_region_pan,bands['pan'],fp_pan,satname)
                         break
-                    except:
+                    except Exception as e:
                         print('\nDownload failed, trying again...')
+                        print(f"The error that occurred: {e}")
                         time.sleep(60)
                         count += 1
                         if count > 100:
@@ -400,8 +402,9 @@ def retrieve_images(inputs):
                         fn_swir = download_tif(image_ee,ee_region_swir,bands['swir'],fp_swir,satname)
                         fn_QA = download_tif(image_ee,ee_region_mask,bands['mask'],fp_mask,satname)
                         break
-                    except:
+                    except Exception as e:
                         print('\nDownload failed, trying again...')
+                        print(f"The error that occurred: {e}")
                         time.sleep(60)
                         count += 1
                         if count > 100:
@@ -607,13 +610,22 @@ def check_images_available(inputs):
     im_dict_T1 = dict([])
     sum_img = 0
     for satname in inputs['sat_list']:
-        if 'S2tile' not in inputs.keys():
-            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
-            # for S2, filter collection to only keep images with same UTM Zone projection (there can be a lot of duplicates)
+        # if user specifies an S2 tile and satname is S2
+        if 'S2tile' in inputs.keys() and satname == 'S2':
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,
+                                     S2tile=inputs['S2tile'])
+        # if user specifies a Landsat tile (WRS path/row) and satname is Landsat
+        elif 'LandsatWRS' in inputs.keys() and (not satname == 'S2'):
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,
+                                     LandsatWRS=inputs['LandsatWRS']) 
+        # if user does not specify a tile
+        else:
+            # for S2, filter collection to only keep images with same UTM Zone projection 
+            # (there duplicated images in different UTM projections)
             if satname == 'S2': 
                 im_list = filter_S2_collection(im_list)
-        else : # if user specifies the S2 tile
-            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str,S2tile=inputs['S2tile'])
+            # get all images (no tile filtering)
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list          
@@ -644,7 +656,10 @@ def check_images_available(inputs):
                     # get the indices of the images that are not already downloaded 
                     idx_new = np.where([ not avail_date in downloaded_dates for avail_date in avail_date_list])[0]
                     im_dict_T1[satname] = [im_dict_T1[satname][index] for index in idx_new]
-                    print('%s: %d images already exist, %s to download'%(satname, len(avail_date_list), len(idx_new)))
+                    print('%s: %d/%d images already exist, %s to be downloaded'%(satname,
+                                                                            len(downloaded_dates),
+                                                                            len(avail_date_list),
+                                                                            len(idx_new)))
 
     # if only S2 is in sat_list, stop here as no Tier 2 for Sentinel
     if len(inputs['sat_list']) == 1 and inputs['sat_list'][0] == 'S2':
@@ -682,6 +697,11 @@ def get_image_info(collection,satname,polygon,dates,**kwargs):
         coordinates of the polygon in lat/lon
     dates: list of str
         start and end dates (e.g. '2022-01-01')
+    **kwargs: 
+        S2tile: str
+            tile number (e.g., 58GGP)
+        LandsatWRS: str
+            WRS path/row (e.g., 196023)
 
     Returns:
     -----------
@@ -692,14 +712,25 @@ def get_image_info(collection,satname,polygon,dates,**kwargs):
         try:
             # get info about images
             ee_col = ee.ImageCollection(collection)
-            if 'S2tile' in kwargs: # if user defined a S2 tile, keep images only for that tile
-                col = ee_col.filterBounds(ee.Geometry.Polygon(polygon)).filterDate(dates[0],dates[1]).filterMetadata('MGRS_TILE','equals',kwargs['S2tile']) #58GGP
-                print('Only keeping user-defined S2tile : %s' % kwargs['S2tile'])
-            else: # original code          
+            # if S2tile is specified
+            if satname == 'S2' and 'S2tile' in kwargs: # if user defined a S2 tile, keep images only for that tile
+                col = ee_col.filterBounds(ee.Geometry.Polygon(polygon))\
+                    .filterDate(dates[0],dates[1])\
+                    .filterMetadata('MGRS_TILE','equals',kwargs['S2tile']) 
+                print('\t Only keeping user-defined S2tile : %s' % kwargs['S2tile'])
+            # if Landsat tile is specified
+            elif (not satname == 'S2') and 'LandsatWRS' in kwargs:
+                col = ee_col.filterBounds(ee.Geometry.Polygon(polygon))\
+                    .filterDate(dates[0],dates[1])\
+                    .filterMetadata('WRS_PATH','equals',int(kwargs['LandsatWRS'][:3]))\
+                    .filterMetadata('WRS_ROW','equals',int(kwargs['LandsatWRS'][3:]))
+                print('\t Only keeping user-defined Landsat WRS path/row: %s' % kwargs['LandsatWRS'])
+            # if user does not specify tile
+            else:      
                 col = ee_col.filterBounds(ee.Geometry.Polygon(polygon))\
                             .filterDate(dates[0],dates[1])
+            # convert to dict
             im_list = col.getInfo().get('features')
-
             break
         except:
             continue

@@ -56,6 +56,8 @@ inputs = {
     'sat_list': sat_list,
     'sitename': sitename,
     'filepath': filepath_data,
+    # 'LandsatWRS': '089083',
+    # 'S2tile': '56HLH',
         }
 
 # before downloading the images, check how many images are available for your inputs

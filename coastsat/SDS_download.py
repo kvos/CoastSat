@@ -168,14 +168,16 @@ def retrieve_images(inputs):
             im_timestamp = datetime.fromtimestamp(t/1000, tz=pytz.utc)
             im_date = im_timestamp.strftime('%Y-%m-%d-%H-%M-%S')
             
-            # skip L7 after 2022 as L9 is replacing it
-            if im_timestamp.year >= 2022 and satname == 'L7':
-                continue
-            # additionally, skip L7 after Scan-Line-Correction failure
-            if 'skip_L7_SLC' in inputs.keys():
-                if inputs['skip_L7_SLC']:
-                    if im_timestamp >= pytz.utc.localize(datetime(2003,5,31)):
-                        continue
+            # special case for L7 as it had the Scan Line Correction failure
+            if satname == 'L7':
+            # skip L7 after 2022 as L9 has replaced it
+                if im_timestamp.year >= 2022:
+                    continue
+                # optionally, skip L7 after Scan-Line-Correction failure
+                if 'skip_L7_SLC' in inputs.keys():
+                    if inputs['skip_L7_SLC']:
+                        if im_timestamp >= pytz.utc.localize(datetime(2003,5,31)):
+                            continue
             
             # get epsg code
             im_epsg = int(im_meta['bands'][0]['crs'][5:])

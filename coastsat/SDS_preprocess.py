@@ -371,7 +371,7 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue):
         qa_values = np.unique(im_QA.flatten())
         cloud_values = []
         for qaval in qa_values:
-            for k in [1,2,3]: # check the first 3 flags
+            for k in [2,3]: # check the first 3 flags
                 if is_set(qaval,k):
                     cloud_values.append(qaval)
  
@@ -780,7 +780,10 @@ def get_reference_sl(metadata, settings):
     if os.path.exists(fp_ref_shoreline):
         print('Reference shoreline already exists and was loaded')
         refsl_geojson = gpd.read_file(fp_ref_shoreline,driver='GeoJSON')
-        refsl = np.array(refsl_geojson.iloc[0]['geometry'].coords)
+        shoreline_points = []
+        for k in range(len(refsl_geojson)):
+            shoreline_points += list(refsl_geojson.iloc[k]['geometry'].coords)
+        refsl = np.array(shoreline_points)
         print('Reference shoreline coordinates are in epsg:%d'%refsl_geojson.crs.to_epsg())
         return refsl
 

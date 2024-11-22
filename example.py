@@ -416,11 +416,11 @@ for key in cross_distance.keys():
         ax.plot(dict_seas[seas]['dates'], dict_seas[seas]['chainages'],
                  'o', mec='k', color=season_colors[seas], label=seas,ms=5)
     ax.legend(loc='lower left',ncol=6,markerscale=1.5,frameon=True,edgecolor='k',columnspacing=1)
-    fig.savefig(os.path.join(fp_seasonal,'%s_timeseries_seasonal.jpg'%sitename), dpi=200)
+    fig.savefig(os.path.join(fp_seasonal,'%s_timeseries_seasonal.jpg'%key), dpi=200)
     
 #%% 6.3 Monthly averaging
 
-fp_monthly = os.path.join(filepath,'jpg_files','seasonal_timeseries')
+fp_monthly = os.path.join(filepath,'jpg_files','monthly_timeseries')
 if not os.path.exists(fp_monthly): os.makedirs(fp_monthly)
 print('Outputs will be saved in %s'%fp_monthly)
 # compute monthly averages along each transect
@@ -446,7 +446,7 @@ for key in cross_distance.keys():
         ax.plot(dict_month[month]['dates'], dict_month[month]['chainages'],
                  'o', mec='k', color=month_colors(k), label=month,ms=5)
     ax.legend(loc='lower left',ncol=7,markerscale=1.5,frameon=True,edgecolor='k',columnspacing=1)
-    fig.savefig(os.path.join(fp_monthly,'%s_timeseries_monthly.jpg'%sitename), dpi=200)
+    fig.savefig(os.path.join(fp_monthly,'%s_timeseries_monthly.jpg'%key), dpi=200)
 
 #%% 7. Beach slope estimation
 

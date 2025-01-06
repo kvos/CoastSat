@@ -17,6 +17,20 @@ CoastSat is an open-source software toolkit written in Python that enables users
 :point_right: Visit the [CoastSat website](http://coastsat.space) to explore and download existing satellite-derived shoreline datasets generated with CoastSat in the Pacific and Atlantic basins.
 
 <details>
+<summary><strong>Project description</strong></summary>
+
+Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
+The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
+
+The toolbox has the following functionalities:
+1. easy retrieval of satellite imagery spanning the user-defined region of interest and time period from Google Earth Engine, including state-of-the-art pre-processing steps (re-projecting the different bands, pansharpening, advanced cloud masking).
+2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique and options for quality-control.
+3. intersection of the 2D shorelines with user-defined shore-normal transects to create time-series of shoreline change.
+4. tidal correction of shoreline time-series and extraction of tidal levels at the time of image acquisition from a global tide model (FES2022)
+5. post-processing of the shoreline time-series, despiking and seasonal averaging.
+6. Beach slope estimation using satellite-derived shorelines and predicted tides
+</details>
+<details>
 <summary><strong>Latest updates</strong></summary>
 
 :arrow_forward: *(2024/10/02)*
@@ -35,18 +49,18 @@ CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the do
 <details>
 <summary><strong>Additional toolkits and documentation</strong></summary>
 
- :point_right: Other repositories and extensions related to CoastSat: 
+ :point_right: Other open-source repositories and extensions related to CoastSat: 
 
-- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
 - [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 - [VedgeSat](https://github.com/fmemuir/COASTGUARD/tree/master): monitoring vegetation lines.
 
- :point_right: Publications describing the CoastSat satellite-derived shorelines:
+ :point_right: Publications describing the CoastSat satellite-derived shorelines data and methods:
 
 - Shoreline detection algorithm: https://doi.org/10.1016/j.envsoft.2019.104528 (Open Access)
 - Accuracy assessment: https://doi.org/10.1016/j.coastaleng.2019.04.004
@@ -54,20 +68,6 @@ CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the do
 - Basin-scale shoreline mapping (Paficic): https://www.nature.com/articles/s41561-022-01117-8 (The Conversation article [here](https://theconversation.com/millions-of-satellite-images-reveal-how-beaches-around-the-pacific-vanish-or-replenish-in-el-nino-and-la-nina-years-198505))
 - Beach slope estimation: https://doi.org/10.1029/2020GL088365 (preprint [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2))
 - Beach slope dataset for Australia: https://doi.org/10.5194/essd-14-1345-2022
-</details>
-<details>
-<summary><strong>Project description</strong></summary>
-
-Satellite remote sensing can provide low-cost long-term shoreline data capable of resolving the temporal scales of interest to coastal scientists and engineers at sites where no in-situ field measurements are available. CoastSat enables the non-expert user to extract shorelines from Landsat 5, Landsat 7, Landsat 8, Landsat 9 and Sentinel-2 images.
-The shoreline detection algorithm implemented in CoastSat is optimised for sandy beach coastlines. It combines a sub-pixel border segmentation and an image classification component, which refines the segmentation into four distinct categories such that the shoreline detection is specific to the sand/water interface.
-
-The toolbox has the following functionalities:
-1. easy retrieval of satellite imagery spanning the user-defined region of interest and time period from Google Earth Engine, including state-of-the-art pre-processing steps (re-projecting the different bands, pansharpening, advanced cloud masking).
-2. automated extraction of shorelines from all the selected images using a sub-pixel resolution technique and options for quality-control.
-3. intersection of the 2D shorelines with user-defined shore-normal transects.
-4. tidal correction using tide/water levels and an estimate of the beach slope.
-5. post-processing of the shoreline time-series, despiking and seasonal averaging.
-6. Beach slope estimation using satellite-derived shorelines and predicted tides
 </details>
 
 ### Table of Contents

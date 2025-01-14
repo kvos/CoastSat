@@ -21,6 +21,8 @@ from astropy.timeseries import LombScargle
 import pytz
 import pyfes
 import pdb
+import json
+import xarray as xr
 
 ###################################################################################################
 # Tide functions
@@ -458,3 +460,75 @@ def plot_timestep(dates, timestep=8):
     ax.hist(delta_t/seconds_in_day, bins=bins, ec='k', width=1);
     ax.set(xlabel='timestep [days]', ylabel='counts', xticks=timestep*np.arange(0,20),
            xlim=[-1,50], title='Timestep distribution');
+
+def get_region_from_geojson(fn):
+    """
+    Load the region to be clipped from a geojson file.
+
+    PS 2025
+
+    Arguments:
+    -----------
+    fn: str
+        string containing the path to the file
+
+    Returns:
+    -----------
+        The coordinates from the geojson
+
+    """
+    with open(fn) as f:
+        geojson = json.load(f)
+    return geojson["features"][0]["geometry"]
+
+def clip_model_to_region(nc_files, geometry, output_dir):
+    """
+    Clips NetCDF files to the specified region and saves the clipped files.
+    Longitudes are kept in the 0 to 360 range.
+
+    PS 2025
+
+    Arguments:
+    -----------
+    nc_files: list
+        list containing all of the files from the directory to be clipped
+    geometry: dict
+        dictionary containing the geometry of the region to be clipped
+    output_dir: str
+        string representing the directory where the clipped files will be saved
+
+    """
+    coords = np.array(geometry["coordinates"][0])
+    lon_min, lon_max = coords[:, 0].min(), coords[:, 0].max()
+    lat_min, lat_max = coords[:, 1].min(), coords[:, 1].max()
+
+    if lon_min < 0:
+        lon_min += 360
+    if lon_max < 0:
+        lon_max += 360
+
+    for file_path in nc_files:
+        print(f"Processing: {file_path}")
+        ds = xr.open_dataset(file_path, engine="netcdf4")
+
+        # Ensure longitude is in 0 to 360 format
+        if ds.lon.min() < 0:
+            ds = ds.assign_coords({"lon": (ds.lon % 360)}).sortby("lon")
+
+        # Select the region
+        clipped_ds = ds.sel(
+            lon=slice(lon_min, lon_max),
+            lat=slice(lat_min, lat_max)
+        )
+
+        # Preserve metadata
+        clipped_ds.attrs = ds.attrs
+        for var in clipped_ds.data_vars:
+            clipped_ds[var].attrs = ds[var].attrs
+
+        # Save the clipped file to the same name in the output directory
+        filename = os.path.basename(file_path)
+        output_path = os.path.join(output_dir, filename)
+        os.makedirs(output_dir, exist_ok=True)
+        clipped_ds.to_netcdf(output_path)
+        print(f"Saved clipped file to: {output_path}")

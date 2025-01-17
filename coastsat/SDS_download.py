@@ -595,10 +595,7 @@ def check_images_available(inputs):
         raise Exception('Verify that your dates are in the correct chronological order')
 
     # check if EE was initialised or not
-    try:
-        ee.ImageCollection('LANDSAT/LT05/C02/T1_TOA')
-    except:
-        ee.Initialize()
+    authenticate_and_initialize()
         
     print('Number of images available between %s and %s:'%(dates_str[0],dates_str[1]), end='\n')
     
@@ -622,12 +619,12 @@ def check_images_available(inputs):
                                      LandsatWRS=inputs['LandsatWRS']) 
         # if user does not specify a tile
         else:
+            # get all images (no tile filtering)
+            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
             # for S2, filter collection to only keep images with same UTM Zone projection 
             # (there duplicated images in different UTM projections)
             if satname == 'S2': 
                 im_list = filter_S2_collection(im_list)
-            # get all images (no tile filtering)
-            im_list = get_image_info(col_names_T1[satname],satname,polygon,dates_str)
         sum_img = sum_img + len(im_list)
         print('     %s: %d images'%(satname,len(im_list)))
         im_dict_T1[satname] = im_list          

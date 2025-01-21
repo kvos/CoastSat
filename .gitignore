@@ -17,3 +17,6 @@
 /deprecated
 /worked_example
 /.virtual_documents
+/tide_model_clipping/load_tide
+/tide_model_clipping/ocean_tide
+/tide_model_clipping/*.yaml

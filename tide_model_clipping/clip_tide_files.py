@@ -27,16 +27,16 @@ don't hesitate to mention me in a github issue.
 # 1) Define inputs
 # Path to geojson file, note this file should contain any area you may want to run coastsat in
 # Ex: The whole country of Australia
-geojson_file = r"C:\Users\psteeves\coastal\canada_region.geojson"
+geojson_file = r"C:\path\to\example\region.geojson"
 # Path to existing 'load_tide' directory
-load_tide_dir = r"C:\Users\psteeves\coastal\load_tide"   # 'radial' dataset
+load_tide_dir = r"C:\path\to\load_tide"   # 'radial' dataset
 # Path to existing 'ocean_tide' directory
-ocean_tide_dir = r"C:\Users\psteeves\coastal\ocean_tide" # 'tide' dataset
+ocean_tide_dir = r"C:\path\to\ocean_tide" # 'tide' dataset
 # Where the new clipped files will be put
 output_dir = os.getcwd()
 
 # Path to original fes2022.yaml file
-original_yaml = r"C:\Users\psteeves\coastal\fes2022.yaml"
+original_yaml = r"C:\path\to\existing\fes2022.yaml"
 # Where the new fes2022_clipped.yaml will be put
 new_yaml = os.path.join(os.getcwd(), "fes2022_clipped.yaml")
 

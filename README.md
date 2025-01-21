@@ -98,6 +98,7 @@ mamba install python=3.11 geopandas gdal -y
 mamba install earthengine-api scikit-image matplotlib astropy notebook -y
 pip install pyqt5 imageio-ffmpeg
 mamba install pyfes -y
+mamba install pyyaml -y
 ```
 
 All the required packages have now been installed and are self-contained in an environment called `coastsat`. Always make sure that the environment is activated with:

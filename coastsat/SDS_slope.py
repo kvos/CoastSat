@@ -23,6 +23,7 @@ import pyfes
 import pdb
 import json
 import xarray as xr
+import yaml
 
 ###################################################################################################
 # Tide functions
@@ -507,6 +508,8 @@ def clip_model_to_region(nc_files, geometry, output_dir):
     if lon_max < 0:
         lon_max += 360
 
+    clipped_paths = {}
+
     for file_path in nc_files:
         print(f"Processing: {file_path}")
         ds = xr.open_dataset(file_path, engine="netcdf4")
@@ -532,3 +535,60 @@ def clip_model_to_region(nc_files, geometry, output_dir):
         os.makedirs(output_dir, exist_ok=True)
         clipped_ds.to_netcdf(output_path)
         print(f"Saved clipped file to: {output_path}")
+
+        clipped_paths[file_path] = output_path
+    
+    return clipped_paths
+
+
+def write_new_fes_yaml(original_yaml, new_yaml, path_maps):
+    """
+    Creates a new YAML file that
+    replaces each old path with its new clipped path.
+
+    The structure is assumed:
+      radial:
+        cartesian:
+          paths:
+            2N2: path\to\load_tide\2n2_fes2022.nc
+            ...
+      tide:
+        cartesian:
+          paths:
+            2N2: path\to\ocean_tide\2n2_fes2022.nc
+            ...
+
+    PS 2025
+
+    Arguments:
+    -----------
+    original_yaml : str
+        Path to the original YAML file to read.
+    new_yaml : str
+        Path where the new, updated YAML will be written.
+    path_maps : dict
+        {
+          "radial": { old_path_1: new_path_1, ... },
+          "tide":   { old_path_2: new_path_2, ... }
+        }
+    """
+    with open(original_yaml, 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Update "radial" -> cartesian -> paths
+    for old_path, new_path in path_maps["radial"].items():
+        for key, val in config["radial"]["cartesian"]["paths"].items():
+            if val == old_path:
+                config["radial"]["cartesian"]["paths"][key] = new_path
+
+    # Update "tide" -> cartesian -> paths
+    for old_path, new_path in path_maps["tide"].items():
+        for key, val in config["tide"]["cartesian"]["paths"].items():
+            if val == old_path:
+                config["tide"]["cartesian"]["paths"][key] = new_path
+
+    # Write out the new YAML file
+    with open(new_yaml, 'w') as f:
+        yaml.safe_dump(config, f)
+
+    print(f"Created new YAML at: {new_yaml}")

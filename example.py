@@ -268,7 +268,7 @@ load_tide = handlers['radial']
 centroid = np.mean(polygon[0], axis=0)
 print(centroid)
 # if longitude is negative add 180 (longitudes are from 0 to 360 in fes)
-if centroid[0] < 0: centroid[0] += 180
+if centroid[0] < 0: centroid[0] += 360
 
 # get tides time-series (15 minutes timestep)
 date_range = [pytz.utc.localize(datetime(1984,1,1)),

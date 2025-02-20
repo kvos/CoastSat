@@ -1,7 +1,10 @@
-import os, sys
-sys.path.insert(0, os.pardir)
+import os
 from glob import glob
+# load coastsat module located two folders up
+import sys
+sys.path.insert(0, os.path.join(os.getcwd(), os.pardir, os.pardir))
 from coastsat import SDS_slope
+
 """
 clip_tide_files.py
 ________________________________________________________
@@ -26,8 +29,8 @@ don't hesitate to mention me in a github issue.
 
 # 1) Define inputs
 # Path to geojson file, note this file should contain any area you may want to run coastsat in
-# Ex: The whole country of Australia
-geojson_file = r"C:\path\to\example\region.geojson"
+# Ex: The whole of Europe or the whole of Australia, or the whole of Canada
+geojson_file = "Europe.geojson" #r"C:\path\to\example\region.geojson"
 # Path to existing 'load_tide' directory
 load_tide_dir = r"C:\path\to\load_tide"   # 'radial' dataset
 # Path to existing 'ocean_tide' directory

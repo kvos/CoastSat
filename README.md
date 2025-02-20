@@ -408,6 +408,8 @@ In the notebook, the user has two options for the tide level time-series:
 - **Option 1**: use a CSV file with the time-series of water levels (at least 15/30 min timestep). Note that this file should be formatted as the one provided in */examples* [NARRA_tides.csv](https://github.com/kvos/CoastSat/blob/master/examples/NARRA_tides.csv). Dates should be in UTC time and tides in metres above mean sea level.
 - **Option 2**: use the [FES2022](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) global tide model to predict tide levels at your beach. This requires you to have FES2022 setup, follow the instructions in [this document](https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup.md). Once installed, you can predict tides for any dates at any location in the world!
 
+    :warning: if you run in a memory error when attempting to load the netcdf files with the global tidal constituents, use [this script](./examples/tide_model_clipping/clip_tide_files.py) to clip them to a smaller region of interest to reduce their size. 
+
 ![example_tides](https://github.com/user-attachments/assets/f0b0c29d-2db8-450c-86f2-73614a6a0940)
 
 Once you have the tide levels, you need an estimate of the beach slope. You can provide this manually (e.g., 0.1 for all transects) or you can also estimate it using the satellite-derived shorelines and tide levels inside the notebook, see the Beach Slope estimation scetion. This parts uses the [CoastSat.slope](https://github.com/kvos/CoastSat.slope) repository, for more details on the methodology see [Vos et al. 2020](https://doi.org/10.1029/2020GL088365) (preprint available [here](https://www.essoar.org/doi/10.1002/essoar.10502903.2)).

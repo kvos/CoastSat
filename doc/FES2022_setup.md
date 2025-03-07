@@ -22,7 +22,7 @@ If you have an old installation of coastsat (pre version 3.0), you will not have
 
 6. Finally download the `fes2022.yaml` from https://github.com/CNES/aviso-fes/tree/main/data/fes2022b and save it in the same folder as /load_tide and /ocean_tide. 
 
-7. Open the `fes2022.yaml` file in a text editor and change the path to each of the tidal constituents (individual netcdf files). Add the absolute path to each .nc file, an example is shown below. You can use find and replace to do this in one go. It should look like below:
+7. Open the `fes2022.yaml` file in a text editor and change the path to each of the tidal constituents (individual netcdf files). Add the absolute path to each .nc file (pay attention to special characters), an example is shown below. You can use find and replace to do this in one go. It should look like below:
     ```
     radial:
     cartesian:

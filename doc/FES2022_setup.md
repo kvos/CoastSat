@@ -51,7 +51,7 @@ Activate the coastsat environment and open Python:
 - `python`
 Locate the path to your `fes2022.yaml` file and copy it. Then type:
 - `import pyfes`
-- `filepath = PATH_TO_fes2022.yaml`
+- `config = LOCAL_PATH/fes2022.yaml` (for LOCAL_PATH copy the location of the directory that contains `fes2022.yaml`)
 - `handlers = pyfes.load_config(config)`
 
 This last command may take 5 minutes to run but if it doesn't return an error you are all good to go.

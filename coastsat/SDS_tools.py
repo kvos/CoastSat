@@ -4,6 +4,7 @@ This module contains utilities to work with satellite images
 Author: Kilian Vos, Water Research Laboratory, University of New South Wales
 """
 
+# load modules
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -458,15 +459,21 @@ def get_filenames(filename, filepath, satname):
     fn: str or list of str
         contains the filepath + filenames to access the satellite image
         
-    """     
-    
+    """ 
+    ms_suffix_Landsat = 'ms.tif'    
+    mask_suffix_Landsat = 'mask.tif'
+    pan_suffix_Landsat = 'pan.tif'
+    if 'dup' in filename:
+        ms_suffix_Landsat = f'ms_{filename.split('_')[-1]}'
+        mask_suffix_Landsat = f'mask_{filename.split('_')[-1]}'
+        pan_suffix_Landsat = f'pan_{filename.split('_')[-1]}'
     if satname == 'L5':
-        fn_mask = filename.replace('ms.tif','mask.tif')
+        fn_mask = filename.replace(ms_suffix_Landsat,mask_suffix_Landsat)
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], fn_mask)]
     if satname in ['L7','L8','L9']:
-        fn_pan = filename.replace('ms.tif','pan.tif')
-        fn_mask = filename.replace('ms.tif','mask.tif')
+        fn_pan = filename.replace(ms_suffix_Landsat,pan_suffix_Landsat)
+        fn_mask = filename.replace(ms_suffix_Landsat,mask_suffix_Landsat)
         fn = [os.path.join(filepath[0], filename),
               os.path.join(filepath[1], fn_pan),
               os.path.join(filepath[2], fn_mask)]
@@ -873,7 +880,7 @@ def smallest_rectangle(polygon):
 
 def make_animation_mp4(filepath_images, fps, fn_out):
     "function to create an animation with the saved figures"
-    with imageio.get_writer(fn_out, mode='I', duration=1000/fps) as writer:
+    with imageio.get_writer(fn_out, mode='I', fps=fps) as writer:
         filenames = os.listdir(filepath_images)
         # order chronologically
         filenames = np.sort(filenames)

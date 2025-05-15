@@ -464,9 +464,9 @@ def get_filenames(filename, filepath, satname):
     mask_suffix_Landsat = 'mask.tif'
     pan_suffix_Landsat = 'pan.tif'
     if 'dup' in filename:
-        ms_suffix_Landsat = f'ms_{filename.split('_')[-1]}'
-        mask_suffix_Landsat = f'mask_{filename.split('_')[-1]}'
-        pan_suffix_Landsat = f'pan_{filename.split('_')[-1]}'
+        ms_suffix_Landsat = 'ms_%s'%(filename.split('_')[-1])
+        mask_suffix_Landsat = 'mask_%s'%(filename.split('_')[-1])
+        pan_suffix_Landsat = 'pan_%s'%(filename.split('_')[-1])
     if satname == 'L5':
         fn_mask = filename.replace(ms_suffix_Landsat,mask_suffix_Landsat)
         fn = [os.path.join(filepath[0], filename),

@@ -484,10 +484,18 @@ This section provides a list of references that use the CoastSat toolbox as well
 
 - Time-series of shoreline change along the Pacific Rim (v1.4) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7758183
 
-- Time-series of shoreline change along the U.S. Atlantic coast: U.S. Geological Survey data release, https://doi.org/10.5066/P9BQQTCI.
-
-- Time-series of shoreline change for the Klamath River Littoral Cell (California) (1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7641757
+- Time-series of shoreline change along the U.S. Atlantic coast: Zenodo, https://doi.org/10.5281/zenodo.15626279.
 
 - Beach-face slope dataset for Australia (Version 2) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7272538
 
-- Training dataset used for pixel-wise classification in CoastSat (initial version): https://doi.org/10.5281/zenodo.3334147
+- Time-series of shoreline change for the Klamath River Littoral Cell (California) (1.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7641757
+
+- Training dataset used for pixel-wise classification in CoastSat (initial version 2019): https://doi.org/10.5281/zenodo.3334147
+
+### Medium Articles ([link](https://medium.com/@voskilian))
+
+- Mapping coastal change from space (Part 1): [link](https://medium.com/@voskilian/mapping-coastal-change-from-space-part-1-53a7de363cd9)
+
+- Mapping coastal change from space (Part 2): Tidal correction: [link](https://medium.com/@voskilian/mapping-coastal-change-from-space-part-2-tidal-correction-02978dda4189)
+
+- Mapping coastal change from space (Part 3): open data in a webGIS portal: [link](https://medium.com/@voskilian/mapping-coastal-change-from-space-part-3-open-data-in-a-webgis-portal-88596b1846db)

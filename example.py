@@ -23,6 +23,10 @@ import pytz
 from pyproj import CRS
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
+# authenticate GEE with project name (YOU NEED TO INPUT YOUR OWN PROJECT NAME)
+project_name = 'ee-voskilian' # to get this value, run in the terminal "gcloud config get-value project" 
+SDS_download.authenticate_and_initialize(project_name)
+
 # region of interest (longitude, latitude in WGS84)
 polygon = [[[151.301454, -33.700754],
             [151.311453, -33.702075],

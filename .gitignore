@@ -20,3 +20,5 @@
 /examples/tide_model_clipping/load_tide
 /examples/tide_model_clipping/ocean_tide
 /examples/tide_model_clipping/*.yaml
+.vscode/settings.json
+.vscode/launch.json

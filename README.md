@@ -122,9 +122,12 @@ If any problems with the installation, raise an issue.
 <details>
 <summary><strong>1.2 Activate Google Earth Engine Python API:</strong></summary>
 
-First, create a Google Earth Engine project at https://signup.earthengine.google.com/. 
-Then, go to https://cloud.google.com/sdk/docs/install and install the `gcloud CLI`. After you have installed it will automatically launch and let you authenticate with your GEE account (or personal gmail).
+1) Create a Google Earth Engine project at https://signup.earthengine.google.com/.
+2) Go to https://cloud.google.com/sdk/docs/install and install the `gcloud CLI`. For Windows, download the  Google Cloud CLI installer.
+3) Once installation is completed, it will automatically let you configure your project and authenticate with your GEE account. If it doesn't, run `gcloud init` on the terminal.
+4) Finally, you need to store your GEE project name. If it is not displayed during configuration, run `gcloud config get-value project` to print in in the terminal. For example, mine is `ee-voskilian`. This will be needed later.
 
+:warning: if you're having issues with GEE authentication, open the gloud CLI and run this command: `gcloud components update`.
 :warning: if you're finding that you're always asked to authenticate, open the gloud CLI and run this command: `gcloud auth application-default login` to set a default authentication on your machine.
 </details>
 

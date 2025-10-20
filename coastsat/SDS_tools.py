@@ -23,6 +23,7 @@ from scipy import stats, interpolate
 import pyproj
 import pandas as pd
 import imageio
+from PIL import Image
 
 ###################################################################################################
 # COORDINATES CONVERSION FUNCTIONS
@@ -878,6 +879,7 @@ def smallest_rectangle(polygon):
 # MAKE ANIMATIONS
 ###################################################################################################
 
+"""
 def make_animation_mp4(filepath_images, fps, fn_out):
     "function to create an animation with the saved figures"
     with imageio.get_writer(fn_out, mode='I', fps=fps) as writer:
@@ -887,8 +889,84 @@ def make_animation_mp4(filepath_images, fps, fn_out):
         for i in range(len(filenames)):
             image = imageio.imread(os.path.join(filepath_images,filenames[i]))
             writer.append_data(image)
-    print('Animation has been generated (using %d frames per second) and saved at %s'%(fps,fn_out))
+    print('Animation has been generated (using %d frames per second) and saved at %s'%(fps,fn_out))"""
     
+# Define functions for resizing and creating animations
+def resize_image_to_fixed_size(image, size=(2864, 1440)):
+    """
+    Resize an image to a fixed size.
+
+    Args:
+        image (numpy.ndarray): The image to be resized.
+        size (tuple): The target size for the image.
+
+    Returns:
+        numpy.ndarray: The resized image.
+    """
+    return image.resize(size)
+
+def load_and_resize_images(image_folder, size=(2864, 1440)):
+    """
+    Load and resize all images in a folder to a fixed size.
+
+    Args:
+        image_folder (str): Path to the folder containing images.
+        size (tuple): The target size for the images.
+
+    Returns:
+        list: A list of tuples, each containing the filename and the resized image.
+    """
+    images = []
+    for filename in sorted(os.listdir(image_folder)):
+        if filename.endswith(".jpg"):
+            img_path = os.path.join(image_folder, filename)
+            image = Image.open(img_path)
+            resized_image = resize_image_to_fixed_size(image, size)
+            images.append((filename, resized_image))
+    return images
+
+def create_animation(image_folder, output_file, fps=4, size=(2864, 1440), probesize=5000000):
+    """
+    Create an animation from images in a folder and save it as a video file.
+
+    Args:
+        image_folder (str): Path to the folder containing images.
+        output_file (str): Path to the output video file.
+        fps (int): Frames per second for the video.
+        size (tuple): The target size for the images.
+        probesize (int): Probesize parameter for ffmpeg.
+
+    Raises:
+        ValueError: If images have different sizes.
+    """
+    images = load_and_resize_images(image_folder, size)
+    
+    # Check for different image sizes
+    sizes = [img[1].size for img in images]
+    unique_sizes = set(sizes)
+    if len(unique_sizes) > 1:
+        print("Images have different sizes: ", unique_sizes)
+        for img in images:
+            print(f"{img[0]}: {img[1].size}")
+        raise ValueError("All images in a movie should have the same size")
+
+    writer = imageio.get_writer(output_file, fps=fps, ffmpeg_params=['-probesize', str(probesize)])
+    for filename, image in images:
+        writer.append_data(np.array(image))
+    writer.close()
+
+def make_animation_mp4(filepath_images, fps, fn_out):
+    """
+    Generate an animation (MP4) from images in a specified folder.
+
+    Args:
+        filepath_images (str): Path to the folder containing images.
+        fps (int): Frames per second for the video.
+        fn_out (str): Path to the output video file.
+    """
+    create_animation(filepath_images, fn_out, fps)
+    print('Animation has been generated (using %d frames per second) and saved at %s'%(fps, fn_out))
+
 ###################################################################################################
 # VALIDATION
 ###################################################################################################

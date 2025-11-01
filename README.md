@@ -51,14 +51,14 @@ CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the do
 
  :point_right: Other open-source repositories and extensions related to CoastSat: 
 
-- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat.
+- [CoastSat.slope](https://github.com/kvos/CoastSat.slope): estimates the beach-face slope from the satellite-derived shorelines obtained with CoastSat (integrated in CoastSat since v3.0).
 - [CoastSat.PlanetScope](https://github.com/ydoherty/CoastSat.PlanetScope): shoreline extraction for PlanetScope Dove imagery (near-daily since 2017 at 3m resolution).
-- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 - [SDS_Benchmark](https://github.com/SatelliteShorelines/SDS_Benchmark): testbed for satellite-derived shorelines mapping algorithms and validation against benchmark datasets.
 - [CoastSat.islands](https://github.com/mcuttler/CoastSat.islands): 2D planform measurements for small reef islands.
 - [CoastSat.Maxar](https://github.com/kvos/CoastSat.Maxar): shoreline extraction on Maxar World-View images (in progress)
 - [InletTracker](https://github.com/VHeimhuber/InletTracker): monitoring of intermittent open/close estuary entrances.
 - [VedgeSat](https://github.com/fmemuir/COASTGUARD/tree/master): monitoring vegetation lines.
+- [CoastSeg](https://github.com/dbuscombe-usgs/CoastSeg): an interactive toolbox for downloading satellite imagery, applying image segmentation models, mapping shoreline positions and more.
 
  :point_right: Publications describing the CoastSat satellite-derived shorelines data and methods:
 
@@ -125,7 +125,11 @@ If any problems with the installation, raise an issue.
 1) Create a Google Earth Engine project at https://signup.earthengine.google.com/.
 2) Go to https://cloud.google.com/sdk/docs/install and install the `gcloud CLI`. For Windows, download the  Google Cloud CLI installer.
 3) Once installation is completed, it will automatically let you configure your project and authenticate with your GEE account. If it doesn't, run `gcloud init` on the terminal.
-4) Finally, you need to store your GEE project name. If it is not displayed during configuration, run `gcloud config get-value project` to print in in the terminal. For example, mine is `ee-voskilian`. This will be needed later.
+4) Finally, you need to store your GEE project name. If it is not displayed during configuration, run `gcloud config get-value project` to print in in the terminal. For example, mine is `ee-voskilian`. This project name needs to be added in the Python scripts/notebooks to authenticate GEE: 
+    ```
+    project_name = 'ee-voskilian'
+    SDS_download.authenticate_and_initialize(project_name)
+    ```
 
 :warning: if you're having issues with GEE authentication, open the gloud CLI and run this command: `gcloud components update`.
 :warning: if you're finding that you're always asked to authenticate, open the gloud CLI and run this command: `gcloud auth application-default login` to set a default authentication on your machine.
@@ -135,9 +139,9 @@ If any problems with the installation, raise an issue.
 
 ## 2. Usage<a name="usage"></a>
 
-An example of how to run the software in a Jupyter Notebook is provided in [example_jupyter.ipynb](./example_jupyter.ipynb). 
+An example of how to run the software in a Jupyter Notebook is provided in [example_jupyter.ipynb](./example_jupyter.ipynb). You can also run the Jupyter Notebook in VS Code directly.
 
-If you prefer to use **Spyder** or other integrated development environments (IDEs), a Python script named [example.py](./example.py) is also included in the repository. If using **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
+If you prefer to use a Python script, for example in **Spyder** or other integrated development environments (IDEs), use [example.py](./example.py). If using **Spyder**, make sure that the Graphics Backend is set to **Automatic** and not **Inline** (as this mode doesn't allow to interact with the figures). To change this setting go under Preferences>IPython console>Graphics.
 
 <details>
 <summary><strong>How to run Jupyter Notebooks</strong></summary>
@@ -158,7 +162,7 @@ To retrieve from the GEE server the available satellite images cropped around th
 - `sat_list`: satellite missions to consider (e.g., `sat_list = ['L5', 'L7', 'L8', 'L9', 'S2']` for Landsat 5, 7, 8, 9 and Sentinel-2 collections)
 - `sitename`: name of the site (this is the name of the subfolder where the images and other accompanying files will be stored)
 - `filepath`: filepath to the directory where the data will be stored
-- (optional) `S2tile`: for Sentinel-2, this parameter let's you specify the tile from which you'd like to crop your ROI, this avoids having many duplicates in the Sentinel-2 collection. For example `inputs['S2tile'] = '56HLH'` is the S2 tile for Sydney, check [this website](https://eatlas.org.au/data/uuid/f7468d15-12be-4e3f-a246-b2882a324f59) to view all tiles and find the one covering your ROI.
+- (optional) `S2tile`: for Sentinel-2, this parameter let's you specify the tile from which you'd like to crop your ROI, this avoids having many duplicates in the Sentinel-2 collection. For example `inputs['S2tile'] = '56HLH'` is the S2 tile for Sydney. To see all the S2 tiles and select the ones covering your ROI check the [Sentinel-2-grid-explorer](https://dpird-dma.github.io/Sentinel-2-grid-explorer/)
 - (optional) `LandsatWRS`: for Landsat, this parameter let's you specify the tile from which you'd like to crop your ROI, this avoids having many duplicates from overlapping tiles. For example `inputs['LandsatWRS'] = '089083'` is the Landsat tile for Sydney, check [this link](https://www.usgs.gov/media/files/landsat-wrs-2-scene-boundaries-kml-file) to find the tile covering your ROI.
 
 

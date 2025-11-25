@@ -1,6 +1,10 @@
+import os
 import math
+import rasterio
 
 import numpy as np
+
+from rasterio.merge import merge
 
 
 METERS_PER_DEGREE = 111320
@@ -45,3 +49,44 @@ def split_area(polygon, sat='S2'):
             poly_matrix[v_parts - (v + 1)][h] = poly
 
     return np.array(poly_matrix) if h_parts > 0 or v_parts > 0 else np.array([polygon])
+
+
+def merge_rasters(raster_list, output_path, method='first'):
+    """
+    Merge a list of raster (.tif) files into a single raster.
+
+    Parameters:
+    - raster_list: list of file paths to input rasters.
+    - output_path: file path for the merged output raster.
+    - method: how to solve overlaps ('first', 'last', 'min', 'max', 'mean').
+    """
+    if len(raster_list) == 1:
+        os.rename(raster_list[0], output_path)
+        return 0
+
+    src_files_to_mosaic = []
+    for fp in raster_list:
+        src = rasterio.open(fp)
+        src_files_to_mosaic.append(src)
+
+    # Merge rasters
+    mosaic, out_transform = merge(src_files_to_mosaic, method=method)
+
+    # Copy metadata of first raster and update
+    out_meta = src_files_to_mosaic[0].meta.copy()
+    out_meta.update({
+        "driver": "GTiff",
+        "height": mosaic.shape[1],
+        "width": mosaic.shape[2],
+        "transform": out_transform
+    })
+
+    # Write merged raster to disk
+    with rasterio.open(output_path, "w", **out_meta) as dest:
+        dest.write(mosaic)
+
+    # Close opened datasets
+    for src in src_files_to_mosaic:
+        src.close()
+
+    print(f"Merged raster created at {output_path}")

@@ -90,3 +90,10 @@ def merge_rasters(raster_list, output_path, method='first'):
         src.close()
 
     print(f"Merged raster created at {output_path}")
+
+
+def build_list_structure(n, m, value=None):
+    if value is not None and value == 'list':
+        value = []
+    list_structure = [[value] * m for _ in range(n)]
+    return list_structure

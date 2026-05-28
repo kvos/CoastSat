@@ -62,20 +62,22 @@ You can now generate tide time-series using FES2022 for any location and any dat
 ```
 # load pyfes and the global tide model (may take one minute)
 import pyfes
+import pytz
+from datetime import datetime
 filepath = os.path.join(os.pardir,'CoastSat.webgis','aviso-fes-main','data','fes2022b')
 config =  os.path.join(filepath, 'fes2022.yaml')
 handlers = pyfes.load_config(config)
 ocean_tide = handlers['tide']
 load_tide = handlers['radial']
-# load coastsat module to estimate slopes
+# load coastsat module to estimate slope
 from coastsat import SDS_slopes
 
 # get centroid, date range and timestep
-centroid = [151.3023463 -33.7239154]
+centroid = [151.3023463, -33.7239154]
 date_range = [pytz.utc.localize(datetime(2024,1,1)),
               pytz.utc.localize(datetime(2025,1,1))]
 timestep = 900 # in seconds
 
 # predict tides
-dates_ts, tides_ts = SDS_slopes.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
+dates_ts, tides_ts = SDS_slope.compute_tide(centroid, date_range, timestep, ocean_tide, load_tide)
 ```

@@ -6,6 +6,7 @@ Author: Kilian Vos
 
 # load modules
 import os, pickle
+from netCDF4 import Dataset
 import numpy as np
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -44,8 +45,8 @@ def compute_tide(coords,date_range,time_step,ocean_tide,load_tide):
     lons = coords[0]*np.ones(len(dates))
     lats = coords[1]*np.ones(len(dates))
     # compute heights for ocean tide and loadings
-    ocean_short, ocean_long, _ = pyfes.evaluate_tide(ocean_tide,dates_np,lons,lats,num_threads=1)
-    load_short, load_long, _ = pyfes.evaluate_tide(load_tide,dates_np,lons,lats,num_threads=1)
+    ocean_short, ocean_long, _ = pyfes.evaluate_tide(ocean_tide,dates_np,lons,lats)
+    load_short, load_long, _ = pyfes.evaluate_tide(load_tide,dates_np,lons,lats)
     # sum up all components and convert from cm to m
     tide_level = (ocean_short + ocean_long + load_short + load_long)/100
     
@@ -59,8 +60,8 @@ def compute_tide_dates(coords,dates,ocean_tide,load_tide):
     lons = coords[0]*np.ones(len(dates))
     lats = coords[1]*np.ones(len(dates))
     # compute heights for ocean tide and loadings
-    ocean_short, ocean_long, _ = pyfes.evaluate_tide(ocean_tide,dates_np,lons,lats,num_threads=1)
-    load_short, load_long, _ = pyfes.evaluate_tide(load_tide,dates_np,lons,lats,num_threads=1)
+    ocean_short, ocean_long, _ = pyfes.evaluate_tide(ocean_tide,dates_np,lons,lats)
+    load_short, load_long, _ = pyfes.evaluate_tide(load_tide,dates_np,lons,lats)
     # sum up all components and convert from cm to m
     tide_level = (ocean_short + ocean_long + load_short + load_long)/100
     
@@ -462,27 +463,61 @@ def plot_timestep(dates, timestep=8):
     ax.set(xlabel='timestep [days]', ylabel='counts', xticks=timestep*np.arange(0,20),
            xlim=[-1,50], title='Timestep distribution');
 
-def get_region_from_geojson(fn):
-    """
-    Load the region to be clipped from a geojson file.
+###################################################################################################
+# Clipping of tidal constituents
+###################################################################################################
 
-    PS 2025
+def get_springs_tide_range(fp_ocean_tide):
+    'compute the spring tide range for each grid point in the FES2022 ocean tide model'
+    # Use M2 file to build grid coordinates and valid-ocean mask.
+    m2_ds = Dataset(os.path.join(fp_ocean_tide, 'm2_fes2022.nc'))
+    latitudes = np.array(m2_ds.variables['lat'])
+    longitudes = np.array(m2_ds.variables['lon'])
+    m2_amplitude = np.array(m2_ds.variables['amplitude'])
+    fill_value = m2_ds.variables['amplitude']._FillValue
+    ocean_mask = m2_amplitude == fill_value
+    grid_coords = np.stack([longitudes[np.where(~ocean_mask)[1]], latitudes[np.where(~ocean_mask)[0]]], axis=1)
 
-    Arguments:
-    -----------
-    fn: str
-        string containing the path to the file
+    # Spring range estimate uses major semidiurnal/diurnal constituents.
+    components = ['m2', 's2', 'k1', 'o1']
+    component_amplitudes = dict([])
+    for _, component in enumerate(components):
+        component_ds = Dataset(os.path.join(fp_ocean_tide, component + '_fes2022.nc'))
+        amplitude = np.array(component_ds.variables['amplitude'])
+        component_amplitudes[component] = amplitude[np.where(~ocean_mask)]
+        amplitude[ocean_mask] = np.nan
+        print('%s: min:%.2f  max:%.2f'%(component, np.min(component_amplitudes[component]), np.max(component_amplitudes[component])))
 
-    Returns:
-    -----------
-        The coordinates from the geojson
+    amplitude_springs = 2 * (
+        component_amplitudes['m2'] +
+        component_amplitudes['s2'] +
+        component_amplitudes['k1'] +
+        component_amplitudes['o1']
+    ) / 100
+    return grid_coords, amplitude_springs
 
-    """
-    with open(fn) as f:
-        geojson = json.load(f)
-    return geojson["features"][0]["geometry"]
+def plot_tide_map(grid_coords, amplitude_springs, fp_fig, decimate=100):
+    'plot the spring tide range for each grid point in the FES2022 ocean tide model'
+    fig, ax = plt.subplots(1,1,figsize=(10,5),tight_layout=True)
+    ax.axis('equal')
+    scatter = ax.scatter(
+        grid_coords[::decimate,0],
+        grid_coords[::decimate,1],
+        c=amplitude_springs[::decimate],
+        s=2,
+        cmap='viridis',
+        vmin=0.5,
+        vmax=10
+    )
+    colorbar_axis = fig.add_axes(rect=[0.92, 0.4, 0.02, 0.4])
+    fig.colorbar(scatter, cax=colorbar_axis, orientation='vertical')
+    ax.set(xlabel='Longitude',ylabel='Latitude',xlim=[-5,400])
+    fig.savefig(fp_fig)
+    plt.close(fig)
 
-def clip_model_to_region(nc_files, geometry, output_dir):
+    print('Saved tide range map to: %s'%fp_fig)
+
+def clip_model_to_region(nc_files, lat_min, lat_max, output_dir):
     """
     Clips NetCDF files to the specified region and saves the clipped files.
     Longitudes are kept in the 0 to 360 range.
@@ -493,102 +528,99 @@ def clip_model_to_region(nc_files, geometry, output_dir):
     -----------
     nc_files: list
         list containing all of the files from the directory to be clipped
-    geometry: dict
-        dictionary containing the geometry of the region to be clipped
+    lat_min: float
+        minimum of the region to be clipped
+    lat_max: float
+        minimum of the region to be clipped
     output_dir: str
         string representing the directory where the clipped files will be saved
 
     """
-    coords = np.array(geometry["coordinates"][0])
-    lon_min, lon_max = coords[:, 0].min(), coords[:, 0].max()
-    lat_min, lat_max = coords[:, 1].min(), coords[:, 1].max()
-
-    if lon_min < 0:
-        lon_min += 360
-    if lon_max < 0:
-        lon_max += 360
-
     clipped_paths = {}
-
     for file_path in nc_files:
         print(f"Processing: {file_path}")
         ds = xr.open_dataset(file_path, engine="netcdf4")
-
-        # Ensure longitude is in 0 to 360 format
-        if ds.lon.min() < 0:
-            ds = ds.assign_coords({"lon": (ds.lon % 360)}).sortby("lon")
-
-        # Select the region
-        clipped_ds = ds.sel(
-            lon=slice(lon_min, lon_max),
-            lat=slice(lat_min, lat_max)
-        )
-
+        # Clip latitude with slice to preserve axis regularity.
+        lat0 = float(ds.lat.values[0])
+        lat1 = float(ds.lat.values[-1])
+        if lat0 <= lat1:
+            ds_lat = ds.sel(lat=slice(lat_min, lat_max))
+        else:
+            ds_lat = ds.sel(lat=slice(lat_max, lat_min))
+        clipped_ds = ds_lat
         # Preserve metadata
         clipped_ds.attrs = ds.attrs
         for var in clipped_ds.data_vars:
             clipped_ds[var].attrs = ds[var].attrs
-
         # Save the clipped file to the same name in the output directory
         filename = os.path.basename(file_path)
         output_path = os.path.join(output_dir, filename)
         os.makedirs(output_dir, exist_ok=True)
         clipped_ds.to_netcdf(output_path)
         print(f"Saved clipped file to: {output_path}")
-
         clipped_paths[file_path] = output_path
-    
     return clipped_paths
-
 
 def write_new_fes_yaml(original_yaml, new_yaml, path_maps):
     """
-    Creates a new YAML file that
-    replaces each old path with its new clipped path.
-
-    The structure is assumed:
-      radial:
-        cartesian:
-          paths:
-            2N2: path\to\load_tide\2n2_fes2022.nc
-            ...
-      tide:
-        cartesian:
-          paths:
-            2N2: path\to\ocean_tide\2n2_fes2022.nc
-            ...
-
-    PS 2025
-
-    Arguments:
-    -----------
-    original_yaml : str
-        Path to the original YAML file to read.
-    new_yaml : str
-        Path where the new, updated YAML will be written.
-    path_maps : dict
-        {
-          "radial": { old_path_1: new_path_1, ... },
-          "tide":   { old_path_2: new_path_2, ... }
-        }
+    Creates a new YAML file that replaces each old path with its new clipped path.
     """
     with open(original_yaml, 'r') as f:
         config = yaml.safe_load(f)
 
-    # Update "radial" -> cartesian -> paths
-    for old_path, new_path in path_maps["radial"].items():
-        for key, val in config["radial"]["cartesian"]["paths"].items():
-            if val == old_path:
-                config["radial"]["cartesian"]["paths"][key] = new_path
+    def _replace_paths(section_name, replacements):
+        section_paths = config[section_name]["cartesian"]["paths"]
+        # 1) Exact match using normalized paths
+        norm_replacements = {os.path.normpath(k): v for k, v in replacements.items()}
+        for key, val in section_paths.items():
+            norm_val = os.path.normpath(val)
+            if norm_val in norm_replacements:
+                section_paths[key] = norm_replacements[norm_val]
 
-    # Update "tide" -> cartesian -> paths
-    for old_path, new_path in path_maps["tide"].items():
-        for key, val in config["tide"]["cartesian"]["paths"].items():
-            if val == old_path:
-                config["tide"]["cartesian"]["paths"][key] = new_path
+        # 2) Fallback by filename (handles slash/style differences)
+        basename_replacements = {os.path.basename(k).lower(): v for k, v in replacements.items()}
+        for key, val in section_paths.items():
+            base = os.path.basename(val).lower()
+            if base in basename_replacements:
+                section_paths[key] = basename_replacements[base]
+
+    _replace_paths("radial", path_maps["radial"])
+    _replace_paths("tide", path_maps["tide"])
 
     # Write out the new YAML file
     with open(new_yaml, 'w') as f:
         yaml.safe_dump(config, f)
 
     print(f"Created new YAML at: {new_yaml}")
+
+def format_lat_band_tag(lat_min, lat_max):
+    "formats latitude band tag for YAML filename"
+    def _format_lat(value):
+        value = int(value)
+        if value < 0:
+            return f"{abs(value):02d}S"
+        return f"{value:02d}N"
+
+    return f"{_format_lat(lat_min)}_{_format_lat(lat_max)}"
+
+def build_latitude_bands(lat_min, lat_max, band_height=20):
+    "creates latitude bands for clipping based on specified height and range"
+    bands = []
+    current_lat = lat_min
+    while current_lat < lat_max:
+        next_lat = min(current_lat + band_height, lat_max)
+        bands.append((current_lat, next_lat))
+        current_lat = next_lat
+    return bands
+
+def select_yaml_for_centroid(centroid, band_configs):
+    "selects the appropriate YAML configuration based on the centroid latitude and defined latitude bands"
+    centroid_lat = centroid[1]
+    for band_config in band_configs:
+        if band_config["lat_min"] <= centroid_lat < band_config["lat_max"]:
+            return band_config
+
+    if len(band_configs) > 0 and centroid_lat == band_configs[-1]["lat_max"]:
+        return band_configs[-1]
+
+    raise ValueError(f"No clipped YAML file found for centroid latitude {centroid_lat}.")

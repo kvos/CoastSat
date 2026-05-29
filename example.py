@@ -20,11 +20,13 @@ from scipy import interpolate
 from scipy import stats
 from datetime import datetime, timedelta
 import pytz
+import json
 from pyproj import CRS
 from coastsat import SDS_download, SDS_preprocess, SDS_shoreline, SDS_tools, SDS_transects
 
 # authenticate GEE with project name (YOU NEED TO INPUT YOUR OWN PROJECT NAME)
 project_name = 'ee-voskilian' # to get this value, run in the terminal "gcloud config get-value project" 
+project_name = 'coastsat-eu' # to get this value, run in the terminal "gcloud config get-value project" 
 SDS_download.authenticate_and_initialize(project_name)
 
 # region of interest (longitude, latitude in WGS84)
@@ -261,18 +263,34 @@ print('Time-series of the shoreline change along the transects saved as:\n%s'%fn
 from coastsat import SDS_slope
 # load pyfes and the global tide model (may take one minute)
 import pyfes
-# enter the location of where you downloaded the FES2022 data
-filepath = os.path.join(os.pardir,'CoastSat.webgis','aviso-fes-main','data','fes2022b')
-config =  os.path.join(filepath, 'fes2022.yaml')
-handlers = pyfes.load_config(config)
-ocean_tide = handlers['tide']
-load_tide = handlers['radial']
 
 # get polygon centroid, coordinates to get tides from
 centroid = np.mean(polygon[0], axis=0)
 print(centroid)
 # if longitude is negative add 180 (longitudes are from 0 to 360 in fes)
 if centroid[0] < 0: centroid[0] += 360
+
+# Option 1: if you have a lot of RAM, you can load the global tidal model
+filepath = os.path.join(os.pardir,'CoastSat.webgis','aviso-fes-main','data','fes2022b')
+selected_yaml =  os.path.join(filepath, 'fes2022.yaml')
+
+# Option 2: if you don't have enough RAM, clip the netcdf files by latitude using the script clip_tide_netcdf_by_latitude.py
+# then load the band configs and select the correct YAML config based on the centroid latitude (only needs 1-2GB RAM)
+fp_band_configs = os.path.join(os.getcwd(), 'examples', 'tide_model_clipping', 'fes2022_by_latitude', 'band_configs.json')
+with open(fp_band_configs, "r") as f:
+    band_configs = json.load(f)
+selected_band = SDS_slope.select_yaml_for_centroid(centroid, band_configs)
+selected_yaml = selected_band["yaml"]
+
+# load files using pyfes (syntax for new and older versions)
+if int(pyfes.__version__.split('.')[0]) < 2026:
+    handlers = pyfes.load_config(selected_yaml)
+    ocean_tide = handlers['tide']
+    load_tide = handlers['radial']
+else:
+    config = pyfes.config.load(selected_yaml)
+    ocean_tide = config.models['tide']
+    load_tide = config.models['radial']
 
 # get tides time-series (15 minutes timestep)
 date_range = [pytz.utc.localize(datetime(1984,1,1)),
@@ -301,7 +319,7 @@ ax.grid(which='major', linestyle=':', color='0.5')
 ax.plot(dates_ts, tides_ts, '-', color='0.6', label='all time-series')
 ax.plot(dates_sat, tides_sat, '-o', color='k', ms=6, mfc='w',lw=1, label='image acquisition')
 ax.set(ylabel='tide level [m]',xlim=[dates_sat[0],dates_sat[-1]], title='Tide levels at the time of image acquisition');
-ax.legend();
+ax.legend()
 
 # tidal correction along each transect
 reference_elevation = 0.7 # elevation at which you would like the shoreline time-series to be

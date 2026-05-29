@@ -33,17 +33,14 @@ The toolbox has the following functionalities:
 <details>
 <summary><strong>Latest updates</strong></summary>
 
+:arrow_forward: *(2026/05/29)*
+CoastSat v3.1: added script to split FES2022 tidal files into latitude bands and allow loading with limited RAM (see [clip_tide_netcdf_by_latitude.py](./examples/tide_model_clipping/clip_tide_netcdf_by_latitude.py))
+
 :arrow_forward: *(2024/10/02)*
 CoastSat v3.0: integration with [FES2022 global tide model](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) to perform **tidal correction** and **beach slope estimation** within CoastSat.
 
 :arrow_forward: *(2024/08/29)*
 CoastSat v2.7: reverse compatibility for file downloads (pre v2.6) and removed Collection 1 (deprecated, throws an error)
-
-:arrow_forward: *(2024/05/07)*
-CoastSat v2.6: added the tilename at the end of each image filename when downloading so that images can be separated by tiles if needed. Also a number of bug fixes on `matplotlib` and `numpy` from @2320sharon and @thekester.
-
-:arrow_forward: *(2024/04/26)*
-CoastSat v2.5: contributions from @2320sharon and @DanieTheron to improve the download updates and cloud masking for Landsat.
 
 </details>
 <details>
@@ -415,7 +412,7 @@ In the notebook, the user has two options for the tide level time-series:
 - **Option 1**: use a CSV file with the time-series of water levels (at least 15/30 min timestep). Note that this file should be formatted as the one provided in */examples* [NARRA_tides.csv](https://github.com/kvos/CoastSat/blob/master/examples/NARRA_tides.csv). Dates should be in UTC time and tides in metres above mean sea level.
 - **Option 2**: use the [FES2022](https://www.aviso.altimetry.fr/en/data/products/auxiliary-products/global-tide-fes/release-fes22.html) global tide model to predict tide levels at your beach. This requires you to have FES2022 setup, follow the instructions in [this document](https://github.com/kvos/CoastSat/blob/master/doc/FES2022_setup.md). Once installed, you can predict tides for any dates at any location in the world!
 
-    :warning: if you run in a memory error when attempting to load the netcdf files with the global tidal constituents, use [this script](./examples/tide_model_clipping/clip_tide_files.py) to clip them to a smaller region of interest to reduce their size. 
+    :warning: loading the tidal constituents for the entire world uses ~10GB of RAM. If you don't have as much RAM available, use the script [clip_tide_netcdf_by_latitude.py](./examples/tide_model_clipping/clip_tide_netcdf_by_latitude.py) to clip the constituents to smaller latitude bands and reduce their size in memory.
 
 ![example_tides](https://github.com/user-attachments/assets/f0b0c29d-2db8-450c-86f2-73614a6a0940)
 

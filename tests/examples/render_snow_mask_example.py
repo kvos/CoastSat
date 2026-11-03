@@ -12,7 +12,7 @@ from coastsat.SDS_preprocess import create_sentinel_snow_mask
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / 'nome-l1c-validation.npz'
-OUTPUT = HERE / 'snow-mask-alaska-west-nome.png'
+OUTPUT = HERE / 'snow-mask-alaska-west-nome-ndsi.png'
 
 
 def main():

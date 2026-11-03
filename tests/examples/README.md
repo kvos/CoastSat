@@ -1,6 +1,8 @@
 # Snow mask example
 
-[`snow-mask-alaska-west-nome.png`](snow-mask-alaska-west-nome.png) compares the unmasked true-colour image, the proposed Sentinel-2 Level-1C NDSI snow/ice mask, and Level-2A SCL class 11 as a reference. The SCL band is not used by CoastSat's Level-1C workflow. The matching Level-1C reflectance crop and SCL reference are included in [`nome-l1c-validation.npz`](nome-l1c-validation.npz), and [`render_snow_mask_example.py`](render_snow_mask_example.py) regenerates the figure.
+[`snow-mask-alaska-west-nome.png`](snow-mask-alaska-west-nome.png) is the original figure, showing the unmasked true-colour scene, the SCL class 11 overlay, and the SCL classification map. It is preserved unchanged.
+
+[`snow-mask-alaska-west-nome-ndsi.png`](snow-mask-alaska-west-nome-ndsi.png) is the added comparison of the unmasked scene, the proposed Sentinel-2 Level-1C NDSI snow/ice mask, and Level-2A SCL class 11 as a reference. The SCL band is not used by CoastSat's Level-1C workflow. The matching Level-1C reflectance crop and SCL reference are included in [`nome-l1c-validation.npz`](nome-l1c-validation.npz), and [`render_snow_mask_example.py`](render_snow_mask_example.py) regenerates the added figure.
 
 **Source:** Sentinel-2A Level-1C scene `S2A_3WVM_20240601_0_L1C`, acquired at 22:48 UTC, with the paired Level-2A scene used only for SCL reference labels and the visual background. The cropped bands come from the public Sentinel-2 archive.
 

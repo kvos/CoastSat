@@ -35,6 +35,11 @@ from coastsat import SDS_tools
 
 np.seterr(all='ignore') # raise/ignore divisions by 0 and nans
 
+# Sentinel-2 Level-1C snow detection thresholds. Reflectance inputs are scaled
+# to [0, 1] here; SDS_download converts the brightness threshold to DN units.
+S2_NDSI_THRESHOLD = 0.35
+S2_MIN_GREEN_REFLECTANCE = 0.1
+
 # Main function to preprocess a satellite image (L5, L7, L8, L9 or S2)
 def preprocess_single(fn, satname, cloud_mask_issue, pan_off, s2cloudless_prob=40):
     """
@@ -243,10 +248,18 @@ def preprocess_single(fn, satname, cloud_mask_issue, pan_off, s2cloudless_prob=4
         im_QA = bands[0]
         # compute cloud mask using QA60 band
         cloud_mask_QA60 = create_cloud_mask(im_QA, satname, cloud_mask_issue)
+        # New downloads include the Level-1C NDSI snow mask as the second band.
+        # Keep compatibility with existing one-band QA60 files.
+        if data.RasterCount > 1:
+            im_snow = data.GetRasterBand(2).ReadAsArray()
+        else:
+            im_snow = None
+        cloud_mask_snow = create_snow_mask(im_QA, satname, im_snow)
         # compute cloud mask using s2cloudless probability band
         cloud_mask_s2cloudless = create_s2cloudless_mask(cloud_prob, s2cloudless_prob)
         # combine both cloud masks
-        cloud_mask = np.logical_or(cloud_mask_QA60,cloud_mask_s2cloudless)
+        cloud_mask = np.logical_or(np.logical_or(cloud_mask_QA60, cloud_mask_s2cloudless),
+                                   cloud_mask_snow)
         
         # check if -inf or nan values on any band and create nodata image
         im_nodata = np.zeros(cloud_mask.shape).astype(bool)
@@ -392,7 +405,30 @@ def create_cloud_mask(im_QA, satname, cloud_mask_issue):
             cloud_mask_temp = morphology.remove_small_objects(cloud_mask_temp, min_size=100, connectivity=1)
             cloud_mask = np.logical_or(cloud_mask, cloud_mask_temp)
 
+    # Keep snow separate from cloud morphology so small snow patches survive.
+    if satname != 'S2':
+        cloud_mask = np.logical_or(cloud_mask, create_snow_mask(im_QA, satname))
+
     return cloud_mask
+
+def create_snow_mask(im_QA, satname, im_snow=None):
+    """Return a boolean snow/ice mask from satellite QA or a precomputed S2 mask."""
+    if satname == 'S2':
+        if im_snow is None:
+            return np.zeros(im_QA.shape, dtype=bool)
+        return im_snow != 0
+    # Landsat Collection 2 QA_PIXEL bit 5 marks snow/ice.
+    return (im_QA & (1 << 5)) != 0
+
+def create_sentinel_snow_mask(im_green, im_swir1):
+    """Detect Sentinel-2 snow/ice from Level-1C green and SWIR1 reflectance."""
+    im_green = np.asarray(im_green, dtype=np.float32)
+    im_swir1 = np.asarray(im_swir1, dtype=np.float32)
+    denominator = im_green + im_swir1
+    ndsi = np.divide(im_green - im_swir1, denominator,
+                     out=np.zeros_like(denominator), where=denominator > 0)
+    return ((ndsi > S2_NDSI_THRESHOLD) &
+            (im_green > S2_MIN_GREEN_REFLECTANCE))
 
 def create_s2cloudless_mask(cloud_prob, s2cloudless_prob):
     """

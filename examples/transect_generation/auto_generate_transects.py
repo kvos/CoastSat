@@ -181,36 +181,42 @@ def orient(transects, votes):
             transects[i]['check'] = unsure or np.sum(mine < 0) > np.sum(mine > 0)
 
 
-def plot_qc(transects, ends, segments, fname, img=None, epsg=None):
-    """Save a figure to check the result: the blue triangles should all be in the water."""
-    from matplotlib.figure import Figure   # saves to file without opening a window
-    fig = Figure(figsize=(12, 6), dpi=200)
-    ax = fig.add_subplot()
-    if img is not None and img['epsg'] == epsg:   # MNDWI behind, water in blue
-        g, im = img['georef'], img['mndwi']
-        ax.imshow(im, cmap='RdBu', vmin=-0.8, vmax=0.8, alpha=0.6,
-                  extent=[g[0], g[0] + g[1] * im.shape[1], g[3] + g[5] * im.shape[0], g[3]])
-    for xy in segments:
-        ax.plot(*xy.T, color='orange', lw=1)
-    for j, t in enumerate(transects):
-        land, sea = ends(t)
-        ax.plot(*np.array([land, sea]).T, color='red' if t['check'] else 'k', lw=0.8)
-        ax.plot(*sea, 'v', color='tab:blue', ms=3)
-        if j % max(1, len(transects) // 15) == 0:
-            ax.text(*land, t['name'], fontsize=6, ha='center', va='bottom')
+def plot_qc(transects, ends, segments, fname, output=None):
+    """Save the same transect figure as the CoastSat example: mapped shorelines,
+    transects and a blue dot at the landward end (origin) of each transect."""
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=[15, 8], tight_layout=True)
+    plt.axis('equal')
+    plt.xlabel('Eastings')
+    plt.ylabel('Northings')
+    plt.grid(linestyle=':', color='0.5')
+    if output is not None:   # all the shorelines CoastSat mapped
+        for sl, date in zip(output['shorelines'], output['dates']):
+            if len(sl) > 0:
+                plt.plot(sl[:, 0], sl[:, 1], '.', label=date.strftime('%d-%m-%Y'))
+    else:                    # no mapped shorelines yet, show the reference shoreline
+        for xy in segments:
+            plt.plot(xy[:, 0], xy[:, 1], '-', color='0.5')
+    every = max(1, len(transects) // 10)   # label about 10 transects so they stay readable
     pts = np.array([p for t in transects for p in ends(t)])
-    ax.set_xlim(pts[:, 0].min() - 200, pts[:, 0].max() + 200)
-    ax.set_ylim(pts[:, 1].min() - 200, pts[:, 1].max() + 200)
-    ax.set_aspect('equal')
-    n_check = sum(t['check'] for t in transects)
-    ax.set_title(f'{len(transects)} transects, {n_check} to check (red). '
-                 'Blue triangles = seaward end. Orange = reference shoreline.', fontsize=9)
-    fig.savefig(fname, bbox_inches='tight')
+    min_gap = 0.05 * max(np.ptp(pts[:, 0]), np.ptp(pts[:, 1]))
+    last = None
+    for j, t in enumerate(transects):
+        tr = np.array(ends(t))
+        plt.plot(tr[0, 0], tr[0, 1], 'bo', ms=5)
+        plt.plot(tr[:, 0], tr[:, 1], '-', color='r' if t['check'] else 'k', lw=1)   # red = check it
+        # skip a label if it would sit on top of the previous one
+        if j % every == 0 and (last is None or np.hypot(*(tr[0] - last)) > min_gap):
+            plt.text(tr[0, 0] - 100, tr[0, 1] + 100, t['name'],
+                     va='center', ha='right', bbox=dict(boxstyle="square", ec='k', fc='w'))
+            last = tr[0]
+    fig.savefig(fname, dpi=200)
+    return fig
 
 
 def auto_generate_transects(shoreline=None, epsg=None, sitename=None, filepath='data',
                             sea_side='auto', spacing=100, land_length=200, sea_length=200,
-                            out=None, prefix=None):
+                            out=None, prefix=None, output=None):
     """Make the transects, save them as .geojson and return them in the same
     format as SDS_tools.transects_from_geojson: {name: [[land x, y], [sea x, y]]}.
 
@@ -239,7 +245,6 @@ def auto_generate_transects(shoreline=None, epsg=None, sitename=None, filepath='
         return [t['centre'] - t['normal'] * land_length, t['centre'] + t['normal'] * sea_length]
 
     # which side is the sea?
-    img = None
     if sea_side == 'auto':
         print('Finding the sea side with MNDWI...')
         votes = []
@@ -262,7 +267,12 @@ def auto_generate_transects(shoreline=None, epsg=None, sitename=None, filepath='
                             'check': [bool(t['check']) for t in transects]},
                            geometry=[LineString(ends(t)) for t in transects], crs=epsg)
     gdf.to_file(out, driver='GeoJSON')
-    plot_qc(transects, ends, segments, out.replace('.geojson', '_qc.jpg'), img, epsg)
+    # figure with CoastSat's mapped shorelines (<sitename>_output.pkl), if they exist
+    fn = os.path.join(filepath, sitename or '', f'{sitename}_output.pkl')
+    if output is None and sitename and os.path.exists(fn):
+        with open(fn, 'rb') as f:
+            output = pickle.load(f)
+    plot_qc(transects, ends, segments, out.replace('.geojson', '_qc.jpg'), output)
     print(f'Saved {out} ({int(gdf["check"].sum())} transects to check)')
     return {t['name']: np.array(ends(t)) for t in transects}
 

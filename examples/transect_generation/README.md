@@ -24,11 +24,11 @@ Each transect starts on land and ends in the sea. The script finds the sea side 
 
 ## Check the result
 
-In the QC figure, the blue triangles (seaward ends) should all be in the water. Transects in red have `check=True` in the file. Look at them in QGIS before running the intersection.
+The QC figure is the same as CoastSat's transect plot: your mapped shorelines (if you have extracted them already), the transects, and a blue dot at the start of each one. The blue dots should all be on land. Transects in red have `check=True` in the file. Look at them in QGIS before running the intersection.
 
 ![Example QC figure](example_qc.jpg)
 
-*Synthetic test coast. MNDWI is in the background (blue = water). The red transects on the right are outside the image, so their sea side could not be checked.*
+*Narrabeen, with CoastSat's example shorelines (`examples/NARRA_output.pkl`). The two red transects at the northern end cross each other.*
 
 ## Options
 

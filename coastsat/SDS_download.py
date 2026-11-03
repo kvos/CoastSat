@@ -239,22 +239,20 @@ def retrieve_images(inputs):
                 im_cloud = ee.Image(im_dict_s2cloudless[i]['id'])
                 cloud_prob = im_cloud.select('probability').rename('s2cloudless')
                 image_ee = image_ee.addBands(cloud_prob)
-                # The Sentinel-2 scene classification layer identifies snow/ice
-                # (class 11). It is available in the harmonized surface reflectance
-                # collection, with the same system:index as the TOA image.
-                try:
-                    scl = ee.Image('COPERNICUS/S2_SR_HARMONIZED/' +
-                                   im_meta['properties']['system:index']).select('SCL')
-                    scl.bandNames().getInfo()  # force validation before adding the optional band
-                    # Keep the finer 20 m SCL grid and align QA60 to it so both
-                    # categorical layers can be stored in one mask raster.
-                    qa60 = image_ee.select('QA60').reproject(crs=scl.projection())
-                    image_ee = image_ee.addBands(qa60, overwrite=True)
-                    image_ee = image_ee.addBands(scl)
-                except Exception:
-                    # Older scenes may not have an SR counterpart; QA60 and
-                    # s2cloudless masking remain available for those scenes.
-                    pass
+                # Estimate snow/ice from Sentinel-2 Level-1C TOA reflectance.
+                # SCL belongs to Level-2A and is not part of CoastSat's inputs.
+                # NDSI = (green - SWIR1) / (green + SWIR1); use the 20 m B11
+                # grid for the mask and align QA60 to it for a single mask file.
+                swir1 = image_ee.select('B11')
+                green = image_ee.select('B3').resample('bilinear').reproject(
+                    crs=swir1.projection())
+                ndsi = green.subtract(swir1).divide(green.add(swir1))
+                snow_mask = ndsi.gt(SDS_preprocess.S2_NDSI_THRESHOLD).And(
+                    green.gt(SDS_preprocess.S2_MIN_GREEN_REFLECTANCE * 10000)
+                ).rename('snow_mask').uint8()
+                qa60 = image_ee.select('QA60').reproject(crs=swir1.projection())
+                image_ee = image_ee.addBands(qa60, overwrite=True)
+                image_ee = image_ee.addBands(snow_mask)
             
             # download the images as .tif files
             bands = dict([])
@@ -400,11 +398,11 @@ def retrieve_images(inputs):
                 fp_swir = filepaths[2]
                 fp_mask = filepaths[3]    
                 # select bands (10 m RGB+NIR+s2cloudless, 20 m SWIR1,
-                # QA60 at 60 m or QA60+SCL at 20 m when SCL is available)
+                # QA60 and the Level-1C NDSI snow mask at 20 m)
                 bands['ms'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[:5]]
                 bands['swir'] = [im_bands[_] for _ in range(len(im_bands)) if im_bands[_]['id'] in bands_id[5:6]]
                 bands['mask'] = [im_bands[_] for _ in range(len(im_bands))
-                                 if im_bands[_]['id'] in ['QA60', 'SCL']]
+                                 if im_bands[_]['id'] in ['QA60', 'snow_mask']]
                 # adjust polygon for both ms and pan bands
                 proj_ms = image_ee.select('B1').projection()
                 proj_swir = image_ee.select('B11').projection()
@@ -499,7 +497,7 @@ def retrieve_images(inputs):
 def get_metadata(inputs):
     """
     Gets the metadata from the downloaded images by parsing .txt files located
-    in the \meta subfolder.
+    in the `meta` subfolder.
 
     KV WRL 2018
 
